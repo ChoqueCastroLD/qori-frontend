@@ -6,6 +6,53 @@ import { ssrGet, type Raffle } from "../lib/api";
 const raffles = await ssrGet<Raffle[]>("/raffles", []);
 const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED").slice(0, 3);
 const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
+
+const faqs = [
+  {
+    q: "¿Qué es qori?",
+    a: "qori es una plataforma de sorteos de productos con premios reales para Latinoamérica. Compras boletos con un número único, el sorteo se transmite en vivo con un show gamificado, y puedes verificar el resultado por tu cuenta.",
+  },
+  {
+    q: "¿Qué son los lingotes?",
+    a: "Los lingotes son la moneda interna de qori. 1 dólar equivale a 10 lingotes. Recargas lingotes con Yape, Plin, transferencia, PayPal o MercadoPago y los usas para comprar boletos. Por cada boleto recibes 1 lingote de bono.",
+  },
+  {
+    q: "¿Cómo sé que el sorteo es justo?",
+    a: "Cada sorteo es provably-fair. Antes de vender publicamos el compromiso de la semilla (sha256). El azar viene de drand, un faro público de aleatoriedad que no controlamos. Al terminar revelamos la semilla y cualquiera puede reproducir todo el show y confirmar el ganador.",
+  },
+  {
+    q: "¿Cuándo se realiza el sorteo?",
+    a: "Cada sorteo tiene una fecha y un mínimo de boletos. Al llegar la hora, si se alcanzó el mínimo se sortea automáticamente en vivo. Si no, la fecha se extiende para dar más tiempo. Si aun así no se llega, se cancela y se reembolsan los lingotes.",
+  },
+  {
+    q: "¿Cómo cobro mi premio si gano?",
+    a: "Te contactamos por los datos de tu cuenta. Tras verificar tu identidad y edad (mayor de 18), coordinamos la entrega del premio.",
+  },
+  {
+    q: "¿Gano algo por invitar amigos?",
+    a: "Sí. Comparte tu código de referido y gana 10 lingotes cuando un referido hace su primera compra.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "qori",
+  url: "https://qori.cc",
+  logo: "https://qori.cc/og.png",
+  description: "Sorteos de productos con premios reales, transparentes y verificables (provably-fair) para Latinoamérica.",
+  areaServed: ["PE", "MX", "CO", "CL", "AR", "EC", "BO"],
+};
 ---
 
 <Layout>
@@ -20,7 +67,7 @@ const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
     </h1>
     <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
       Compra boletos, participa en un show en vivo, y verifica el resultado por tu cuenta.
-      Nadie —ni nosotros— puede manipular quién gana.
+      Nadie -ni nosotros- puede manipular quién gana.
     </p>
     <div class="mt-8 flex items-center justify-center gap-3">
       <a href="/sorteos" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">Ver sorteos</a>
@@ -79,6 +126,25 @@ const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
     </section>
   )}
 
+  <!-- FAQ -->
+  <section class="mx-auto max-w-3xl px-5 py-14">
+    <h2 class="text-center text-2xl font-bold text-slate-900">Preguntas frecuentes</h2>
+    <div class="mt-8 divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+      {faqs.map((f) => (
+        <details class="group px-6">
+          <summary class="flex cursor-pointer list-none items-center justify-between py-5 font-semibold text-slate-900">
+            {f.q}
+            <span class="ml-4 text-slate-400 transition group-open:rotate-45">+</span>
+          </summary>
+          <p class="pb-5 text-slate-500">{f.a}</p>
+        </details>
+      ))}
+    </div>
+    <p class="mt-6 text-center text-sm text-slate-500">
+      ¿Otra duda? Mira <a href="/como-funciona" class="font-semibold text-emerald-600 hover:underline">cómo funciona</a>.
+    </p>
+  </section>
+
   <!-- Trust band -->
   <section class="mx-auto max-w-4xl px-5 pb-10">
     <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center">
@@ -90,4 +156,7 @@ const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
       <a href="/verificar" class="mt-6 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Verificar un sorteo</a>
     </div>
   </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
 </Layout>

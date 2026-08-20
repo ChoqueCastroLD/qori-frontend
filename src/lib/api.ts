@@ -24,7 +24,7 @@ export const api = {
   patch: (p: string, body?: unknown) => req(p, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
 };
 
-// Server-safe fetch that never throws (returns fallback) — for SSR pages.
+// Server-safe fetch that never throws (returns fallback) - for SSR pages.
 export async function ssrGet<T>(path: string, fallback: T): Promise<T> {
   try {
     const res = await fetch(`${SERVER_BASE}${path}`);

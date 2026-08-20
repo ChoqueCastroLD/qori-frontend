@@ -29,7 +29,7 @@ export default function Verifier() {
     if (s) { setSlug(s); load(s); }
   }, []);
 
-  // Only drawn raffles are verifiable — suggest those.
+  // Only drawn raffles are verifiable - suggest those.
   const verifiable = all.filter((r) => r.status === "DRAWN");
   const suggestions = q.trim().length === 0
     ? verifiable
@@ -87,7 +87,7 @@ export default function Verifier() {
       <h1 className="text-2xl font-bold text-slate-900">Verificar un sorteo</h1>
       <p className="mt-2 text-sm text-slate-500">
         Recalculamos el sorteo desde la semilla revelada y te mostramos el resultado etapa por etapa.
-        Todo el código es abierto — puedes correrlo tú mismo.
+        Todo el código es abierto - puedes correrlo tú mismo.
       </p>
 
       <div className="relative mt-6">

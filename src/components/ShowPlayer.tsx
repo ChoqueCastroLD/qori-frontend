@@ -214,7 +214,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
               </div>
             </LayoutGroup>
           </div>
-          <p className="mt-3 text-center text-xs text-slate-400">Todo el show se deriva de la semilla comprometida — reproducible y verificable. Los eliminados se van al final; nada se oculta.</p>
+          <p className="mt-3 text-center text-xs text-slate-400">Todo el show se deriva de la semilla comprometida - reproducible y verificable. Los eliminados se van al final; nada se oculta.</p>
         </div>
 
         <div className="lg:sticky lg:top-[150px] lg:self-start">

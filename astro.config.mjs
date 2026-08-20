@@ -6,6 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 // SSR (node) so raffle pages render server-side for SEO + fresh data.
 export default defineConfig({
+  site: "https://qori.cc",
   output: "server",
   adapter: node({ mode: "standalone" }),
   integrations: [react()],

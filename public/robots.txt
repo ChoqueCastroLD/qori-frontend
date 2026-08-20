@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cuenta
+Disallow: /recargar
+
+Sitemap: https://qori.cc/sitemap.xml
