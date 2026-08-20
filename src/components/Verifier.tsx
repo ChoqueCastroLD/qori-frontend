@@ -16,11 +16,29 @@ export default function Verifier() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [all, setAll] = useState<any[]>([]);
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    fetch("/api/raffles", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => setAll(Array.isArray(list) ? list : []))
+      .catch(() => {});
     const s = new URLSearchParams(location.search).get("slug");
     if (s) { setSlug(s); load(s); }
   }, []);
+
+  const suggestions = q.trim().length === 0
+    ? all
+    : all.filter((r) => `${r.title} ${r.slug}`.toLowerCase().includes(q.trim().toLowerCase()));
+
+  function pick(r: any) {
+    setQ(r.title);
+    setSlug(r.slug);
+    setOpen(false);
+    load(r.slug);
+  }
 
   async function load(s: string) {
     setError(""); setResult(null); setRaffle(null); setParticipants([]);
@@ -70,9 +88,42 @@ export default function Verifier() {
         Todo el código es abierto — puedes correrlo tú mismo.
       </p>
 
-      <div className="mt-6 flex gap-2">
-        <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug del sorteo (ej. macbook-air-m3)" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" />
-        <button onClick={() => load(slug)} className="shrink-0 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Cargar</button>
+      <div className="relative mt-6">
+        <div className="flex gap-2">
+          <div className="relative w-full">
+            <input
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+              onFocus={() => setOpen(true)}
+              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              placeholder="Busca por nombre del sorteo (ej. MacBook)…"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+              autoComplete="off"
+            />
+            {open && suggestions.length > 0 && (
+              <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                {suggestions.map((r) => (
+                  <li key={r.slug}>
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); pick(r); }}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50"
+                    >
+                      {r.images?.[0] && <img src={r.images[0]} className="h-9 w-9 rounded-lg object-cover" alt="" />}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-slate-900">{r.title}</span>
+                        <span className="block text-xs text-slate-400">{r.slug}</span>
+                      </span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${r.status === "DRAWN" ? "bg-slate-900 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+                        {r.status === "DRAWN" ? "Finalizado" : "Activo"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <button onClick={() => { const m = suggestions[0]; if (m) pick(m); else load(q.trim()); }} className="shrink-0 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Cargar</button>
+        </div>
       </div>
 
       {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
