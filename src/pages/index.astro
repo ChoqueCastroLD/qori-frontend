@@ -1,0 +1,60 @@
+---
+import "../styles/global.css";
+
+const apiBase = import.meta.env.PUBLIC_API_URL ?? "/api";
+let apiOk = false;
+try {
+  const res = await fetch(`${apiBase.replace(/\/$/, "")}/health`);
+  apiOk = res.ok;
+} catch {
+  apiOk = false;
+}
+---
+
+<!doctype html>
+<html lang="es" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>qori — sorteos transparentes</title>
+    <meta
+      name="description"
+      content="Sorteos de productos con premios reales y sorteo verificable (provably-fair)."
+    />
+  </head>
+  <body class="h-full bg-white text-slate-900 antialiased">
+    <main class="mx-auto flex min-h-full max-w-3xl flex-col items-center justify-center px-6 py-24 text-center">
+      <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+        Sorteo verificable · provably-fair
+      </span>
+
+      <h1 class="text-5xl font-semibold tracking-tight text-slate-900 sm:text-6xl">
+        qori
+      </h1>
+      <p class="mt-4 max-w-xl text-lg text-slate-500">
+        Sorteos de productos con premios reales, transparentes y auditables.
+        Cada sorteo se puede verificar de forma independiente.
+      </p>
+
+      <div class="mt-10 flex items-center gap-3">
+        <a
+          href="#"
+          class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700"
+        >
+          Ver sorteos
+        </a>
+        <a
+          href="#"
+          class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          ¿Cómo funciona?
+        </a>
+      </div>
+
+      <p class="mt-16 text-xs text-slate-400">
+        API: {apiOk ? "conectada ✓" : "no disponible"} · Próximamente
+      </p>
+    </main>
+  </body>
+</html>
