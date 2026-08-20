@@ -1,0 +1,8 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import ShowPlayer from "../../../components/ShowPlayer.tsx";
+const { slug } = Astro.params;
+---
+<Layout title="Show · qori">
+  <ShowPlayer client:only="react" slug={slug} />
+</Layout>

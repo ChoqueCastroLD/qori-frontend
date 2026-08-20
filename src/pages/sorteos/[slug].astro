@@ -1,0 +1,120 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import BuyWidget from "../../components/BuyWidget.tsx";
+import { ssrGet, type Raffle } from "../../lib/api";
+import { lingotes, usd, pct, timeLeft, GAME_LABEL, localFromUsdCents } from "../../lib/format";
+
+const { slug } = Astro.params;
+const r = await ssrGet<Raffle | null>(`/raffles/${slug}`, null);
+if (!r) return Astro.redirect("/sorteos");
+
+const sold = r.ticketsSold ?? 0;
+const isDrawn = r.status === "DRAWN";
+const isOpen = r.status === "OPEN";
+---
+
+<Layout title={`${r.title} · qori`} description={r.description}>
+  <div class="mx-auto max-w-6xl px-5 py-10">
+    <a href="/sorteos" class="text-sm text-slate-500 hover:text-slate-900">← Volver a sorteos</a>
+
+    <div class="mt-4 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+      <!-- Left -->
+      <div>
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+          <img src={r.images[0]} alt={r.title} class="aspect-[3/2] w-full object-cover" />
+        </div>
+        {r.images.length > 1 && (
+          <div class="mt-3 grid grid-cols-4 gap-3">
+            {r.images.slice(0, 4).map((img) => (
+              <img src={img} alt="" class="aspect-square w-full rounded-lg border border-slate-200 object-cover" />
+            ))}
+          </div>
+        )}
+
+        <h1 class="mt-8 text-3xl font-bold text-slate-900">{r.title}</h1>
+        <p class="mt-1 text-slate-500">Valor aproximado del premio: <strong>{usd(r.prizeValue)}</strong>{localFromUsdCents(r.prizeValue, "PE") && <span> · ~{localFromUsdCents(r.prizeValue, "PE")}</span>}</p>
+        <p class="mt-4 whitespace-pre-line text-slate-600">{r.description}</p>
+
+        <!-- Games -->
+        <div class="mt-6">
+          <h3 class="text-sm font-semibold text-slate-900">Juegos del show</h3>
+          <div class="mt-2 flex flex-wrap gap-2">
+            {r.games.map((g) => (
+              <span class={`rounded-full px-3 py-1 text-xs font-medium ${g === r.finale ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                {GAME_LABEL[g] ?? g}{g === r.finale ? " · final" : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <!-- Fairness -->
+        <div class="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🔒</span>
+            <h3 class="font-semibold text-slate-900">Transparencia (provably-fair)</h3>
+          </div>
+          <dl class="mt-3 space-y-2 text-sm">
+            <div>
+              <dt class="text-slate-500">Compromiso de la semilla (publicado al abrir)</dt>
+              <dd class="break-all font-mono text-xs text-slate-700">{r.fairness.commitment}</dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Fuente de azar</dt>
+              <dd class="text-slate-700">{r.fairness.entropySource}</dd>
+            </div>
+            {isDrawn && (
+              <>
+                <div>
+                  <dt class="text-slate-500">Semilla revelada</dt>
+                  <dd class="break-all font-mono text-xs text-emerald-700">{r.fairness.serverSeed}</dd>
+                </div>
+                <div>
+                  <dt class="text-slate-500">drand round · valor</dt>
+                  <dd class="break-all font-mono text-xs text-slate-700">{r.fairness.drandRound} · {r.fairness.drandValue?.slice(0, 32)}…</dd>
+                </div>
+              </>
+            )}
+          </dl>
+          <a href={`/verificar?slug=${r.slug}`} class="mt-4 inline-block rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700">
+            {isDrawn ? "Verificar este sorteo" : "Cómo verificar"}
+          </a>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        {isDrawn ? (
+          <div class="rounded-2xl border border-slate-200 bg-white p-6">
+            <h3 class="text-lg font-bold text-slate-900">🏆 Ganadores</h3>
+            <ul class="mt-4 space-y-3">
+              {r.winners?.map((w) => (
+                <li class="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+                  {w.avatarUrl && <img src={w.avatarUrl} class="h-10 w-10 rounded-full" alt="" />}
+                  <div>
+                    <div class="font-semibold text-slate-900">{w.position}º · {w.nickname ?? "Ganador"}</div>
+                    <div class="text-xs text-slate-500">Boleto #{w.ticketNumber}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <a href={`/sorteos/${r.slug}/show`} class="mt-5 block rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700">Ver el show ▶</a>
+          </div>
+        ) : (
+          <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5">
+              <div class="mb-1.5 flex justify-between text-sm text-slate-500">
+                <span>{sold} / {r.totalTickets} boletos</span>
+                <span class="font-medium text-slate-700">⏱ {timeLeft(r.closesAt)}</span>
+              </div>
+              <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div class="h-full rounded-full bg-emerald-500" style={`width:${pct(sold, r.totalTickets)}%`}></div>
+              </div>
+              <p class="mt-2 text-xs text-slate-400">Mínimo {r.minTickets} boletos para sortear. Si no se alcanza, se reembolsa.</p>
+            </div>
+            {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} />}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</Layout>

@@ -1,60 +1,93 @@
 ---
-import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
+import RaffleCard from "../components/RaffleCard.astro";
+import { ssrGet, type Raffle } from "../lib/api";
 
-const apiBase = import.meta.env.PUBLIC_API_URL ?? "/api";
-let apiOk = false;
-try {
-  const res = await fetch(`${apiBase.replace(/\/$/, "")}/health`);
-  apiOk = res.ok;
-} catch {
-  apiOk = false;
-}
+const raffles = await ssrGet<Raffle[]>("/raffles", []);
+const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED").slice(0, 3);
+const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
 ---
 
-<!doctype html>
-<html lang="es" class="h-full">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>qori — sorteos transparentes</title>
-    <meta
-      name="description"
-      content="Sorteos de productos con premios reales y sorteo verificable (provably-fair)."
-    />
-  </head>
-  <body class="h-full bg-white text-slate-900 antialiased">
-    <main class="mx-auto flex min-h-full max-w-3xl flex-col items-center justify-center px-6 py-24 text-center">
-      <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">
-        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-        Sorteo verificable · provably-fair
-      </span>
+<Layout>
+  <!-- Hero -->
+  <section class="mx-auto max-w-6xl px-5 pt-16 pb-10 text-center">
+    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">
+      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+      Sorteo verificable · provably-fair
+    </span>
+    <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+      Sorteos de productos, <span class="text-emerald-600">transparentes de verdad</span>
+    </h1>
+    <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
+      Compra boletos, participa en un show en vivo, y verifica el resultado por tu cuenta.
+      Nadie —ni nosotros— puede manipular quién gana.
+    </p>
+    <div class="mt-8 flex items-center justify-center gap-3">
+      <a href="/sorteos" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">Ver sorteos</a>
+      <a href="/como-funciona" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">¿Cómo funciona?</a>
+    </div>
+  </section>
 
-      <h1 class="text-5xl font-semibold tracking-tight text-slate-900 sm:text-6xl">
-        qori
-      </h1>
-      <p class="mt-4 max-w-xl text-lg text-slate-500">
-        Sorteos de productos con premios reales, transparentes y auditables.
-        Cada sorteo se puede verificar de forma independiente.
-      </p>
-
-      <div class="mt-10 flex items-center gap-3">
-        <a
-          href="#"
-          class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700"
-        >
-          Ver sorteos
-        </a>
-        <a
-          href="#"
-          class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          ¿Cómo funciona?
-        </a>
+  <!-- Active raffles -->
+  <section class="mx-auto max-w-6xl px-5 py-10">
+    <div class="mb-6 flex items-end justify-between">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900">Sorteos activos</h2>
+        <p class="text-sm text-slate-500">Participa antes de que cierren.</p>
       </div>
+      <a href="/sorteos" class="text-sm font-semibold text-emerald-600 hover:underline">Ver todos →</a>
+    </div>
+    {active.length === 0 ? (
+      <p class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">No hay sorteos activos ahora mismo.</p>
+    ) : (
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {active.map((r) => <RaffleCard raffle={r} />)}
+      </div>
+    )}
+  </section>
 
-      <p class="mt-16 text-xs text-slate-400">
-        API: {apiOk ? "conectada ✓" : "no disponible"} · Próximamente
+  <!-- How it works -->
+  <section class="border-y border-slate-100 bg-slate-50">
+    <div class="mx-auto max-w-6xl px-5 py-14">
+      <h2 class="text-center text-2xl font-bold text-slate-900">Cómo funciona</h2>
+      <div class="mx-auto mt-10 grid max-w-4xl gap-8 sm:grid-cols-3">
+        {[
+          ["1", "Compra boletos", "Recargas lingotes y compras boletos con número único. 1 USD = 10 lingotes."],
+          ["2", "Show en vivo", "Cuando cierra, un show gamificado revela al ganador, sincronizado para todos."],
+          ["3", "Verifica", "Al terminar revelamos la semilla. Reproduces el show y confirmas que fue justo."],
+        ].map(([n, t, d]) => (
+          <div class="text-center">
+            <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500 text-lg font-bold text-white">{n}</div>
+            <h3 class="mt-4 font-semibold text-slate-900">{t}</h3>
+            <p class="mt-2 text-sm text-slate-500">{d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Past winners -->
+  {past.length > 0 && (
+    <section class="mx-auto max-w-6xl px-5 py-14">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-slate-900">Ganadores anteriores</h2>
+        <p class="text-sm text-slate-500">Cada uno con su sorteo verificable.</p>
+      </div>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {past.map((r) => <RaffleCard raffle={r} />)}
+      </div>
+    </section>
+  )}
+
+  <!-- Trust band -->
+  <section class="mx-auto max-w-4xl px-5 pb-10">
+    <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+      <h2 class="text-xl font-bold text-slate-900">Provably-fair, no "confía en nosotros"</h2>
+      <p class="mx-auto mt-3 max-w-2xl text-slate-500">
+        Publicamos el compromiso de la semilla <em>antes</em> de vender. El azar viene de <strong>drand</strong>,
+        un faro público que no controlamos. Todo el show se reproduce con la semilla revelada.
       </p>
-    </main>
-  </body>
-</html>
+      <a href="/verificar" class="mt-6 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Verificar un sorteo</a>
+    </div>
+  </section>
+</Layout>

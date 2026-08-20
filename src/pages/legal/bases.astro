@@ -1,0 +1,25 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+<Layout title="Bases del sorteo · qori">
+  <div class="mx-auto max-w-3xl px-5 py-12">
+    <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      ⚠️ Plantilla general. Cada sorteo debe publicar sus bases específicas; revisar con un abogado.
+    </div>
+    <h1 class="text-3xl font-bold text-slate-900">Bases generales del sorteo</h1>
+    <div class="prose prose-slate mt-8 max-w-none text-slate-600 [&_h2]:mt-8 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_p]:mt-3">
+      <h2>Organizador</h2>
+      <p>qori.cc, responsable de la organización y ejecución del sorteo.</p>
+      <h2>Participación</h2>
+      <p>Participan los usuarios registrados que compren al menos un boleto del sorteo correspondiente con lingotes, dentro del período de venta indicado.</p>
+      <h2>Determinación del ganador</h2>
+      <p>El ganador se determina de forma <strong>provably-fair</strong>: se publica <code>sha256(semilla)</code> al abrir; a la hora del sorteo se fija la aleatoriedad del faro público drand y la raíz de los boletos; el resultado se calcula con <code>HMAC(semilla, entropía)</code> y se revela la semilla al finalizar para verificación pública.</p>
+      <h2>Mínimo de boletos</h2>
+      <p>Cada sorteo indica un mínimo. Si a la fecha de sorteo no se alcanza, la fecha puede extenderse o el sorteo cancelarse, reembolsando los lingotes gastados.</p>
+      <h2>Entrega del premio</h2>
+      <p>El ganador será contactado por los datos de su cuenta. Deberá acreditar identidad y edad (+18). El premio es personal e intransferible salvo indicación contraria.</p>
+      <h2>Publicación de resultados</h2>
+      <p>Los resultados y datos de verificación se publican en la página del sorteo.</p>
+    </div>
+  </div>
+</Layout>

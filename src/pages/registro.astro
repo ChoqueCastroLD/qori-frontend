@@ -1,0 +1,7 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AuthForm from "../components/AuthForm.tsx";
+---
+<Layout title="Crear cuenta · qori">
+  <div class="px-5 py-12"><AuthForm client:load mode="register" /></div>
+</Layout>

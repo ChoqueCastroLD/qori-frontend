@@ -1,0 +1,54 @@
+---
+import type { Raffle } from "../lib/api";
+import { lingotes, usd, pct, timeLeft } from "../lib/format";
+interface Props { raffle: Raffle }
+const { raffle: r } = Astro.props;
+const sold = r.ticketsSold ?? 0;
+const progress = pct(sold, r.totalTickets);
+const isDrawn = r.status === "DRAWN";
+const winner = r.winners?.[0];
+---
+<a href={`/sorteos/${r.slug}`} class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60">
+  <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
+    <img src={r.images[0]} alt={r.title} class="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+    <div class="absolute left-3 top-3 flex gap-2">
+      {isDrawn ? (
+        <span class="rounded-full bg-slate-900/90 px-2.5 py-1 text-xs font-semibold text-white">Finalizado</span>
+      ) : (
+        <span class="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white">Activo</span>
+      )}
+      {r.winnersCount > 1 && (
+        <span class="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-slate-700">{r.winnersCount} ganadores</span>
+      )}
+    </div>
+  </div>
+  <div class="flex flex-1 flex-col p-4">
+    <h3 class="font-semibold text-slate-900 line-clamp-1">{r.title}</h3>
+    <p class="mt-1 text-sm text-slate-500">Valor aprox. {usd(r.prizeValue)}</p>
+
+    {isDrawn ? (
+      <div class="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 p-3">
+        {winner?.avatarUrl && <img src={winner.avatarUrl} class="h-8 w-8 rounded-full" alt="" />}
+        <div class="text-sm">
+          <div class="font-semibold text-slate-900">🏆 {winner?.nickname ?? "Ganador"}</div>
+          <div class="text-xs text-slate-500">Boleto #{winner?.ticketNumber}</div>
+        </div>
+      </div>
+    ) : (
+      <div class="mt-4">
+        <div class="mb-1.5 flex justify-between text-xs text-slate-500">
+          <span>{sold} / {r.totalTickets} boletos</span>
+          <span class="font-medium text-slate-700">⏱ {timeLeft(r.closesAt)}</span>
+        </div>
+        <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div class="h-full rounded-full bg-emerald-500" style={`width:${progress}%`}></div>
+        </div>
+      </div>
+    )}
+
+    <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+      <span class="text-sm font-semibold text-slate-900">{r.ticketPrice === 0 ? "Gratis" : lingotes(r.ticketPrice)}<span class="text-xs font-normal text-slate-400"> /boleto</span></span>
+      <span class="text-sm font-semibold text-emerald-600 group-hover:underline">{isDrawn ? "Ver resultado" : "Participar"} →</span>
+    </div>
+  </div>
+</a>
