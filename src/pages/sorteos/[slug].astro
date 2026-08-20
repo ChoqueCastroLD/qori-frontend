@@ -103,11 +103,11 @@ const isOpen = r.status === "OPEN";
           <div class="space-y-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-1.5 flex justify-between text-sm text-slate-500">
-                <span>{sold} / {r.totalTickets} boletos</span>
-                <span class="font-medium text-slate-700">⏱ {timeLeft(r.closesAt)}</span>
+                <span id="rf-sold" data-sold={sold} data-total={r.totalTickets}>{sold} / {r.totalTickets} boletos</span>
+                <span class="font-medium text-slate-700" data-closes-at={r.closesAt}>⏱ {timeLeft(r.closesAt)}</span>
               </div>
               <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                <div class="h-full rounded-full bg-emerald-500" style={`width:${pct(sold, r.totalTickets)}%`}></div>
+                <div id="rf-fill" class="h-full rounded-full bg-emerald-500 transition-all" style={`width:${pct(sold, r.totalTickets)}%`}></div>
               </div>
               <p class="mt-2 text-xs text-slate-400">Mínimo {r.minTickets} boletos para sortear. Si no se alcanza, se reembolsa.</p>
             </div>

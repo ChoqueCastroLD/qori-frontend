@@ -39,6 +39,28 @@ const { title = "qori — sorteos transparentes", description = "Sorteos de prod
       <slot />
     </main>
 
+    <script is:inline>
+      // Live countdown: refresh every element with data-closes-at every 30s.
+      (function () {
+        function fmt(iso) {
+          var ms = new Date(iso).getTime() - Date.now();
+          if (ms <= 0) return "Cerrado";
+          var d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000);
+          if (d > 0) return "⏱ " + d + "d " + h + "h";
+          if (h > 0) return "⏱ " + h + "h " + m + "m";
+          return "⏱ " + m + "m";
+        }
+        function tick() {
+          document.querySelectorAll("[data-closes-at]").forEach(function (el) {
+            var iso = el.getAttribute("data-closes-at");
+            if (iso) el.textContent = fmt(iso);
+          });
+        }
+        tick();
+        setInterval(tick, 30000);
+      })();
+    </script>
+
     <footer class="mt-24 border-t border-slate-100 bg-slate-50">
       <div class="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-2 md:grid-cols-4">
         <div>

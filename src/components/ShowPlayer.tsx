@@ -150,7 +150,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
               </div>
             )}
             <LayoutGroup>
-              <div className="flex flex-wrap justify-center gap-2.5">
+              <div className="flex max-h-[58vh] flex-wrap justify-center gap-2.5 overflow-y-auto lg:max-h-none lg:overflow-visible">
                 {gridOrder.map((i) => (
                   <motion.div key={i} layout transition={{ type: "spring", stiffness: 550, damping: 42, mass: 0.6 }}>
                     <Ticket p={participants[i]} mine={myIndices.has(i)} elim={elimSet.has(i)} winner={isFinaleDone && winnerSet.has(i)} />

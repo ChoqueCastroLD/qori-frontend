@@ -54,6 +54,18 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
       setNumbers(d.numbers);
       setStatus("ok");
       setMe((m) => (m ? { balance: m.balance - cost + qty } : m));
+      // Tell the nav (and any other island) to refresh the balance.
+      window.dispatchEvent(new CustomEvent("qori:refresh"));
+      // Update the raffle progress bar in place (no reload).
+      const soldEl = document.getElementById("rf-sold") as HTMLElement | null;
+      const fillEl = document.getElementById("rf-fill") as HTMLElement | null;
+      if (soldEl) {
+        const total = Number(soldEl.dataset.total || 0);
+        const sold = Number(soldEl.dataset.sold || 0) + qty;
+        soldEl.dataset.sold = String(sold);
+        soldEl.textContent = `${sold} / ${total} boletos`;
+        if (fillEl && total) fillEl.style.width = `${Math.min(100, Math.round((sold / total) * 100))}%`;
+      }
     } catch {
       setStatus("err");
       setMsg("Error de red.");
@@ -96,7 +108,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
 
       <label className="mb-1 block text-sm font-medium text-slate-700">Cantidad de boletos</label>
       <div className="flex items-center gap-2">
-        <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 hover:bg-slate-50">−</button>
+        <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 hover:bg-slate-50">−</button>
         <input
           type="number"
           min={1}
@@ -105,11 +117,11 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
           onChange={(e) => setQty(Math.max(1, Math.min(max, Number(e.target.value) || 1)))}
           className="h-10 w-full rounded-lg border border-slate-200 text-center font-semibold"
         />
-        <button onClick={() => setQty((q) => Math.min(max, q + 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 hover:bg-slate-50">+</button>
+        <button type="button" onClick={() => setQty((q) => Math.min(max, q + 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 hover:bg-slate-50">+</button>
       </div>
       <div className="mt-2 flex gap-1.5">
         {[1, 5, 10, 25].map((n) => (
-          <button key={n} onClick={() => setQty(Math.min(max, n))} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">{n}</button>
+          <button type="button" key={n} onClick={() => setQty(Math.min(max, n))} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">{n}</button>
         ))}
       </div>
 

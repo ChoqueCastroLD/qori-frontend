@@ -12,6 +12,26 @@ export default function Account() {
   const [wallet, setWallet] = useState<any>(null);
   const [refs, setRefs] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [nickname, setNickname] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function saveProfile() {
+    setSaving(true);
+    const res = await fetch("/api/me/profile", {
+      method: "PATCH", credentials: "include", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ nickname: nickname || undefined, avatarUrl: avatarUrl || undefined }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setMe(d.user);
+      setEditing(false);
+      window.dispatchEvent(new CustomEvent("qori:refresh"));
+    }
+    setSaving(false);
+  }
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
@@ -47,6 +67,12 @@ export default function Account() {
           <div>
             <h1 className="text-xl font-bold text-slate-900">{me.nickname || me.name || "Mi cuenta"}</h1>
             <p className="text-sm text-slate-500">{me.email}</p>
+            <button
+              onClick={() => { setNickname(me.nickname || ""); setAvatarUrl(me.avatarUrl || ""); setEditing((v) => !v); }}
+              className="mt-1 text-xs font-semibold text-slate-500 hover:text-slate-900"
+            >
+              {editing ? "Cancelar" : "Editar perfil"}
+            </button>
           </div>
         </div>
         <div className="text-right">
@@ -54,6 +80,26 @@ export default function Account() {
           <a href="/recargar" className="text-sm font-semibold text-emerald-600 hover:underline">Recargar →</a>
         </div>
       </div>
+
+      {editing && (
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Apodo público</label>
+              <input value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 40))} placeholder="Cómo te verán en el show" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">URL de avatar</label>
+              <input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://…foto.jpg" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+          </div>
+          {avatarUrl && <img src={avatarUrl} className="mt-3 h-12 w-12 rounded-full object-cover" alt="" />}
+          <p className="mt-2 text-xs text-slate-400">Por privacidad, puedes usar un apodo y un avatar en lugar de tu foto real.</p>
+          <button onClick={saveProfile} disabled={saving} className="mt-3 rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+      )}
 
       <div className="mt-6 flex gap-1 border-b border-slate-200">
         {([["tickets", "Mis boletos"], ["wallet", "Movimientos"], ["referrals", "Referidos"]] as const).map(([k, label]) => (
@@ -104,7 +150,10 @@ export default function Account() {
             <p className="text-sm text-slate-500">Comparte tu enlace. Ganas <strong>+10 lingotes</strong> cuando un referido hace su primera compra.</p>
             <div className="mt-3 flex items-center gap-2">
               <input readOnly value={refLink} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600" />
-              <button onClick={() => navigator.clipboard.writeText(refLink)} className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Copiar</button>
+              <button
+                onClick={() => { navigator.clipboard.writeText(refLink); setCopied(true); setTimeout(() => setCopied(false), 1800); }}
+                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-white ${copied ? "bg-emerald-600" : "bg-slate-900"}`}
+              >{copied ? "¡Copiado!" : "Copiar"}</button>
             </div>
             <div className="mt-4 flex gap-6 text-sm">
               <div><span className="text-2xl font-bold text-slate-900">{refs.count}</span><span className="ml-1 text-slate-500">referidos</span></div>

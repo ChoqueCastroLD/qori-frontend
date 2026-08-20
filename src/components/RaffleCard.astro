@@ -38,7 +38,7 @@ const winner = r.winners?.[0];
       <div class="mt-4">
         <div class="mb-1.5 flex justify-between text-xs text-slate-500">
           <span>{sold} / {r.totalTickets} boletos</span>
-          <span class="font-medium text-slate-700">⏱ {timeLeft(r.closesAt)}</span>
+          <span class="font-medium text-slate-700" data-closes-at={r.closesAt}>⏱ {timeLeft(r.closesAt)}</span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-slate-100">
           <div class="h-full rounded-full bg-emerald-500" style={`width:${progress}%`}></div>

@@ -29,9 +29,11 @@ export default function Verifier() {
     if (s) { setSlug(s); load(s); }
   }, []);
 
+  // Only drawn raffles are verifiable — suggest those.
+  const verifiable = all.filter((r) => r.status === "DRAWN");
   const suggestions = q.trim().length === 0
-    ? all
-    : all.filter((r) => `${r.title} ${r.slug}`.toLowerCase().includes(q.trim().toLowerCase()));
+    ? verifiable
+    : verifiable.filter((r) => `${r.title} ${r.slug}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   function pick(r: any) {
     setQ(r.title);

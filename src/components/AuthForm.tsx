@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const isReg = mode === "register";
@@ -10,6 +10,13 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   );
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(location.search).get("oauth") === "unavailable") {
+      setNotice("El acceso con Google estará disponible pronto. Usa tu correo por ahora.");
+    }
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,11 +66,21 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       )}
       <div className="mt-4">
         <label className="mb-1 block text-sm font-medium text-slate-700">Correo</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" />
+        <input
+          type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+          onInvalid={(e) => { const t = e.currentTarget; t.setCustomValidity(t.validity.valueMissing ? "Ingresa tu correo." : "Ingresa un correo válido."); }}
+          onInput={(e) => e.currentTarget.setCustomValidity("")}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+        />
       </div>
       <div className="mt-4">
         <label className="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={isReg ? 8 : undefined} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" />
+        <input
+          type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={isReg ? 8 : undefined}
+          onInvalid={(e) => { const t = e.currentTarget; t.setCustomValidity(t.validity.valueMissing ? "Ingresa una contraseña." : "La contraseña debe tener al menos 8 caracteres."); }}
+          onInput={(e) => e.currentTarget.setCustomValidity("")}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+        />
       </div>
       {isReg && (
         <div className="mt-4">
@@ -72,6 +89,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         </div>
       )}
 
+      {notice && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">{notice}</p>}
       {err && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
 
       <button disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">

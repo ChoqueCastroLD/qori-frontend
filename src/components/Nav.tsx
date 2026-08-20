@@ -14,11 +14,17 @@ export default function Nav() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setMe(d?.user ?? null))
-      .catch(() => setMe(null))
-      .finally(() => setLoading(false));
+    const loadMe = () =>
+      fetch("/api/auth/me", { credentials: "include" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setMe(d?.user ?? null))
+        .catch(() => setMe(null))
+        .finally(() => setLoading(false));
+    loadMe();
+    // Refresh balance/identity when another island signals a change (buy, topup…).
+    const onRefresh = () => loadMe();
+    window.addEventListener("qori:refresh", onRefresh);
+    return () => window.removeEventListener("qori:refresh", onRefresh);
   }, []);
 
   async function logout() {

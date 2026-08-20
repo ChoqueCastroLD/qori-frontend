@@ -100,7 +100,7 @@ export default function Admin() {
         </div>
       )}
 
-      {tab === "create" && <CreateRaffle onCreated={() => { setTab("raffles"); reload(); }} />}
+      {tab === "create" && <CreateRaffle onCreated={() => { setMsg("✓ Sorteo creado"); setTab("raffles"); reload(); }} />}
     </div>
   );
 }
