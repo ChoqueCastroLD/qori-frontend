@@ -10,6 +10,11 @@ const GAME_META: Record<string, { label: string; icon: string; color: string }> 
   HORSE_RACE: { label: "Carrera", icon: "🐎", color: "bg-amber-600" },
 };
 
+// Fixed deterministic timeline → every client renders the same frame from the
+// shared startsAt clock (synchronized live show, no WebSocket needed).
+const STEP_MS = 450;
+const GAP_MS = 1400;
+
 interface Participant { number: number; nickname: string | null; avatarUrl: string | null; comment: string | null; }
 
 function Ticket({ p, mine, elim, winner }: { p: Participant; mine: boolean; elim: boolean; winner: boolean }) {
@@ -35,6 +40,8 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [liveMode, setLiveMode] = useState(false);
+  const [secsToStart, setSecsToStart] = useState(0);
   const tick = useRef<any>(null);
 
   useEffect(() => {
@@ -63,6 +70,47 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     return s;
   }, [participants, myNums]);
 
+  // --- Live synchronization (clock-driven) ---
+  const totalDuration = useMemo(
+    () => stages.reduce((acc: number, s: any, i: number) => acc + s.eliminated.length * STEP_MS + (i < stages.length - 1 ? GAP_MS : 0), 0),
+    [stages],
+  );
+  function positionAt(elapsed: number): { s: number; step: number } {
+    let t = 0;
+    for (let s = 0; s < stages.length; s++) {
+      const n = stages[s].eliminated.length;
+      if (elapsed < t + n * STEP_MS) return { s, step: Math.floor((elapsed - t) / STEP_MS) };
+      t += n * STEP_MS;
+      if (elapsed < t + GAP_MS) return { s, step: n };
+      t += GAP_MS;
+    }
+    const last = stages.length - 1;
+    return { s: last, step: stages[last]?.eliminated.length ?? 0 };
+  }
+  // If the draw just happened, drive the show by the shared clock so all viewers
+  // see the same frame. Once it ends (or if it's an old draw), fall back to replay.
+  useEffect(() => {
+    if (!data || !stages.length) return;
+    const startsAtMs = new Date(data.startsAt).getTime();
+    if (Date.now() >= startsAtMs + totalDuration + 2000) return; // old → manual replay
+    const id = setInterval(() => {
+      const elapsed = Date.now() - startsAtMs;
+      if (elapsed < 0) { setSecsToStart(Math.ceil(-elapsed / 1000)); setLiveMode(true); return; }
+      setSecsToStart(0);
+      if (elapsed < totalDuration) {
+        setLiveMode(true);
+        const p = positionAt(elapsed);
+        setStageIdx(p.s); setStep(p.step);
+      } else {
+        setLiveMode(false);
+        setStageIdx(stages.length - 1);
+        setStep(stages[stages.length - 1].eliminated.length);
+        clearInterval(id);
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [data, totalDuration]);
+
   // Global elimination sequence up to the current (stage, step).
   const elimSeq = useMemo(() => {
     const seq: number[] = [];
@@ -86,7 +134,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   const isFinaleDone = stageIdx === stages.length - 1 && stageDone;
 
   useEffect(() => {
-    if (!playing || !stage) return;
+    if (liveMode || !playing || !stage) return;
     if (!stageDone) {
       tick.current = setTimeout(() => setStep((s) => s + 1), 360 / speed);
       return () => clearTimeout(tick.current);
@@ -120,14 +168,21 @@ export default function ShowPlayer({ slug }: { slug: string }) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => goStage(Math.max(0, stageIdx - 1))} disabled={stageIdx === 0} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm disabled:opacity-40">⏮</button>
-              <button onClick={() => setPlaying((p) => !p)} className="rounded-lg bg-emerald-600 px-5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">{playing ? "⏸" : "▶"}</button>
-              <button onClick={() => { if (!stageDone) setStep(stageElim.length); else goStage(Math.min(stages.length - 1, stageIdx + 1)); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm">⏭</button>
-              <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-                <option value={0.5}>0.5x</option><option value={1}>1x</option><option value={2}>2x</option><option value={4}>4x</option>
-              </select>
-            </div>
+            {liveMode ? (
+              <div className="flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-1.5">
+                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500"></span>
+                <span className="text-sm font-bold text-rose-600">{secsToStart > 0 ? `Empieza en ${secsToStart}s` : "EN VIVO"}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button onClick={() => goStage(Math.max(0, stageIdx - 1))} disabled={stageIdx === 0} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm disabled:opacity-40">⏮</button>
+                <button onClick={() => setPlaying((p) => !p)} className="rounded-lg bg-emerald-600 px-5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">{playing ? "⏸" : "▶"}</button>
+                <button onClick={() => { if (!stageDone) setStep(stageElim.length); else goStage(Math.min(stages.length - 1, stageIdx + 1)); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm">⏭</button>
+                <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+                  <option value={0.5}>0.5x</option><option value={1}>1x</option><option value={2}>2x</option><option value={4}>4x</option>
+                </select>
+              </div>
+            )}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {stages.map((s: any, i: number) => (
