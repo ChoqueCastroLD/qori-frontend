@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
+import RaffleChat from "./RaffleChat";
+
+const GAME_LABEL: Record<string, string> = {
+  ELIMINATION: "Eliminación", DIGIT_REVEAL: "Revelado de dígitos",
+  BOMBS: "Bombas", SQUID: "Luz roja, luz verde", HORSE_RACE: "Carrera",
+};
+const GAME_ICON: Record<string, string> = {
+  ELIMINATION: "⚡", DIGIT_REVEAL: "🔢", BOMBS: "💣", SQUID: "🟢", HORSE_RACE: "🐎",
+};
 
 export default function Verifier() {
   const [slug, setSlug] = useState("");
   const [raffle, setRaffle] = useState<any>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,12 +23,14 @@ export default function Verifier() {
   }, []);
 
   async function load(s: string) {
-    setError(""); setResult(null); setRaffle(null);
+    setError(""); setResult(null); setRaffle(null); setParticipants([]);
     try {
       const r = await fetch(`/api/raffles/${s}`, { credentials: "include" }).then((x) => x.json());
       if (r.error) { setError("No se encontró el sorteo."); return; }
       if (r.status !== "DRAWN") { setError("Este sorteo aún no ha sido sorteado."); setRaffle(r); return; }
       setRaffle(r);
+      const sh = await fetch(`/api/raffles/${s}/show`, { credentials: "include" }).then((x) => x.json());
+      setParticipants(sh.participants ?? []);
     } catch { setError("Error al cargar."); }
   }
 
@@ -41,15 +53,20 @@ export default function Verifier() {
     setLoading(false);
   }
 
-  const actualWinners = raffle?.winners?.map((w: any) => w.ticketNumber).sort((a: number, b: number) => a - b) ?? [];
-  const computedWinners = result?.winners?.slice().sort((a: number, b: number) => a - b) ?? [];
-  const match = result && result.commitmentOk && JSON.stringify(actualWinners) === JSON.stringify(computedWinners);
+  // Map a canonical index -> real ticket number (numbers are random, not index+1).
+  const num = (idx: number) => participants[idx]?.number ?? idx + 1;
+  const part = (idx: number) => participants[idx];
+
+  const publishedWinners = (raffle?.winners ?? []).map((w: any) => w.ticketNumber).sort((a: number, b: number) => a - b);
+  const recomputedWinners = (result?.winners ?? []).map((i: number) => num(i)).sort((a: number, b: number) => a - b);
+  const winnersMatch = result && JSON.stringify(publishedWinners) === JSON.stringify(recomputedWinners);
+  const verified = result && result.commitmentOk && winnersMatch;
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-10">
+    <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Verificar un sorteo</h1>
       <p className="mt-2 text-sm text-slate-500">
-        Reproduce el sorteo con la semilla revelada y confirma que el resultado no fue manipulado.
+        Recalculamos el sorteo desde la semilla revelada y te mostramos el resultado etapa por etapa.
         Todo el código es abierto — puedes correrlo tú mismo.
       </p>
 
@@ -68,25 +85,85 @@ export default function Verifier() {
             <div><dt className="text-slate-500">semilla revelada</dt><dd className="break-all font-mono text-emerald-700">{raffle.fairness.serverSeed}</dd></div>
             <div><dt className="text-slate-500">drand round · valor · raíz de boletos</dt><dd className="break-all font-mono text-slate-700">{raffle.fairness.drandRound} · {raffle.fairness.drandValue?.slice(0, 20)}… · {raffle.fairness.ticketsRoot?.slice(0, 20)}…</dd></div>
           </dl>
-          <button onClick={verify} disabled={loading} className="mt-4 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:bg-slate-300">
-            {loading ? "Verificando…" : "Reproducir y verificar"}
-          </button>
+          {!result && (
+            <button onClick={verify} disabled={loading} className="mt-4 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:bg-slate-300">
+              {loading ? "Recalculando…" : "Recalcular y verificar"}
+            </button>
+          )}
         </div>
       )}
 
       {result && (
-        <div className={`mt-4 rounded-2xl border p-6 ${match ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
-          <div className="text-3xl">{match ? "✅" : "❌"}</div>
-          <h3 className={`mt-2 text-lg font-bold ${match ? "text-emerald-800" : "text-red-800"}`}>
-            {match ? "Verificado: el sorteo fue justo" : "¡Discrepancia detectada!"}
-          </h3>
-          <ul className="mt-3 space-y-1 text-sm">
-            <li className={result.commitmentOk ? "text-emerald-700" : "text-red-700"}>
-              {result.commitmentOk ? "✓" : "✗"} La semilla revelada coincide con el compromiso público
-            </li>
-            <li className="text-slate-700">Ganadores recalculados: <strong>{computedWinners.map((n: number) => `#${n}`).join(", ")}</strong></li>
-            <li className="text-slate-700">Ganadores publicados: <strong>{actualWinners.map((n: number) => `#${n}`).join(", ")}</strong></li>
-          </ul>
+        <>
+          <div className={`mt-4 rounded-2xl border p-6 ${verified ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
+            <div className="text-3xl">{verified ? "✅" : "❌"}</div>
+            <h3 className={`mt-2 text-lg font-bold ${verified ? "text-emerald-800" : "text-red-800"}`}>
+              {verified ? "Verificado: el sorteo fue justo" : "¡Discrepancia detectada!"}
+            </h3>
+            <ul className="mt-3 space-y-1 text-sm">
+              <li className={result.commitmentOk ? "text-emerald-700" : "text-red-700"}>{result.commitmentOk ? "✓" : "✗"} La semilla revelada coincide con el compromiso público</li>
+              <li className={winnersMatch ? "text-emerald-700" : "text-red-700"}>{winnersMatch ? "✓" : "✗"} Los ganadores recalculados coinciden con los publicados</li>
+              <li className="text-slate-600">{result.stages.length} etapas recalculadas desde la semilla</li>
+            </ul>
+          </div>
+
+          {/* Static stage-by-stage history (no animation) */}
+          <div className="mt-6">
+            <h3 className="mb-1 text-lg font-bold text-slate-900">Historial del sorteo</h3>
+            <p className="mb-4 text-sm text-slate-500">Reconstruido desde la semilla. Cada etapa muestra los boletos descartados; al final, el ganador.</p>
+
+            <div className="space-y-4">
+              {result.stages.map((st: any, i: number) => (
+                <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-base">{GAME_ICON[st.game] ?? "•"}</span>
+                    <div>
+                      <div className="font-semibold text-slate-900">
+                        Etapa {i + 1}: {GAME_LABEL[st.game] ?? st.game}
+                        {st.isFinale && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">final</span>}
+                      </div>
+                      <div className="text-xs text-slate-500">{st.eliminated.length} boleto(s) descartado(s)</div>
+                    </div>
+                  </div>
+                  {st.game === "DIGIT_REVEAL" && st.data?.winnerNumbers && (
+                    <div className="mb-3 text-sm text-slate-600">Número(s) ganador(es) revelado(s): <strong>{(st.data.winnerNumbers as string[]).join(", ")}</strong></div>
+                  )}
+                  <div className="flex max-h-40 flex-wrap gap-1 overflow-auto">
+                    {st.eliminated.map((idx: number) => (
+                      <span key={idx} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">#{num(idx)}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Winner(s) at the very end */}
+              <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5">
+                <div className="text-2xl">🏆</div>
+                <h4 className="mt-1 font-bold text-emerald-800">{recomputedWinners.length > 1 ? "Ganadores" : "Ganador"}</h4>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {(result.winners ?? []).map((idx: number, k: number) => {
+                    const p = part(idx);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2">
+                        {p?.avatarUrl ? <img src={p.avatarUrl} className="h-9 w-9 rounded-full" alt="" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-500">{(p?.nickname || "?")[0]}</span>}
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900">{result.winners.length > 1 ? `${k + 1}º · ` : ""}#{num(idx)}</div>
+                          {p?.nickname && <div className="text-xs text-slate-500">{p.nickname}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {raffle && raffle.status === "DRAWN" && (
+        <div className="mt-8">
+          <h3 className="mb-3 text-lg font-bold text-slate-900">Chat del sorteo</h3>
+          <RaffleChat slug={raffle.slug} compact />
         </div>
       )}
     </div>

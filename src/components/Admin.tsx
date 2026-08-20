@@ -108,7 +108,7 @@ export default function Admin() {
 function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   const [f, setF] = useState<any>({
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
-    minTickets: 50, winnersCount: 1, games: ["ELIMINATION", "DIGIT_REVEAL"], finale: "DIGIT_REVEAL",
+    minTickets: 50, winnersCount: 1, games: ["ELIMINATION", "DIGIT_REVEAL", "SQUID", "HORSE_RACE", "BOMBS"], finale: "BOMBS",
     image: "https://picsum.photos/seed/new/900/600", closesInHours: 48,
   });
   const [err, setErr] = useState("");
