@@ -1,4 +1,5 @@
 import Lingote from "./Lingote";
+import TicketIcon from "./TicketIcon";
 import { useEffect, useState } from "react";
 
 const LTYPE: Record<string, string> = {
@@ -124,7 +125,7 @@ export default function Account() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-bold text-slate-700">#{t.number}</span>
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-bold text-slate-700"><TicketIcon />#{t.number}</span>
                     {t.win && <div className="mt-1 text-xs font-bold text-emerald-600">🏆 ¡Ganador!</div>}
                   </div>
                 </div>

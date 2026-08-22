@@ -1,4 +1,5 @@
 import Lingote from "./Lingote";
+import TicketIcon from "./TicketIcon";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -87,12 +88,12 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
   if (status === "ok") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <div className="text-3xl">🎟️</div>
+        <img src="/ticket.png" alt="boleto" className="mx-auto h-14 w-14" />
         <h3 className="mt-2 font-bold text-emerald-800">¡Ya estás participando!</h3>
         <p className="mt-1 text-sm text-emerald-700">Tus números:</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {numbers.map((n) => (
-            <span key={n} className="rounded-lg bg-white px-3 py-1 font-mono text-sm font-bold text-emerald-700">#{n}</span>
+            <span key={n} className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1 font-mono text-sm font-bold text-emerald-700"><TicketIcon />#{n}</span>
           ))}
         </div>
         <a href="/cuenta" className="mt-4 inline-block text-sm font-semibold text-emerald-700 underline">Ver mis boletos</a>
