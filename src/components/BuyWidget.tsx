@@ -1,3 +1,4 @@
+import Lingote from "./Lingote";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -103,7 +104,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="mb-4 flex items-center justify-between text-sm">
         <span className="text-slate-500">Tu saldo</span>
-        <span className="font-semibold text-emerald-700">{new Intl.NumberFormat("es-PE").format(me.balance)} ⧉</span>
+        <span className="font-semibold text-emerald-700">{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></span>
       </div>
 
       <label className="mb-1 block text-sm font-medium text-slate-700">Cantidad de boletos</label>
@@ -135,7 +136,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
 
       <div className="my-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
         <span className="text-slate-500">Total</span>
-        <span className="text-lg font-bold text-slate-900">{new Intl.NumberFormat("es-PE").format(cost)} ⧉</span>
+        <span className="text-lg font-bold text-slate-900">{new Intl.NumberFormat("es-PE").format(cost)} <Lingote /></span>
       </div>
 
       {msg && <p className={`mb-3 text-sm ${status === "err" ? "text-red-600" : "text-slate-600"}`}>{msg}</p>}

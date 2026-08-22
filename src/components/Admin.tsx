@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Lingote from "./Lingote";
 
 const GAMES = ["ELIMINATION", "DIGIT_REVEAL", "BOMBS", "SQUID", "HORSE_RACE"];
 
@@ -40,7 +41,7 @@ export default function Admin() {
   }
   async function approve(id: string) {
     const r = await adminFetch(`/admin/topups/${id}/approve`, { method: "POST" });
-    setMsg(r.ok ? `✓ Recarga aprobada (+${r.data.lingotes} ⧉)` : "✗ Error");
+    setMsg(r.ok ? `✓ Recarga aprobada (+${r.data.lingotes} lingotes)` : "✗ Error");
     reload();
   }
   async function reject(id: string) {
@@ -88,7 +89,7 @@ export default function Admin() {
           {topups.length === 0 ? <p className="text-slate-400">No hay recargas pendientes.</p> : topups.map((t) => (
             <div key={t.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
               <div>
-                <div className="font-semibold text-slate-900">{t.lingotes} ⧉ · ${(t.amountUsd / 100).toFixed(2)}</div>
+                <div className="font-semibold text-slate-900">{t.lingotes} <Lingote /> · ${(t.amountUsd / 100).toFixed(2)}</div>
                 <div className="text-xs text-slate-500">{t.user?.email} · {t.method} {t.proofUrl && <a href={t.proofUrl} target="_blank" className="text-emerald-600 underline">comprobante</a>}</div>
               </div>
               <div className="flex gap-2">
@@ -138,7 +139,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       <div><label className="text-xs text-slate-500">Imagen (URL)</label><input className={inp} value={f.image} onChange={(e) => setF({ ...f, image: e.target.value })} /></div>
       <div className="grid grid-cols-3 gap-3">
         <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" className={inp} value={f.prizeUsd} onChange={(e) => setF({ ...f, prizeUsd: e.target.value })} /></div>
-        <div><label className="text-xs text-slate-500">Precio (⧉)</label><input type="number" className={inp} value={f.ticketPrice} onChange={(e) => setF({ ...f, ticketPrice: e.target.value })} /></div>
+        <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" className={inp} value={f.ticketPrice} onChange={(e) => setF({ ...f, ticketPrice: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" className={inp} value={f.winnersCount} onChange={(e) => setF({ ...f, winnersCount: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">Total boletos</label><input type="number" className={inp} value={f.totalTickets} onChange={(e) => setF({ ...f, totalTickets: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">Mín. boletos</label><input type="number" className={inp} value={f.minTickets} onChange={(e) => setF({ ...f, minTickets: e.target.value })} /></div>

@@ -1,3 +1,4 @@
+import Lingote from "./Lingote";
 import { useEffect, useState } from "react";
 
 const LTYPE: Record<string, string> = {
@@ -76,7 +77,7 @@ export default function Account() {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-emerald-600">{new Intl.NumberFormat("es-PE").format(me.balance)} ⧉</div>
+          <div className="text-3xl font-bold text-emerald-600">{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></div>
           <a href="/recargar" className="text-sm font-semibold text-emerald-600 hover:underline">Recargar →</a>
         </div>
       </div>
@@ -138,7 +139,7 @@ export default function Account() {
           {wallet.entries.length === 0 ? <p className="text-slate-400">Sin movimientos.</p> : wallet.entries.map((e: any) => (
             <div key={e.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-4 py-2.5 text-sm">
               <span className="text-slate-600">{LTYPE[e.type] ?? e.type}{e.memo ? ` · ${e.memo}` : ""}</span>
-              <span className={e.amount >= 0 ? "font-semibold text-emerald-600" : "font-semibold text-slate-500"}>{e.amount >= 0 ? "+" : ""}{e.amount} ⧉</span>
+              <span className={e.amount >= 0 ? "font-semibold text-emerald-600" : "font-semibold text-slate-500"}>{e.amount >= 0 ? "+" : ""}{e.amount} <Lingote /></span>
             </div>
           ))}
         </div>
@@ -157,7 +158,7 @@ export default function Account() {
             </div>
             <div className="mt-4 flex gap-6 text-sm">
               <div><span className="text-2xl font-bold text-slate-900">{refs.count}</span><span className="ml-1 text-slate-500">referidos</span></div>
-              <div><span className="text-2xl font-bold text-emerald-600">{refs.lingotesEarned} ⧉</span><span className="ml-1 text-slate-500">ganados</span></div>
+              <div><span className="text-2xl font-bold text-emerald-600">{refs.lingotesEarned} <Lingote /></span><span className="ml-1 text-slate-500">ganados</span></div>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import Lingote from "./Lingote";
 import { useEffect, useState } from "react";
 
 interface Me {
@@ -41,7 +42,7 @@ export default function Nav() {
             className="hidden rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 sm:inline-block"
             title="Tu saldo de lingotes"
           >
-            {new Intl.NumberFormat("es-PE").format(me.balance)} ⧉
+            {new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote />
           </a>
           {me.role === "ADMIN" && (
             <a href="/admin" className="hidden font-medium text-slate-500 hover:text-slate-900 sm:inline">
