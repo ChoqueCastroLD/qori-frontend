@@ -6,7 +6,7 @@ export function usd(cents: number): string {
 }
 
 // Formatted lingote amount (number only). Render the emerald icon alongside it
-// in the UI (e.g. the <Lingote /> component or /lingote.svg).
+// in the UI (e.g. the <Lingote /> component or /lingote.png).
 export function lingotes(n: number): string {
   return new Intl.NumberFormat("es-PE").format(n);
 }

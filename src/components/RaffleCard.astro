@@ -48,7 +48,7 @@ const winner = r.winners?.[0];
 
     <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
       <span class="text-sm font-semibold text-slate-900">
-      {r.ticketPrice === 0 ? "Gratis" : (<>{lingotes(r.ticketPrice)} <img src="/lingote.svg" alt="lingotes" class="inline-block h-[0.95em] w-[0.95em] align-[-0.12em]" /></>)}
+      {r.ticketPrice === 0 ? "Gratis" : (<>{lingotes(r.ticketPrice)} <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.95em] w-[0.95em] align-[-0.12em]" /></>)}
       <span class="text-xs font-normal text-slate-400"> /boleto</span>
     </span>
       <span class="text-sm font-semibold text-emerald-600 group-hover:underline">{isDrawn ? "Ver resultado" : "Participar"} →</span>
