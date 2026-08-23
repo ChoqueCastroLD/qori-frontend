@@ -19,6 +19,12 @@ export default function Account() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  async function resendVerification() {
+    await fetch("/api/auth/resend-verification", { method: "POST", credentials: "include" }).catch(() => {});
+    setResent(true);
+  }
 
   async function saveProfile() {
     setSaving(true);
@@ -63,6 +69,16 @@ export default function Account() {
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-10">
+      {!me.emailVerified && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span>Verifica tu correo para asegurar tu cuenta y poder cobrar si ganas.</span>
+          {resent ? (
+            <span className="font-semibold text-amber-700">Correo enviado ✓</span>
+          ) : (
+            <button onClick={resendVerification} className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-500">Reenviar correo</button>
+          )}
+        </div>
+      )}
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           {me.avatarUrl ? <img src={me.avatarUrl} className="h-14 w-14 rounded-full" alt="" /> : <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-200 text-xl font-bold text-slate-500">{(me.nickname || me.email)[0].toUpperCase()}</div>}

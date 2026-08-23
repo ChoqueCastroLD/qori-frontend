@@ -1,0 +1,21 @@
+---
+import Layout from "../layouts/Layout.astro";
+const ok = Astro.url.searchParams.get("ok") === "1";
+---
+<Layout title="Verificación de correo · qori" noindex={true}>
+  <div class="mx-auto flex max-w-lg flex-col items-center px-5 py-24 text-center">
+    <div class="text-5xl">{ok ? "✅" : "⚠️"}</div>
+    <h1 class="mt-4 text-2xl font-bold text-slate-900">
+      {ok ? "Correo verificado" : "Enlace inválido o expirado"}
+    </h1>
+    <p class="mt-2 text-slate-500">
+      {ok
+        ? "Tu correo quedó confirmado. Ya puedes participar y cobrar si ganas."
+        : "El enlace de verificación no es válido o ya venció. Entra a tu cuenta y solicita uno nuevo."}
+    </p>
+    <div class="mt-8 flex gap-3">
+      <a href="/sorteos" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Ver sorteos</a>
+      <a href="/cuenta" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Mi cuenta</a>
+    </div>
+  </div>
+</Layout>
