@@ -2,22 +2,22 @@ import Lingote from "./Lingote";
 import { useEffect, useState } from "react";
 
 const METHODS = [
+  { id: "MERCADOPAGO", label: "MercadoPago", emoji: "💳", manual: false },
   { id: "YAPE", label: "Yape", emoji: "📱", manual: true },
   { id: "PLIN", label: "Plin", emoji: "📲", manual: true },
   { id: "TRANSFER", label: "Transferencia", emoji: "🏦", manual: true },
-  { id: "PAYPAL", label: "PayPal", emoji: "🅿️", manual: false },
-  { id: "MERCADOPAGO", label: "MercadoPago", emoji: "💳", manual: false },
 ];
 const AMOUNTS = [500, 1000, 2000, 5000]; // USD cents
 
 export default function Recharge() {
   const [me, setMe] = useState<any>(null);
   const [amount, setAmount] = useState(1000);
-  const [method, setMethod] = useState("YAPE");
+  const [method, setMethod] = useState("MERCADOPAGO");
   const [topup, setTopup] = useState<any>(null);
   const [proof, setProof] = useState("");
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [mpMsg, setMpMsg] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
 
   function loadHistory() {
     fetch("/api/topups/mine", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => setHistory(d?.topups ?? []));
@@ -27,6 +27,11 @@ export default function Recharge() {
       if (!d?.user) { window.location.href = "/entrar"; return; }
       setMe(d.user); loadHistory();
     });
+    const mp = new URLSearchParams(location.search).get("mp");
+    if (mp === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
+    else if (mp === "pending") setMpMsg({ tone: "warn", text: "Tu pago quedó pendiente. Cuando MercadoPago lo apruebe, acreditaremos tus lingotes." });
+    else if (mp === "failure") setMpMsg({ tone: "warn", text: "El pago no se completó. Puedes intentar de nuevo." });
+    if (mp) { const t = setInterval(loadHistory, 3000); setTimeout(() => clearInterval(t), 30000); }
   }, []);
 
   async function createTopup() {
@@ -36,8 +41,10 @@ export default function Recharge() {
       body: JSON.stringify({ amountUsd: amount, method }),
     });
     const d = await res.json();
+    if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; } // MercadoPago
     setLoading(false);
     if (res.ok) { setTopup(d.topup); loadHistory(); }
+    else if (d.error === "mp_not_configured" || d.error === "mp_error") { alert("MercadoPago no está disponible en este momento."); }
   }
   async function sendProof() {
     if (!topup || !proof) return;
@@ -56,6 +63,9 @@ export default function Recharge() {
     <div className="mx-auto max-w-2xl px-5 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Recargar lingotes</h1>
       <p className="mt-1 text-sm text-slate-500">1 USD = 10 lingotes. Saldo actual: <strong>{me.balance} <Lingote /></strong></p>
+      {mpMsg && (
+        <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${mpMsg.tone === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{mpMsg.text}</p>
+      )}
 
       {topup ? (
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6">
