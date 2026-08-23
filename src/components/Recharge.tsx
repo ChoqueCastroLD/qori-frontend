@@ -1,138 +1,159 @@
 import Lingote from "./Lingote";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const METHODS = [
-  { id: "MERCADOPAGO", label: "MercadoPago", emoji: "💳", manual: false },
-  { id: "PAYPAL", label: "PayPal", emoji: "🅿️", manual: false },
-  { id: "YAPE", label: "Yape", emoji: "📱", manual: true },
-  { id: "PLIN", label: "Plin", emoji: "📲", manual: true },
-  { id: "TRANSFER", label: "Transferencia", emoji: "🏦", manual: true },
+// Fixed packages (USD cents → base + bonus lingotes). Must match the backend.
+const PACKAGES = [
+  { usd: 500, base: 50, bonus: 0 },
+  { usd: 1000, base: 100, bonus: 10 },
+  { usd: 2000, base: 200, bonus: 20 },
+  { usd: 5000, base: 500, bonus: 30 },
 ];
-const AMOUNTS = [500, 1000, 2000, 5000]; // USD cents
+const PREMIUM = [
+  { usd: 10000, base: 1000, bonus: 100 },
+  { usd: 50000, base: 5000, bonus: 500 },
+];
+const BONUS_ACTIVE = Date.now() < Date.parse("2026-09-16T04:59:59Z"); // hasta 15-set
+
+const CUR: Record<string, { code: string; sym: string; locale: string }> = {
+  PE: { code: "PEN", sym: "S/", locale: "es-PE" },
+  MX: { code: "MXN", sym: "MX$", locale: "es-MX" },
+  CO: { code: "COP", sym: "COL$", locale: "es-CO" },
+  CL: { code: "CLP", sym: "CLP$", locale: "es-CL" },
+  AR: { code: "ARS", sym: "AR$", locale: "es-AR" },
+};
 
 export default function Recharge() {
   const [me, setMe] = useState<any>(null);
-  const [amount, setAmount] = useState(1000);
+  const [sel, setSel] = useState(1000);
   const [method, setMethod] = useState("MERCADOPAGO");
-  const [topup, setTopup] = useState<any>(null);
-  const [proof, setProof] = useState("");
-  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fx, setFx] = useState<Record<string, number> | null>(null);
+  const [raffles, setRaffles] = useState<any[]>([]);
   const [mpMsg, setMpMsg] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
 
-  function loadHistory() {
-    fetch("/api/topups/mine", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => setHistory(d?.topups ?? []));
-  }
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
       if (!d?.user) { window.location.href = "/entrar"; return; }
-      setMe(d.user); loadHistory();
+      setMe(d.user);
     });
+    fetch("/api/fx").then((r) => r.json()).then((d) => setFx(d.rates ?? null)).catch(() => {});
+    fetch("/api/raffles").then((r) => r.json()).then((d) => setRaffles(Array.isArray(d) ? d.filter((r) => r.status === "OPEN") : [])).catch(() => {});
     const q = new URLSearchParams(location.search);
     const mp = q.get("mp"), pp = q.get("pp");
     if (mp === "success" || pp === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
     else if (mp === "pending") setMpMsg({ tone: "warn", text: "Tu pago quedó pendiente. Cuando lo aprueben, acreditaremos tus lingotes." });
     else if (mp === "failure" || pp === "failure") setMpMsg({ tone: "warn", text: "El pago no se completó. Puedes intentar de nuevo." });
     else if (pp === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago. Puedes intentar de nuevo cuando quieras." });
-    if (mp || pp) { const t = setInterval(loadHistory, 3000); setTimeout(() => clearInterval(t), 30000); }
   }, []);
 
-  async function createTopup() {
+  const pkg = useMemo(() => [...PACKAGES, ...PREMIUM].find((p) => p.usd === sel)!, [sel]);
+  const totalLingotes = pkg.base + (BONUS_ACTIVE ? pkg.bonus : 0);
+
+  function localRef(usdCents: number): string | null {
+    const c = CUR[me?.country ?? "PE"] ?? CUR.PE;
+    const rate = fx?.[c.code];
+    if (!rate) return null;
+    const v = (usdCents / 100) * rate;
+    return `aprox ${c.sym} ${new Intl.NumberFormat(c.locale, { maximumFractionDigits: 0 }).format(v)}`;
+  }
+
+  async function pay() {
     setLoading(true);
     const res = await fetch("/api/topups", {
       method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ amountUsd: amount, method }),
+      body: JSON.stringify({ amountUsd: sel, method }),
     });
-    const d = await res.json();
-    if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; } // MercadoPago
+    const d = await res.json().catch(() => ({}));
+    if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; }
     setLoading(false);
-    if (res.ok) { setTopup(d.topup); loadHistory(); }
-    else if (d.error === "mp_not_configured" || d.error === "mp_error") { alert("MercadoPago no está disponible en este momento."); }
-  }
-  async function sendProof() {
-    if (!topup || !proof) return;
-    await fetch(`/api/topups/${topup.id}/proof`, {
-      method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ proofUrl: proof }),
-    });
-    setTopup({ ...topup, proofUrl: proof });
-    loadHistory();
+    alert("No se pudo iniciar el pago. Intenta de nuevo.");
   }
 
   if (!me) return <p className="py-20 text-center text-slate-400">Cargando…</p>;
-  const lingotes = Math.round((amount / 100) * 10);
+
+  const Pkg = ({ p, premium }: { p: typeof PACKAGES[0]; premium?: boolean }) => {
+    const active = sel === p.usd;
+    const total = p.base + (BONUS_ACTIVE ? p.bonus : 0);
+    const ref = localRef(p.usd);
+    return (
+      <button
+        type="button" onClick={() => setSel(p.usd)}
+        className={`relative flex flex-col rounded-xl border p-3 text-left transition ${active ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}
+      >
+        {premium && <span className="absolute -top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-900">PREMIUM</span>}
+        <span className="text-lg font-bold text-slate-900">${p.usd / 100}</span>
+        {ref && <span className="text-[11px] text-slate-400">{ref}</span>}
+        <span className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-700">
+          {new Intl.NumberFormat("es-PE").format(total)} <Lingote />
+        </span>
+        {BONUS_ACTIVE && p.bonus > 0 && <span className="text-xs font-bold text-emerald-600">incluye +{p.bonus} bono</span>}
+      </button>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Recargar lingotes</h1>
       <p className="mt-1 text-sm text-slate-500">1 USD = 10 lingotes. Saldo actual: <strong>{me.balance} <Lingote /></strong></p>
-      {mpMsg && (
-        <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${mpMsg.tone === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{mpMsg.text}</p>
+      {mpMsg && <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${mpMsg.tone === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{mpMsg.text}</p>}
+
+      {BONUS_ACTIVE && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          <span className="text-base">🎁</span>
+          <span><strong>Bono por tiempo limitado:</strong> lingotes extra en los paquetes, solo hasta el <strong>15 de setiembre</strong>.</span>
+        </div>
       )}
 
-      {topup ? (
-        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <h2 className="font-bold text-amber-800">Recarga creada · pendiente de confirmación</h2>
-          <p className="mt-1 text-sm text-amber-700">
-            {topup.lingotes} <Lingote /> por ${(topup.amountUsd / 100).toFixed(2)} vía {topup.method}.
-          </p>
-          <div className="mt-4 rounded-lg bg-white p-4 text-sm text-slate-600">
-            <p className="font-semibold text-slate-800">Instrucciones</p>
-            <p className="mt-1">Envía el pago a: <strong>Yape/Plin 999-888-777</strong> (demo) y pega el enlace de tu comprobante para agilizar la confirmación.</p>
-            <div className="mt-3 flex gap-2">
-              <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="https://…comprobante.jpg" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              <button onClick={sendProof} className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Enviar</button>
-            </div>
-            {topup.proofUrl && <p className="mt-2 text-emerald-600">✓ Comprobante recibido. Un admin confirmará tu recarga.</p>}
-          </div>
-          <button onClick={() => setTopup(null)} className="mt-4 text-sm font-semibold text-amber-700 underline">Hacer otra recarga</button>
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <label className="mb-2 block text-sm font-medium text-slate-700">Elige un paquete</label>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {PACKAGES.map((p) => <Pkg key={p.usd} p={p} />)}
         </div>
-      ) : (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
-          <label className="mb-2 block text-sm font-medium text-slate-700">Monto</label>
-          <div className="grid grid-cols-4 gap-2">
-            {AMOUNTS.map((a) => (
-              <button key={a} onClick={() => setAmount(a)} className={`rounded-lg border px-3 py-3 text-sm font-semibold ${amount === a ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600"}`}>
-                ${a / 100}
-                <div className="text-xs font-normal text-slate-400">{(a / 100) * 10} <Lingote /></div>
-              </button>
-            ))}
-          </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {PREMIUM.map((p) => <Pkg key={p.usd} p={p} premium />)}
+        </div>
 
-          <label className="mb-2 mt-5 block text-sm font-medium text-slate-700">Método de pago</label>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {METHODS.map((m) => (
-              <button key={m.id} onClick={() => setMethod(m.id)} className={`rounded-lg border px-3 py-3 text-sm font-medium ${method === m.id ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600"}`}>
-                <span className="mr-1">{m.emoji}</span>{m.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="my-5 flex items-center justify-between border-t border-slate-100 pt-4">
+        {/* Real-time ticket calculator */}
+        <div className="mt-5 rounded-xl bg-slate-50 p-4">
+          <div className="flex items-center justify-between">
             <span className="text-sm text-slate-500">Recibes</span>
-            <span className="text-lg font-bold text-emerald-600">{lingotes} <Lingote /></span>
+            <span className="flex items-center gap-1 text-lg font-bold text-emerald-600">{new Intl.NumberFormat("es-PE").format(totalLingotes)} <Lingote /></span>
           </div>
-          <button onClick={createTopup} disabled={loading} className="w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">
-            {loading ? "…" : "Continuar"}
+          <p className="mt-2 text-xs font-semibold text-slate-500">Con eso puedes comprar aprox:</p>
+          {raffles.length === 0 ? (
+            <p className="mt-1 text-xs text-slate-400">No hay sorteos activos ahora mismo.</p>
+          ) : (
+            <ul className="mt-1 space-y-0.5">
+              {raffles.slice(0, 5).map((r) => (
+                <li key={r.slug} className="flex justify-between text-xs text-slate-600">
+                  <span className="truncate pr-2">{r.title}</span>
+                  <span className="shrink-0 font-semibold text-slate-800">
+                    {r.ticketPrice === 0 ? "∞ (gratis)" : `${Math.floor(totalLingotes / r.ticketPrice)} boletos`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Payment method */}
+        <label className="mb-2 mt-5 block text-sm font-medium text-slate-700">Método de pago</label>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setMethod("MERCADOPAGO")} className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 ${method === "MERCADOPAGO" ? "border-emerald-500 bg-emerald-50" : "border-slate-200"}`}>
+            <img src="/pay/mercadopago.svg" alt="MercadoPago" className="h-6" />
+            <span className="text-[11px] text-slate-500">Yape · Plin · Tarjeta</span>
+          </button>
+          <button type="button" onClick={() => setMethod("PAYPAL")} className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 ${method === "PAYPAL" ? "border-emerald-500 bg-emerald-50" : "border-slate-200"}`}>
+            <img src="/pay/paypal.svg" alt="PayPal" className="h-6" />
+            <span className="text-[11px] text-slate-500">Tarjeta o saldo PayPal</span>
           </button>
         </div>
-      )}
 
-      {history.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-sm font-semibold text-slate-900">Mis recargas</h3>
-          <div className="mt-2 space-y-2">
-            {history.map((t) => (
-              <div key={t.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-4 py-2.5 text-sm">
-                <span className="text-slate-600">{t.lingotes} <Lingote /> · {t.method}</span>
-                <span className={t.status === "PAID" ? "font-semibold text-emerald-600" : t.status === "PENDING" ? "text-amber-600" : "text-slate-400"}>
-                  {t.status === "PAID" ? "Confirmada" : t.status === "PENDING" ? "Pendiente" : t.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">
+          {loading ? "Redirigiendo…" : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
+        </button>
+        <p className="mt-2 text-center text-xs text-slate-400">Pago seguro. Los lingotes se acreditan automáticamente al confirmarse.</p>
+      </div>
     </div>
   );
 }

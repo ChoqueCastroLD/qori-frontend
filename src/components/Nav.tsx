@@ -39,10 +39,11 @@ export default function Nav() {
         <>
           <a
             href="/recargar"
-            className="hidden rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 sm:inline-block"
-            title="Tu saldo de lingotes"
+            className="hidden items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-100 sm:inline-flex"
+            title="Recargar lingotes"
           >
             {new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote />
+            <span className="border-l border-emerald-200 pl-1.5 text-emerald-600">Recargar</span>
           </a>
           {me.role === "ADMIN" && (
             <a href="/admin" className="hidden font-medium text-slate-500 hover:text-slate-900 sm:inline">
@@ -59,8 +60,10 @@ export default function Nav() {
             )}
             <span className="hidden sm:inline">{me.nickname || "Mi cuenta"}</span>
           </a>
-          <button onClick={logout} className="text-slate-400 hover:text-slate-700" title="Salir">
-            Salir
+          <button onClick={logout} className="text-slate-400 transition hover:text-slate-700" title="Salir" aria-label="Salir">
+            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12H4m12 0-4 4m4-4-4-4m3-4h2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-2" />
+            </svg>
           </button>
         </>
       ) : (
