@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 const METHODS = [
   { id: "MERCADOPAGO", label: "MercadoPago", emoji: "💳", manual: false },
+  { id: "PAYPAL", label: "PayPal", emoji: "🅿️", manual: false },
   { id: "YAPE", label: "Yape", emoji: "📱", manual: true },
   { id: "PLIN", label: "Plin", emoji: "📲", manual: true },
   { id: "TRANSFER", label: "Transferencia", emoji: "🏦", manual: true },
@@ -27,11 +28,13 @@ export default function Recharge() {
       if (!d?.user) { window.location.href = "/entrar"; return; }
       setMe(d.user); loadHistory();
     });
-    const mp = new URLSearchParams(location.search).get("mp");
-    if (mp === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
-    else if (mp === "pending") setMpMsg({ tone: "warn", text: "Tu pago quedó pendiente. Cuando MercadoPago lo apruebe, acreditaremos tus lingotes." });
-    else if (mp === "failure") setMpMsg({ tone: "warn", text: "El pago no se completó. Puedes intentar de nuevo." });
-    if (mp) { const t = setInterval(loadHistory, 3000); setTimeout(() => clearInterval(t), 30000); }
+    const q = new URLSearchParams(location.search);
+    const mp = q.get("mp"), pp = q.get("pp");
+    if (mp === "success" || pp === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
+    else if (mp === "pending") setMpMsg({ tone: "warn", text: "Tu pago quedó pendiente. Cuando lo aprueben, acreditaremos tus lingotes." });
+    else if (mp === "failure" || pp === "failure") setMpMsg({ tone: "warn", text: "El pago no se completó. Puedes intentar de nuevo." });
+    else if (pp === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago. Puedes intentar de nuevo cuando quieras." });
+    if (mp || pp) { const t = setInterval(loadHistory, 3000); setTimeout(() => clearInterval(t), 30000); }
   }, []);
 
   async function createTopup() {
