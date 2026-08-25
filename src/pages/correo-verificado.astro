@@ -5,7 +5,7 @@ const ok = Astro.url.searchParams.get("ok") === "1";
 ---
 <Layout title="Verificación de correo · qori" noindex={true}>
   <div class="mx-auto flex max-w-lg flex-col items-center px-5 py-24 text-center">
-    <div>{ok ? <Icon name="check-circle" class="h-14 w-14 text-emerald-600" /> : <Icon name="x-circle" class="h-14 w-14 text-red-600" />}</div>
+    <div>{ok ? <Icon name="check-circle" class="h-14 w-14 text-emerald-700" /> : <Icon name="x-circle" class="h-14 w-14 text-red-600" />}</div>
     <h1 class="mt-4 text-2xl font-bold text-slate-900">
       {ok ? "Correo verificado" : "Enlace inválido o expirado"}
     </h1>

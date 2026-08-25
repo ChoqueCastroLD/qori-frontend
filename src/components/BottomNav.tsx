@@ -55,7 +55,7 @@ export default function BottomNav() {
               key={t.href}
               href={t.href}
               className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition ${
-                isActive(t.href) ? "text-emerald-600" : (t as any).primary ? "text-emerald-600" : "text-slate-500"
+                isActive(t.href) ? "text-emerald-700" : (t as any).primary ? "text-emerald-700" : "text-slate-500"
               }`}
             >
               {(t as any).primary ? (

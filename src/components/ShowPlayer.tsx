@@ -167,7 +167,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
 
   function goStage(i: number) { setStageIdx(i); setStep(0); setPlaying(false); }
 
-  if (error) return <div className="mx-auto max-w-2xl px-5 py-20 text-center text-slate-400">{error} <a href={`/sorteos/${slug}`} className="text-emerald-600">Volver</a></div>;
+  if (error) return <div className="mx-auto max-w-2xl px-5 py-20 text-center text-slate-400">{error} <a href={`/sorteos/${slug}`} className="text-emerald-700">Volver</a></div>;
   if (!data) return <p className="py-20 text-center text-slate-400">Cargando show…</p>;
 
   const meta = GAME_META[stage?.game] ?? GAME_META.ELIMINATION;
@@ -183,7 +183,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
               <div>
                 <div className="text-sm font-bold text-slate-900">{data.raffle.title}</div>
                 <div className="text-xs text-slate-500">
-                  Etapa {stageIdx + 1}/{stages.length}: {meta.label}{stage?.isFinale && " · FINAL"} · <span className="text-emerald-600">{aliveCount} en juego</span> · {elimSet.size} fuera
+                  Etapa {stageIdx + 1}/{stages.length}: {meta.label}{stage?.isFinale && " · FINAL"} · <span className="text-emerald-700">{aliveCount} en juego</span> · {elimSet.size} fuera
                 </div>
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
           <div className={`rounded-3xl border border-slate-200 p-5 ${stage?.game === "SQUID" && playing && !stageDone && step % 2 === 1 ? "bg-rose-50" : "bg-gradient-to-b from-slate-50 to-white"}`}>
             {isFinaleDone && (
               <div className="mb-5 rounded-2xl bg-emerald-50 p-5 text-center">
-                <div className="flex justify-center text-emerald-600"><Icon name="trophy" className="h-8 w-8" /></div>
+                <div className="flex justify-center text-emerald-700"><Icon name="trophy" className="h-8 w-8" /></div>
                 <h2 className="mt-1 text-lg font-bold text-emerald-800">{winners.length > 1 ? "¡Ganadores!" : "¡Ganador!"} {winners.map((w) => `#${participants[w]?.number}`).join(", ")}</h2>
                 <a href={`/verificar?slug=${slug}`} className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Verificar este resultado</a>
               </div>

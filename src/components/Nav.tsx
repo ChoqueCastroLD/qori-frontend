@@ -73,7 +73,7 @@ export default function Nav() {
         title="Recargar lingotes"
       >
         {nf(me.balance)} <Lingote />
-        <span className="hidden border-l border-emerald-200 pl-1.5 text-emerald-600 sm:inline">Recargar</span>
+        <span className="hidden border-l border-emerald-200 pl-1.5 text-emerald-700 sm:inline">Recargar</span>
       </a>
 
       <a

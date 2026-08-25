@@ -13,7 +13,7 @@ const totalPrize = winners.reduce((s, r) => s + (r.prizeValue ?? 0), 0);
 
 <Layout title="Ganadores · qori" description="Los que ya se llevaron su premio en qori. Cada sorteo con su ganador, la grabación y los datos para revisarlo tú mismo.">
   <div class="mx-auto max-w-6xl px-5 py-10 sm:py-12">
-    <div class="flex items-center gap-2 text-emerald-600">
+    <div class="flex items-center gap-2 text-emerald-700">
       <Icon name="trophy" class="h-5 w-5" />
       <span class="text-sm font-semibold uppercase tracking-wide">Ganadores</span>
     </div>
@@ -29,7 +29,7 @@ const totalPrize = winners.reduce((s, r) => s + (r.prizeValue ?? 0), 0);
           <div class="text-xs text-slate-500">premios entregados</div>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <div class="text-2xl font-bold text-emerald-600" data-usd={(totalPrize / 100).toFixed(2)}>${(totalPrize / 100).toLocaleString("en-US")}</div>
+          <div class="text-2xl font-bold text-emerald-700" data-usd={(totalPrize / 100).toFixed(2)}>${(totalPrize / 100).toLocaleString("en-US")}</div>
           <div class="text-xs text-slate-500">en premios</div>
         </div>
       </div>

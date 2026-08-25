@@ -93,7 +93,7 @@ const orgJsonLd = {
           Sorteo en vivo{heroDate && ` · ${heroDate}`}{heroTime && ` · ${heroTime} hora Perú`}
         </span>
         <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
-          ¿Te animas a ganar <span class="text-emerald-600">{featured.title}</span> por {lingotes(featured.ticketPrice)}
+          ¿Te animas a ganar <span class="text-emerald-700">{featured.title}</span> por {lingotes(featured.ticketPrice)}
           <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.8em] w-[0.8em] align-[-0.02em]" />?
           Compra un ticket y {heroDate ? `el ${heroDate}` : "ese día"} puede ser tu día.
         </h1>
@@ -113,7 +113,7 @@ const orgJsonLd = {
           Sorteos en vivo
         </span>
         <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
-          Compra un ticket y <span class="text-emerald-600">gana en vivo</span>
+          Compra un ticket y <span class="text-emerald-700">gana en vivo</span>
         </h1>
         <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
           Tu ticket tiene un número único. El día del sorteo lo ves salir en vivo, y al terminar puedes revisar el resultado tú mismo.
@@ -132,7 +132,7 @@ const orgJsonLd = {
         ["refresh", "Si el sorteo no se realiza, recuperas tus lingotes"],
       ].map(([icon, text]) => (
         <div class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600">
-          <Icon name={icon} class="h-4 w-4 shrink-0 text-emerald-600" />
+          <Icon name={icon} class="h-4 w-4 shrink-0 text-emerald-700" />
           <span>{text}</span>
         </div>
       ))}
@@ -146,7 +146,7 @@ const orgJsonLd = {
         <h2 class="text-2xl font-bold text-slate-900">Elige tu próximo premio</h2>
         <p class="text-sm text-slate-500">Cada ticket es un número único a tu nombre.</p>
       </div>
-      <a href="/sorteos" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 hover:underline">Ver todos <Icon name="arrow-right" class="h-4 w-4" /></a>
+      <a href="/sorteos" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:underline">Ver todos <Icon name="arrow-right" class="h-4 w-4" /></a>
     </div>
     {active.length === 0 ? (
       <p class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-500">No hay sorteos activos ahora mismo.</p>
@@ -183,20 +183,20 @@ const orgJsonLd = {
       <h2 class="text-center text-xl font-bold text-slate-900">Por qué tu número tiene las mismas chances que todos</h2>
       <div class="mx-auto mt-8 grid max-w-3xl gap-6 sm:grid-cols-3">
         <div class="flex flex-col gap-2">
-          <Icon name="lock" class="h-5 w-5 text-emerald-600" />
+          <Icon name="lock" class="h-5 w-5 text-emerald-700" />
           <p class="text-sm text-slate-500">Antes de vender el primer ticket publicamos una huella digital (hash) que fija las reglas del sorteo. Desde ese momento no se pueden cambiar sin que se note.</p>
         </div>
         <div class="flex flex-col gap-2">
-          <Icon name="bolt" class="h-5 w-5 text-emerald-600" />
+          <Icon name="bolt" class="h-5 w-5 text-emerald-700" />
           <p class="text-sm text-slate-500">El número ganador lo produce drand, una fuente de azar pública e independiente. No la controlamos ni podemos adelantarnos a ella.</p>
         </div>
         <div class="flex flex-col gap-2">
-          <Icon name="check-circle" class="h-5 w-5 text-emerald-600" />
+          <Icon name="check-circle" class="h-5 w-5 text-emerald-700" />
           <p class="text-sm text-slate-500">Cuando termina el sorteo publicamos la semilla y todos los datos. Tú, o cualquiera, puede repetir el sorteo y obtener el mismo resultado.</p>
         </div>
       </div>
       <p class="mt-8 text-center">
-        <a href="/como-funciona" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 hover:underline">Ver la explicación técnica completa <Icon name="arrow-right" class="h-4 w-4" /></a>
+        <a href="/como-funciona" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:underline">Ver la explicación técnica completa <Icon name="arrow-right" class="h-4 w-4" /></a>
       </p>
     </div>
   </section>
@@ -232,7 +232,7 @@ const orgJsonLd = {
       ))}
     </div>
     <p class="mt-6 text-center text-sm text-slate-500">
-      ¿Otra duda? Escríbenos a <a href="mailto:support@qori.cc" class="font-semibold text-emerald-600 hover:underline">support@qori.cc</a>.
+      ¿Otra duda? Escríbenos a <a href="mailto:support@qori.cc" class="font-semibold text-emerald-700 hover:underline">support@qori.cc</a>.
     </p>
   </section>
 

@@ -89,7 +89,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         {err && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
         <button disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{loading ? "…" : "Entrar"}</button>
         {googleBtn}
-        <p className="mt-5 text-center text-sm text-slate-500">¿No tienes cuenta? <a href="/registro" className="font-semibold text-emerald-600 hover:underline">Crear cuenta</a></p>
+        <p className="mt-5 text-center text-sm text-slate-500">¿No tienes cuenta? <a href="/registro" className="font-semibold text-emerald-700 hover:underline">Crear cuenta</a></p>
       </form>
     );
   }
@@ -107,7 +107,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         {err && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
         <button disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{loading ? "Enviando…" : "Enviar código"}</button>
         {googleBtn}
-        <p className="mt-5 text-center text-sm text-slate-500">¿Ya tienes cuenta? <a href="/entrar" className="font-semibold text-emerald-600 hover:underline">Entrar</a></p>
+        <p className="mt-5 text-center text-sm text-slate-500">¿Ya tienes cuenta? <a href="/entrar" className="font-semibold text-emerald-700 hover:underline">Entrar</a></p>
       </form>
     );
   }
@@ -118,7 +118,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       <h1 className="text-2xl font-bold text-slate-900">Confirma tu correo</h1>
       <p className="mt-1 text-sm text-slate-500">
         Enviamos un código a <strong>{email}</strong>.{" "}
-        <button type="button" onClick={() => { setStep("email"); setErr(""); setNotice(""); setCode(""); }} className="font-semibold text-emerald-600 hover:underline">Cambiar</button>
+        <button type="button" onClick={() => { setStep("email"); setErr(""); setNotice(""); setCode(""); }} className="font-semibold text-emerald-700 hover:underline">Cambiar</button>
       </p>
       {notice && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">{notice}</p>}
       <div className="mt-5"><label className="mb-1 block text-sm font-medium text-slate-700">Código de 6 dígitos</label>

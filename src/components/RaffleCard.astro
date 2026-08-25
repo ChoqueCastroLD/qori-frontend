@@ -16,7 +16,7 @@ const winner = r.winners?.[0];
       {isDrawn ? (
         <span class="rounded-full bg-slate-900/90 px-2.5 py-1 text-xs font-semibold text-white">Finalizado</span>
       ) : (
-        <span class="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white">Activo</span>
+        <span class="rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white">Activo</span>
       )}
       {r.winnersCount > 1 && (
         <span class="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-slate-700">{r.winnersCount} ganadores</span>
@@ -52,7 +52,7 @@ const winner = r.winners?.[0];
       {r.ticketPrice === 0 ? "Gratis" : (<>{lingotes(r.ticketPrice)} <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.95em] w-[0.95em] align-[-0.12em]" /></>)}
       <span class="text-xs font-normal text-slate-500"> /ticket</span>
     </span>
-      <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 group-hover:underline">{isDrawn ? "Ver resultado" : "Participar"} <Icon name="arrow-right" class="h-4 w-4" /></span>
+      <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:underline">{isDrawn ? "Ver resultado" : "Participar"} <Icon name="arrow-right" class="h-4 w-4" /></span>
     </div>
   </div>
 </a>

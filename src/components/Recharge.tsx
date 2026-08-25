@@ -87,7 +87,7 @@ export default function Recharge() {
         <span className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-700">
           {new Intl.NumberFormat("es-PE").format(total)} <Lingote />
         </span>
-        {BONUS_ACTIVE && p.bonus > 0 && <span className="text-xs font-bold text-emerald-600">incluye +{p.bonus} bono</span>}
+        {BONUS_ACTIVE && p.bonus > 0 && <span className="text-xs font-bold text-emerald-700">incluye +{p.bonus} bono</span>}
       </button>
     );
   };
@@ -118,7 +118,7 @@ export default function Recharge() {
         <div className="mt-5 rounded-xl bg-slate-50 p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-500">Recibes</span>
-            <span className="flex items-center gap-1 text-lg font-bold text-emerald-600">{new Intl.NumberFormat("es-PE").format(totalLingotes)} <Lingote /></span>
+            <span className="flex items-center gap-1 text-lg font-bold text-emerald-700">{new Intl.NumberFormat("es-PE").format(totalLingotes)} <Lingote /></span>
           </div>
           <p className="mt-2 text-xs font-semibold text-slate-500">Con eso puedes comprar aprox:</p>
           {raffles.length === 0 ? (

@@ -151,7 +151,7 @@ export default function Verifier() {
       {result && (
         <>
           <div className={`mt-4 rounded-2xl border p-6 ${verified ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
-            <div>{verified ? <Icon name="check-circle" className="h-8 w-8 text-emerald-600" /> : <Icon name="x-circle" className="h-8 w-8 text-red-600" />}</div>
+            <div>{verified ? <Icon name="check-circle" className="h-8 w-8 text-emerald-700" /> : <Icon name="x-circle" className="h-8 w-8 text-red-600" />}</div>
             <h3 className={`mt-2 text-lg font-bold ${verified ? "text-emerald-800" : "text-red-800"}`}>
               {verified ? "Verificado: el sorteo fue justo" : "¡Discrepancia detectada!"}
             </h3>
@@ -195,7 +195,7 @@ export default function Verifier() {
 
               {/* Winner(s) at the very end */}
               <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5">
-                <div><Icon name="trophy" className="h-7 w-7 text-emerald-600" /></div>
+                <div><Icon name="trophy" className="h-7 w-7 text-emerald-700" /></div>
                 <h4 className="mt-1 font-bold text-emerald-800">{recomputedWinners.length > 1 ? "Ganadores" : "Ganador"}</h4>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {(result.winners ?? []).map((idx: number, k: number) => {

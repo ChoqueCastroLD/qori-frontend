@@ -72,7 +72,7 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
         </form>
       ) : (
         <div className="border-t border-slate-100 p-3 text-center text-xs text-slate-400">
-          <a href="/entrar" className="font-semibold text-emerald-600">Entra</a> para participar en el chat.
+          <a href="/entrar" className="font-semibold text-emerald-700">Entra</a> para participar en el chat.
         </div>
       )}
     </div>
