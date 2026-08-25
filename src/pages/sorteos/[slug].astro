@@ -58,7 +58,13 @@ const isOpen = r.status === "OPEN";
           </div>
         </div>
 
-        <!-- Fairness (collapsed by default) -->
+        {r.legacy && (
+          <div class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div class="flex items-center gap-2"><span class="text-lg">📜</span><h3 class="font-semibold text-amber-800">Sorteo histórico</h3></div>
+            <p class="mt-2 text-sm text-amber-700">Este sorteo se realizó manualmente <strong>antes</strong> de qori.cc, por eso no tiene semilla ni drand y <strong>no es verificable</strong> provably-fair. Lo mostramos como parte de nuestro historial de premios entregados.</p>
+          </div>
+        )}
+        {!r.legacy && (
         <details class="group mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
           <summary class="flex cursor-pointer list-none items-center justify-between">
             <span class="flex items-center gap-2"><span class="text-lg">🔒</span><h3 class="font-semibold text-slate-900">Transparencia (provably-fair)</h3></span>
@@ -90,6 +96,7 @@ const isOpen = r.status === "OPEN";
             {isDrawn ? "Verificar este sorteo" : "Cómo verificar"}
           </a>
         </details>
+        )}
       </div>
 
       <!-- Right -->
@@ -108,7 +115,9 @@ const isOpen = r.status === "OPEN";
                 </li>
               ))}
             </ul>
-            <a href={`/sorteos/${r.slug}/show`} class="mt-5 block rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700">Ver el show ▶</a>
+            {r.legacy
+              ? <p class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">Sorteo histórico (hecho a mano antes de la plataforma).</p>
+              : <a href={`/sorteos/${r.slug}/show`} class="mt-5 block rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700">Ver el show ▶</a>}
           </div>
         ) : (
           <div class="space-y-4">

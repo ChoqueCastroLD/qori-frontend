@@ -29,8 +29,8 @@ export default function Verifier() {
     if (s) { setSlug(s); load(s); }
   }, []);
 
-  // Only drawn raffles are verifiable - suggest those.
-  const verifiable = all.filter((r) => r.status === "DRAWN");
+  // Only drawn, non-legacy raffles are verifiable.
+  const verifiable = all.filter((r) => r.status === "DRAWN" && !r.legacy);
   const suggestions = q.trim().length === 0
     ? verifiable
     : verifiable.filter((r) => `${r.title} ${r.slug}`.toLowerCase().includes(q.trim().toLowerCase()));
@@ -47,6 +47,7 @@ export default function Verifier() {
     try {
       const r = await fetch(`/api/raffles/${s}`, { credentials: "include" }).then((x) => x.json());
       if (r.error) { setError("No se encontró el sorteo."); return; }
+      if (r.legacy) { setError("Este sorteo es histórico: se realizó manualmente antes de la plataforma, por eso no tiene semilla ni drand y no es verificable provably-fair."); setRaffle(null); return; }
       if (r.status !== "DRAWN") { setError("Este sorteo aún no ha sido sorteado."); setRaffle(r); return; }
       setRaffle(r);
       const sh = await fetch(`/api/raffles/${s}/show`, { credentials: "include" }).then((x) => x.json());

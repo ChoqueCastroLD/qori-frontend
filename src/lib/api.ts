@@ -50,6 +50,7 @@ export interface Raffle {
   games: string[];
   finale: string | null;
   status: "OPEN" | "CLOSED" | "DRAWING" | "DRAWN" | "CANCELLED";
+  legacy?: boolean;
   opensAt: string | null;
   closesAt: string | null;
   drawnAt: string | null;
