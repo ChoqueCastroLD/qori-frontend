@@ -77,7 +77,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
           <a href="/como-funciona" class="hover:text-slate-900">Cómo funciona</a>
           <a href="/verificar" class="hover:text-slate-900">Verificar</a>
         </div>
-        <Nav client:load transition:persist />
+        <Nav client:idle transition:persist />
       </nav>
     </header>
 
@@ -85,7 +85,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
       <slot />
     </main>
 
-    <BottomNav client:load transition:persist />
+    <BottomNav client:idle transition:persist />
 
     <script>
       // Live countdown for [data-closes-at]. Re-runs after each View Transition
