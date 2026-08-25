@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Lingote from "./Lingote";
 import Icon from "./Icon";
+import ImageUpload from "./ImageUpload";
 
 const GAMES = ["ELIMINATION", "DIGIT_REVEAL", "BOMBS", "SQUID", "HORSE_RACE"];
 
@@ -135,7 +136,16 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
   const [detail, setDetail] = useState<any>(null);
   const [closesAt, setClosesAt] = useState("");
   const [savingDate, setSavingDate] = useState(false);
+  const [imgUrl, setImgUrl] = useState(r.images?.[0] ?? "");
   const locked = r.status === "DRAWN" || r.status === "CANCELLED";
+
+  async function saveImage(url: string) {
+    setImgUrl(url);
+    if (!url) return;
+    const res = await adminFetch(`/admin/raffles/${r.id}`, { method: "PATCH", body: JSON.stringify({ images: [url] }) });
+    setMsg(res.ok ? "Imagen actualizada" : `Error: ${res.data?.error ?? "no se pudo"}`);
+    if (res.ok) onChanged();
+  }
 
   async function toggle() {
     const next = !open;
@@ -176,12 +186,17 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
           {!detail ? <p className="text-sm text-slate-400">Cargando…</p> : (
             <>
               {!locked && (
-                <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-slate-50 p-3">
-                  <div>
-                    <label className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label>
-                    <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <div className="mb-4 space-y-3 rounded-lg bg-slate-50 p-3">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div>
+                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label>
+                      <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                    </div>
+                    <button onClick={saveDate} disabled={savingDate} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{savingDate ? "Guardando…" : "Guardar fecha"}</button>
                   </div>
-                  <button onClick={saveDate} disabled={savingDate} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{savingDate ? "Guardando…" : "Guardar fecha"}</button>
+                  <div className="max-w-xs">
+                    <ImageUpload label="Imagen del sorteo (se guarda al subir)" value={imgUrl} onChange={saveImage} endpoint="/admin/upload" />
+                  </div>
                 </div>
               )}
 
@@ -248,7 +263,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   const [f, setF] = useState<any>({
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
     minTickets: 50, winnersCount: 1, games: ["ELIMINATION", "DIGIT_REVEAL", "SQUID", "HORSE_RACE", "BOMBS"], finale: "BOMBS",
-    image: "https://picsum.photos/seed/new/900/600", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
+    image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
   const [err, setErr] = useState("");
   function toggleGame(g: string) {
@@ -256,6 +271,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setErr("");
+    if (!f.image) { setErr("Sube una imagen para el sorteo."); return; }
     if (!f.closesAt) { setErr("Elige la fecha y hora del sorteo."); return; }
     const body = {
       slug: f.slug, title: f.title, description: f.description, images: [f.image],
@@ -275,7 +291,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
         <div><label className="text-xs text-slate-500">Título</label><input required className={inp} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
       </div>
       <div><label className="text-xs text-slate-500">Descripción</label><textarea required className={inp} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
-      <div><label className="text-xs text-slate-500">Imagen (URL)</label><input className={inp} value={f.image} onChange={(e) => setF({ ...f, image: e.target.value })} /></div>
+      <ImageUpload label="Imagen del sorteo" value={f.image} onChange={(url) => setF({ ...f, image: url })} endpoint="/admin/upload" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" className={inp} value={f.prizeUsd} onChange={(e) => setF({ ...f, prizeUsd: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" className={inp} value={f.ticketPrice} onChange={(e) => setF({ ...f, ticketPrice: e.target.value })} /></div>

@@ -1,6 +1,7 @@
 import Lingote from "./Lingote";
 import TicketIcon from "./TicketIcon";
 import Icon from "./Icon";
+import ImageUpload from "./ImageUpload";
 import { useEffect, useState } from "react";
 
 const LTYPE: Record<string, string> = {
@@ -115,18 +116,23 @@ export default function Account() {
 
       {editing && (
         <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Apodo público</label>
               <input value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 40))} placeholder="Cómo te verán en el show" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">URL de avatar</label>
-              <input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://…foto.jpg" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+              <label className="mb-1 block text-sm font-medium text-slate-700">Foto de perfil</label>
+              <ImageUpload
+                circle
+                value={avatarUrl}
+                endpoint="/me/avatar"
+                onChange={(url) => { setAvatarUrl(url); setMe((m: any) => (m ? { ...m, avatarUrl: url } : m)); window.dispatchEvent(new CustomEvent("qori:refresh")); }}
+                hint="Se guarda al subir. JPG, PNG o WEBP, máx 6 MB."
+              />
             </div>
           </div>
-          {avatarUrl && <img src={avatarUrl} className="mt-3 h-12 w-12 rounded-full object-cover" alt="" />}
-          <p className="mt-2 text-xs text-slate-400">Por privacidad, puedes usar un apodo y un avatar en lugar de tu foto real.</p>
+          <p className="mt-2 text-xs text-slate-400">Por privacidad, puedes usar un apodo y una foto en lugar de tu foto real.</p>
           <button onClick={saveProfile} disabled={saving} className="mt-3 rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">
             {saving ? "Guardando…" : "Guardar"}
           </button>
