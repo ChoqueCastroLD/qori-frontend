@@ -15,11 +15,17 @@ const GAME_META: Record<string, { label: string; icon: string; color: string }> 
 const STEP_MS = 450;
 const GAP_MS = 1400;
 
-interface Participant { number: number; nickname: string | null; avatarUrl: string | null; comment: string | null; }
+interface Participant { number: number; nickname: string | null; avatarUrl: string | null; comment: string | null; boughtAt?: string | null; }
+
+function fmtDate(iso?: string | null): string {
+  if (!iso) return "";
+  try { return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
+  catch { return ""; }
+}
 
 function Ticket({ p, mine, elim, winner }: { p: Participant; mine: boolean; elim: boolean; winner: boolean }) {
   return (
-    <div className={`flex w-[52px] flex-col items-center gap-1 transition-[filter,opacity] duration-500 ${elim ? "opacity-45 grayscale" : ""}`}>
+    <div className={`group relative flex w-[52px] flex-col items-center gap-1 transition-[filter,opacity] duration-500 ${elim ? "opacity-45 grayscale" : ""}`}>
       <div className={`relative h-12 w-12 rounded-full shadow ${winner ? "ring-4 ring-emerald-400" : mine ? "ring-[3px] ring-sky-500" : "ring-2 ring-white"}`}>
         {p.avatarUrl ? <img src={p.avatarUrl} className="h-full w-full rounded-full object-cover" alt="" loading="lazy" />
           : <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-bold text-slate-600">{(p.nickname || "?")[0]}</div>}
@@ -28,6 +34,18 @@ function Ticket({ p, mine, elim, winner }: { p: Participant; mine: boolean; elim
         {mine && !winner && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-sky-500 px-1.5 text-[9px] font-bold text-white">TÚ</div>}
       </div>
       <span className={`rounded px-1 font-mono text-[10px] font-bold ${winner ? "bg-emerald-100 text-emerald-700" : mine ? "text-sky-600" : "text-slate-500"}`}>#{p.number}</span>
+      {/* Hover card: buyer, photo, comment, purchase date */}
+      <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 hidden w-44 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-2.5 text-left shadow-xl group-hover:block">
+        <div className="flex items-center gap-2">
+          {p.avatarUrl ? <img src={p.avatarUrl} className="h-8 w-8 rounded-full object-cover" alt="" /> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500">{(p.nickname || "?")[0]}</span>}
+          <div className="min-w-0">
+            <div className="truncate text-xs font-bold text-slate-900">{p.nickname || "Anónimo"}</div>
+            <div className="font-mono text-[10px] text-slate-500">Boleto #{p.number}</div>
+          </div>
+        </div>
+        {p.comment && <div className="mt-1 line-clamp-2 text-[10px] italic text-slate-500">“{p.comment}”</div>}
+        {p.boughtAt && <div className="mt-1 text-[10px] text-slate-400">Comprado: {fmtDate(p.boughtAt)}</div>}
+      </div>
     </div>
   );
 }

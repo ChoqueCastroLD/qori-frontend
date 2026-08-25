@@ -24,7 +24,7 @@ const winner = r.winners?.[0];
   </div>
   <div class="flex flex-1 flex-col p-4">
     <h3 class="font-semibold text-slate-900 line-clamp-1">{r.title}</h3>
-    <p class="mt-1 text-sm text-slate-500">Valor aprox. {usd(r.prizeValue)}</p>
+    <p class="mt-1 text-sm text-slate-500" data-usd={(r.prizeValue / 100).toFixed(2)}>Valor aprox. {usd(r.prizeValue)}</p>
 
     {isDrawn ? (
       <div class="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 p-3">

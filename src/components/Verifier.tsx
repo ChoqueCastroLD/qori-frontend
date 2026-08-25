@@ -182,9 +182,11 @@ export default function Verifier() {
                     <div className="mb-3 text-sm text-slate-600">Número(s) ganador(es) revelado(s): <strong>{(st.data.winnerNumbers as string[]).join(", ")}</strong></div>
                   )}
                   <div className="flex max-h-40 flex-wrap gap-1 overflow-auto">
-                    {st.eliminated.map((idx: number) => (
-                      <span key={idx} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">#{num(idx)}</span>
-                    ))}
+                    {st.eliminated.map((idx: number) => {
+                      const pp = part(idx);
+                      const tip = pp ? `Boleto #${pp.number} · ${pp.nickname || "Anónimo"}${pp.boughtAt ? " · " + new Date(pp.boughtAt).toLocaleDateString("es-PE") : ""}` : `#${num(idx)}`;
+                      return <span key={idx} title={tip} className="cursor-help rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500 hover:bg-slate-200">#{num(idx)}</span>;
+                    })}
                   </div>
                 </div>
               ))}

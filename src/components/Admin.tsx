@@ -10,14 +10,12 @@ async function adminFetch(path: string, init?: RequestInit) {
 
 export default function Admin() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"raffles" | "topups" | "create">("raffles");
+  const [tab, setTab] = useState<"raffles" | "create">("raffles");
   const [raffles, setRaffles] = useState<any[]>([]);
-  const [topups, setTopups] = useState<any[]>([]);
   const [msg, setMsg] = useState("");
 
   function reload() {
     adminFetch("/admin/raffles").then((r) => r.ok && setRaffles(r.data));
-    adminFetch("/admin/topups?status=PENDING").then((r) => r.ok && setTopups(r.data));
   }
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
@@ -39,16 +37,6 @@ export default function Admin() {
     setMsg(r.ok ? `✓ Cancelado, ${r.data.refundedOrders} órdenes reembolsadas` : "✗ Error");
     reload();
   }
-  async function approve(id: string) {
-    const r = await adminFetch(`/admin/topups/${id}/approve`, { method: "POST" });
-    setMsg(r.ok ? `✓ Recarga aprobada (+${r.data.lingotes} lingotes)` : "✗ Error");
-    reload();
-  }
-  async function reject(id: string) {
-    await adminFetch(`/admin/topups/${id}/reject`, { method: "POST" });
-    reload();
-  }
-
   if (!me) return <p className="py-20 text-center text-slate-400">Cargando…</p>;
 
   return (
@@ -57,7 +45,7 @@ export default function Admin() {
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
       <div className="mt-5 flex gap-1 border-b border-slate-200">
-        {([["raffles", "Sorteos"], ["topups", `Recargas (${topups.length})`], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
+        {([["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`px-4 py-2.5 text-sm font-semibold ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500"}`}>{l}</button>
         ))}
       </div>
@@ -78,23 +66,6 @@ export default function Admin() {
                   <button onClick={() => cancel(r.id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600">Cancelar</button>
                 )}
                 {r.status === "DRAWN" && <a href={`/sorteos/${r.slug}/show`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600">Ver show</a>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === "topups" && (
-        <div className="mt-6 space-y-3">
-          {topups.length === 0 ? <p className="text-slate-400">No hay recargas pendientes.</p> : topups.map((t) => (
-            <div key={t.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
-              <div>
-                <div className="font-semibold text-slate-900">{t.lingotes} <Lingote /> · ${(t.amountUsd / 100).toFixed(2)}</div>
-                <div className="text-xs text-slate-500">{t.user?.email} · {t.method} {t.proofUrl && <a href={t.proofUrl} target="_blank" className="text-emerald-600 underline">comprobante</a>}</div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => approve(t.id)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white">Aprobar</button>
-                <button onClick={() => reject(t.id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600">Rechazar</button>
               </div>
             </div>
           ))}

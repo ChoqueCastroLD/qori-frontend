@@ -36,12 +36,8 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
     <meta name="author" content="qori.cc" />
     <meta name="keywords" content="sorteos, sorteos online, rifas, sorteos verificables, provably-fair, sorteos LatAm, sorteos Perú, sorteos México, premios, boletos, ganar premios" />
 
-    <!-- Idioma / GEO -->
+    <!-- Idioma -->
     <meta http-equiv="content-language" content="es" />
-    <meta name="geo.region" content="PE" />
-    <meta name="geo.placename" content="Lima, Perú" />
-    <meta name="geo.position" content="-12.0464;-77.0428" />
-    <meta name="ICBM" content="-12.0464, -77.0428" />
     <link rel="alternate" hreflang="es" href={SITE} />
     <link rel="alternate" hreflang="x-default" href={SITE} />
 
@@ -106,6 +102,31 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
         }
         tick();
         setInterval(tick, 30000);
+      })();
+    </script>
+
+    <script is:inline>
+      // Indicative local-currency reference next to USD prices ([data-usd] = USD).
+      (function () {
+        var CUR = { PE:{code:"PEN",sym:"S/",loc:"es-PE"}, MX:{code:"MXN",sym:"MX$",loc:"es-MX"},
+          CO:{code:"COP",sym:"COL$",loc:"es-CO"}, CL:{code:"CLP",sym:"CLP$",loc:"es-CL"}, AR:{code:"ARS",sym:"AR$",loc:"es-AR"} };
+        Promise.all([
+          fetch("/api/fx").then(function(r){return r.json()}).catch(function(){return null}),
+          fetch("/api/auth/me",{credentials:"include"}).then(function(r){return r.ok?r.json():null}).catch(function(){return null})
+        ]).then(function(res){
+          var fx=res[0], me=res[1];
+          if(!fx||!fx.rates) return;
+          var c=CUR[(me&&me.user&&me.user.country)||"PE"]||CUR.PE;
+          var rate=fx.rates[c.code]; if(!rate) return;
+          document.querySelectorAll("[data-usd]").forEach(function(el){
+            var usd=parseFloat(el.getAttribute("data-usd")); if(isNaN(usd)) return;
+            var v=usd*rate;
+            var s=document.createElement("span");
+            s.className="text-slate-400";
+            s.textContent=" · aprox "+c.sym+" "+new Intl.NumberFormat(c.loc,{maximumFractionDigits:0}).format(v);
+            el.appendChild(s);
+          });
+        });
       })();
     </script>
 
