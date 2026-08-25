@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Lingote from "./Lingote";
 import Icon from "./Icon";
 import ImageUpload from "./ImageUpload";
+import Skeleton from "./Skeleton";
 
 const GAMES = ["ELIMINATION", "DIGIT_REVEAL", "BOMBS", "SQUID", "HORSE_RACE"];
 
@@ -66,7 +67,18 @@ export default function Admin() {
     setMsg(r.ok ? `Cancelado. ${r.data.refundedOrders} órdenes con lingotes devueltos al saldo.` : "Error al cancelar");
     reload();
   }
-  if (!me) return <p className="py-20 text-center text-slate-400">Cargando…</p>;
+  if (!me)
+    return (
+      <div className="mx-auto max-w-5xl px-5 py-10">
+        <Skeleton className="h-8 w-64" />
+        <div className="mt-6 flex gap-4 border-b border-slate-200 pb-3">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 w-24" />)}
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
+        </div>
+      </div>
+    );
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10">

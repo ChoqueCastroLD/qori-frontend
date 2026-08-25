@@ -1,6 +1,7 @@
 import Lingote from "./Lingote";
 import TicketIcon from "./TicketIcon";
 import Icon from "./Icon";
+import Skeleton from "./Skeleton";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 
 export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
   const [me, setMe] = useState<{ balance: number } | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [qty, setQty] = useState(1);
   const [comment, setComment] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "err">("idle");
@@ -21,7 +23,8 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
     fetch("/api/auth/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setMe(d?.user ?? null))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
 
   const cost = qty * ticketPrice;
@@ -73,6 +76,17 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
       setStatus("err");
       setMsg("Error de red.");
     }
+  }
+
+  if (!loaded) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-24" /></div>
+        <Skeleton className="mt-4 h-10 w-full rounded-lg" />
+        <Skeleton className="mt-4 h-10 w-full rounded-lg" />
+        <Skeleton className="mt-4 h-12 w-full rounded-xl" />
+      </div>
+    );
   }
 
   if (me === null) {

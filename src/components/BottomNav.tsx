@@ -16,6 +16,11 @@ export default function BottomNav() {
       .then((d) => setMe(d?.user ?? null))
       .catch(() => setMe(null))
       .finally(() => setReady(true));
+    // This island is persisted across View Transitions: sync active tab and
+    // close the sheet on each client-side navigation.
+    const onLoad = () => { setPath(window.location.pathname); setMore(false); };
+    document.addEventListener("astro:page-load", onLoad);
+    return () => document.removeEventListener("astro:page-load", onLoad);
   }, []);
 
   // Lock background scroll while the "Más" sheet is open.

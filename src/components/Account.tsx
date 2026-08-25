@@ -2,6 +2,7 @@ import Lingote from "./Lingote";
 import TicketIcon from "./TicketIcon";
 import Icon from "./Icon";
 import ImageUpload from "./ImageUpload";
+import Skeleton from "./Skeleton";
 import { useEffect, useState } from "react";
 
 const LTYPE: Record<string, string> = {
@@ -77,7 +78,24 @@ export default function Account() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="py-20 text-center text-slate-400">Cargando…</p>;
+  if (loading)
+    return (
+      <div className="mx-auto max-w-4xl px-5 py-10">
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-14 w-14 rounded-full" />
+            <div className="space-y-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-3 w-52" /></div>
+          </div>
+          <Skeleton className="h-8 w-28" />
+        </div>
+        <div className="mt-6 flex gap-4 border-b border-slate-200 pb-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-4 w-20" />)}
+        </div>
+        <div className="mt-6 space-y-3">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+        </div>
+      </div>
+    );
   if (!me) return null;
 
   const refLink = typeof window !== "undefined" ? `${location.origin}/registro?ref=${refs?.code}` : "";

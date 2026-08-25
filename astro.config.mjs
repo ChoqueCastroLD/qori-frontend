@@ -10,6 +10,8 @@ export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   integrations: [react()],
+  // Preload linked pages so client-side navigation feels instant.
+  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
   vite: {
     plugins: [tailwindcss()],
   },

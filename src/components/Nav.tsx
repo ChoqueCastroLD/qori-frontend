@@ -29,8 +29,14 @@ export default function Nav() {
         .finally(() => setLoading(false));
     loadMe();
     const onRefresh = () => loadMe();
+    // Persisted across View Transitions: refresh auth + close the menu on nav.
+    const onLoad = () => { loadMe(); setOpen(false); };
     window.addEventListener("qori:refresh", onRefresh);
-    return () => window.removeEventListener("qori:refresh", onRefresh);
+    document.addEventListener("astro:page-load", onLoad);
+    return () => {
+      window.removeEventListener("qori:refresh", onRefresh);
+      document.removeEventListener("astro:page-load", onLoad);
+    };
   }, []);
 
   // Close the dropdown on outside click / Escape.
