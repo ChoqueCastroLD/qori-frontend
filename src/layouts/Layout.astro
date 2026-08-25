@@ -145,35 +145,6 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
       document.addEventListener("astro:page-load", qoriCurrency);
     </script>
 
-    <script>
-      // Cloudflare "Email Address Obfuscation" rewrites support@qori.cc into a
-      // [email protected] placeholder decoded by a CF script that only runs on the
-      // first load. After a View Transition the swapped DOM stays obfuscated, so
-      // we re-decode any remaining CF-protected emails on every page load.
-      function qoriDecodeEmails() {
-        function dec(h: string) {
-          let e = "";
-          const r = parseInt(h.substr(0, 2), 16);
-          for (let n = 2; n < h.length; n += 2) e += String.fromCharCode(parseInt(h.substr(n, 2), 16) ^ r);
-          return e;
-        }
-        document.querySelectorAll<HTMLElement>(".__cf_email__[data-cfemail]").forEach((el) => {
-          try {
-            el.textContent = dec(el.getAttribute("data-cfemail") || "");
-            el.classList.remove("__cf_email__");
-            el.removeAttribute("data-cfemail");
-          } catch {}
-        });
-        document.querySelectorAll<HTMLAnchorElement>('a[href*="/cdn-cgi/l/email-protection"]').forEach((a) => {
-          try {
-            const h = a.href.split("#")[1];
-            if (h) a.href = "mailto:" + dec(h);
-          } catch {}
-        });
-      }
-      document.addEventListener("astro:page-load", qoriDecodeEmails);
-    </script>
-
     <footer class="mt-24 border-t border-slate-100 bg-slate-50">
       <div class="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-2 md:grid-cols-4">
         <div>
