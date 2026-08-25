@@ -121,6 +121,11 @@ const isOpen = r.status === "OPEN";
                 <div id="rf-fill" class="h-full rounded-full bg-emerald-500 transition-all" style={`width:${pct(sold, r.totalTickets)}%`}></div>
               </div>
               <p class="mt-2 text-xs text-slate-400">Mínimo {r.minTickets} boletos para sortear. Si no se alcanza, se reembolsa.</p>
+              {(r.extensionCount ?? 0) > 0 && (
+                <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  ⏳ Postergado {r.extensionCount} vez{(r.extensionCount ?? 0) > 1 ? "ces" : ""} +24h para alcanzar el mínimo de boletos. Nueva fecha: <strong>{r.closesAt ? new Date(r.closesAt).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</strong>.
+                </p>
+              )}
             </div>
             {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} />}
           </div>

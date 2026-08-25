@@ -53,6 +53,8 @@ export interface Raffle {
   opensAt: string | null;
   closesAt: string | null;
   drawnAt: string | null;
+  extensionCount?: number;
+  extensions?: { at: string; ticketCount: number; minTickets: number; from: string | null; to: string }[];
   ticketsSold?: number;
   fairness: {
     commitment: string;
