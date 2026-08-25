@@ -69,7 +69,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
     <header class="sticky top-0 z-40 border-b border-slate-100 bg-white/90 backdrop-blur">
       <nav class="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-5 sm:py-3.5">
         <a href="/" class="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
-          <img src="/logo.png" alt="qori" class="h-7 w-7" style="image-rendering:pixelated" />qori
+          <img src="/logo.png" alt="" class="h-7 w-7" style="image-rendering:pixelated" />qori
         </a>
         <div class="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 text-sm font-medium text-slate-600 md:flex">
           <a href="/sorteos" class="hover:text-slate-900">Sorteos</a>
@@ -136,7 +136,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
           const usd = parseFloat(el.getAttribute("data-usd") || "");
           if (isNaN(usd)) return;
           const s = document.createElement("span");
-          s.className = "text-slate-400";
+          s.className = "text-slate-500";
           s.textContent = " · aprox " + c.sym + " " + new Intl.NumberFormat(c.loc, { maximumFractionDigits: 0 }).format(usd * rate);
           el.appendChild(s);
           el.dataset.fxDone = "1";
@@ -149,7 +149,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
       <div class="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-2 md:grid-cols-4">
         <div>
           <div class="flex items-center gap-2 text-lg font-bold">
-            <img src="/logo.png" alt="qori" class="h-6 w-6" style="image-rendering:pixelated" />qori
+            <img src="/logo.png" alt="" class="h-6 w-6" style="image-rendering:pixelated" />qori
           </div>
           <p class="mt-3 text-sm text-slate-500">Tu ticket, tu número, tu premio. Sorteos en vivo para toda Latinoamérica.</p>
           <p class="mt-3 text-sm text-slate-500"><a href="mailto:support@qori.cc" class="font-medium text-emerald-600 hover:underline">support@qori.cc</a> · Atención 24/7</p>
@@ -176,7 +176,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
           <p class="mt-3 text-sm text-slate-500">Cada sorteo publica sus reglas antes de venderse y todos sus datos al terminar. Puedes repetir cualquier resultado desde la página del sorteo.</p>
         </div>
       </div>
-      <div class="border-t border-slate-100 py-6 text-center text-xs text-slate-400">
+      <div class="border-t border-slate-100 py-6 text-center text-xs text-slate-500">
         © 2026 qori.cc · Solo mayores de 18 años · Juega con responsabilidad
       </div>
     </footer>

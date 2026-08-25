@@ -13,9 +13,9 @@ const past = raffles.filter((r) => r.status === "DRAWN" || r.status === "CANCELL
     <h1 class="text-3xl font-bold text-slate-900">Sorteos</h1>
     <p class="mt-2 text-slate-500">Elige un sorteo y participa. Todos son verificables.</p>
 
-    <h2 class="mb-6 mt-10 text-xl font-bold text-slate-900">Activos <span class="text-slate-400">({active.length})</span></h2>
+    <h2 class="mb-6 mt-10 text-xl font-bold text-slate-900">Activos <span class="text-slate-500">({active.length})</span></h2>
     {active.length === 0 ? (
-      <p class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">No hay sorteos activos.</p>
+      <p class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-500">No hay sorteos activos.</p>
     ) : (
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {active.map((r) => <RaffleCard raffle={r} />)}
@@ -24,7 +24,7 @@ const past = raffles.filter((r) => r.status === "DRAWN" || r.status === "CANCELL
 
     {past.length > 0 && (
       <>
-        <h2 class="mb-6 mt-14 text-xl font-bold text-slate-900">Finalizados <span class="text-slate-400">({past.length})</span></h2>
+        <h2 class="mb-6 mt-14 text-xl font-bold text-slate-900">Finalizados <span class="text-slate-500">({past.length})</span></h2>
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {past.map((r) => <RaffleCard raffle={r} />)}
         </div>
