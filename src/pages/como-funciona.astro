@@ -9,21 +9,21 @@ import Layout from "../layouts/Layout.astro";
     <section class="mt-10 space-y-8">
       <div>
         <h2 class="text-xl font-bold text-slate-900">1. Lingotes</h2>
-        <p class="mt-2 text-slate-600">Los lingotes son la moneda de qori. <strong>1 USD = 10 lingotes</strong>. Recargas con Yape, Plin, transferencia, PayPal o MercadoPago, y usas tus lingotes para comprar boletos. Por cada boleto recibes <strong>+1 lingote de bono</strong>.</p>
+        <p class="mt-2 text-slate-600">Los lingotes son la moneda de qori. <strong>1 USD = 10 lingotes</strong>. Recargas con Yape, Plin, transferencia, PayPal o MercadoPago, y usas tus lingotes para comprar tickets. Por cada ticket recibes <strong>+1 lingote de bono</strong>.</p>
       </div>
       <div>
-        <h2 class="text-xl font-bold text-slate-900">2. Boletos</h2>
-        <p class="mt-2 text-slate-600">Cada boleto tiene un <strong>número único</strong> asignado al azar. Puedes dejar un comentario que se muestra en tu "personaje" durante el show. Hay un mínimo de boletos para que el sorteo se realice; si no se alcanza, se reembolsa.</p>
+        <h2 class="text-xl font-bold text-slate-900">2. Tickets</h2>
+        <p class="mt-2 text-slate-600">Cada ticket tiene un <strong>número único</strong> asignado al azar. Puedes dejar un comentario que se muestra en tu "personaje" durante el show. Hay un mínimo de tickets para que el sorteo se realice; si no se alcanza, se reembolsa.</p>
       </div>
       <div>
         <h2 class="text-xl font-bold text-slate-900">3. El show en vivo</h2>
-        <p class="mt-2 text-slate-600">Cuando el sorteo cierra, corre un <strong>show gamificado</strong> (eliminación, bombas, luz roja/verde, carrera, revelado de dígitos) sincronizado para todos. Cada boleto es un personaje con su avatar. El juego más vistoso va al final.</p>
+        <p class="mt-2 text-slate-600">Cuando el sorteo cierra, corre un <strong>show gamificado</strong> (eliminación, bombas, luz roja/verde, carrera, revelado de dígitos) sincronizado para todos. Cada ticket es un personaje con su avatar. El juego más vistoso va al final.</p>
       </div>
       <div>
         <h2 class="text-xl font-bold text-slate-900">4. Provably-fair</h2>
-        <p class="mt-2 text-slate-600">Antes de vender el primer boleto publicamos <code class="rounded bg-slate-100 px-1 text-sm">sha256(semilla)</code> - un compromiso irreversible. El azar viene de <strong>drand</strong>, un faro público de aleatoriedad que aparece a la hora exacta del sorteo y que <em>nadie</em> controla. Al terminar revelamos la semilla y cualquiera puede reproducir todo el show y confirmar el resultado.</p>
+        <p class="mt-2 text-slate-600">Antes de vender el primer ticket publicamos <code class="rounded bg-slate-100 px-1 text-sm">sha256(semilla)</code> - un compromiso irreversible. El azar viene de <strong>drand</strong>, un faro público de aleatoriedad que aparece a la hora exacta del sorteo y que <em>nadie</em> controla. Al terminar revelamos la semilla y cualquiera puede reproducir todo el show y confirmar el resultado.</p>
         <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-600">
-          ganador = show(HMAC(semilla, drand + raíz_de_boletos))
+          ganador = show(HMAC(semilla, drand + raíz_de_tickets))
         </div>
       </div>
       <div>

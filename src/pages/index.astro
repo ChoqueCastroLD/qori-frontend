@@ -1,36 +1,64 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Icon from "../components/Icon.astro";
 import RaffleCard from "../components/RaffleCard.astro";
 import { ssrGet, type Raffle } from "../lib/api";
+import { lingotes, usd } from "../lib/format";
 
 const raffles = await ssrGet<Raffle[]>("/raffles", []);
 const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED").slice(0, 3);
 const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
 
+// Hero is driven by the top active raffle (most sales, then soonest to close).
+const featured = [...raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED")].sort((a, b) => {
+  const sold = (b.ticketsSold ?? 0) - (a.ticketsSold ?? 0);
+  if (sold !== 0) return sold;
+  const ta = a.closesAt ? new Date(a.closesAt).getTime() : Infinity;
+  const tb = b.closesAt ? new Date(b.closesAt).getTime() : Infinity;
+  return ta - tb;
+})[0] ?? null;
+
+const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", ...opts }).format(new Date(iso));
+const heroDate = featured?.closesAt ? fmt(featured.closesAt, { day: "numeric", month: "long" }) : null;
+const heroTime = featured?.closesAt ? fmt(featured.closesAt, { hour: "2-digit", minute: "2-digit", hour12: false }) : null;
+
 const faqs = [
   {
     q: "¿Qué es qori?",
-    a: "qori es una plataforma de sorteos de productos con premios reales para Latinoamérica. Compras boletos con un número único, el sorteo se transmite en vivo con un show gamificado, y puedes verificar el resultado por tu cuenta.",
+    a: "Sorteos de productos para toda Latinoamérica. Compras un ticket con número único, el sorteo se hace en vivo en una fecha fija y tú mismo puedes revisar el resultado.",
   },
   {
-    q: "¿Qué son los lingotes?",
-    a: "Los lingotes son la moneda interna de qori. 1 dólar equivale a 10 lingotes. Recargas lingotes con Yape, Plin, transferencia, PayPal o MercadoPago y los usas para comprar boletos. Por cada boleto recibes 1 lingote de bono.",
+    q: "¿Cómo los contacto si tengo un problema?",
+    a: "Escríbenos a support@qori.cc. Atendemos 24/7 y te responde una persona.",
   },
   {
-    q: "¿Cómo sé que el sorteo es justo?",
-    a: "Cada sorteo es provably-fair. Antes de vender publicamos el compromiso de la semilla (sha256). El azar viene de drand, un faro público de aleatoriedad que no controlamos. Al terminar revelamos la semilla y cualquiera puede reproducir todo el show y confirmar el ganador.",
+    q: "¿Qué son los lingotes y por qué no pago directo?",
+    a: "Los lingotes son tu saldo en qori: 10 lingotes = 1 USD. Los recargas con tarjeta, PayPal, MercadoPago o medios locales. Tener saldo te permite entrar a varios sorteos sin volver a pagar cada vez, y si un sorteo se cancela, tus lingotes vuelven a tu cuenta al instante.",
   },
   {
-    q: "¿Cuándo se realiza el sorteo?",
-    a: "Cada sorteo tiene una fecha y un mínimo de boletos. Al llegar la hora, si se alcanzó el mínimo se sortea automáticamente en vivo. Si no, la fecha se extiende para dar más tiempo. Si aun así no se llega, se cancela y se reembolsan los lingotes.",
+    q: "¿Cómo sé que mi número tiene chances reales?",
+    a: 'Porque el número ganador no lo elegimos nosotros. Lo produce drand, una fuente pública de azar, y al terminar publicamos todos los datos para que lo revises tú mismo. Prueba el botón "Revisar" en cualquier sorteo terminado.',
   },
   {
-    q: "¿Cómo cobro mi premio si gano?",
-    a: "Te contactamos por los datos de tu cuenta. Tras verificar tu identidad y edad (mayor de 18), coordinamos la entrega del premio.",
+    q: "¿Cuándo es el sorteo?",
+    a: "Cada sorteo tiene fecha, hora y un mínimo de tickets. Si se alcanza el mínimo, ese día ves salir tu número en vivo. Si no se alcanza a la hora de cierre, la fecha se posterga 24 horas y te avisamos por correo; esto puede repetirse hasta 5 veces. Si aun así no se llega al mínimo, el sorteo se cancela y tus lingotes vuelven a tu saldo el mismo día.",
+  },
+  {
+    q: "Si el sorteo se cancela, ¿pierdo mi dinero?",
+    a: "No. Tus lingotes vuelven íntegros a tu saldo qori para que los uses en otro sorteo.",
+  },
+  {
+    q: "Salió mi número. ¿Cómo recibo mi premio?",
+    a: "Te escribimos al correo y teléfono de tu cuenta dentro de 24 a 48 horas. Verificamos tu identidad (debes ser mayor de 18) y coordinamos la entrega. El envío a tu país está incluido. Publicamos la foto de tu entrega en Ganadores solo si tú quieres.",
+  },
+  {
+    q: "¿Puedo ver los sorteos anteriores?",
+    a: "Sí. En Ganadores están todos, con grabación y datos para revisarlos.",
   },
   {
     q: "¿Gano algo por invitar amigos?",
-    a: "Sí. Comparte tu código de referido y gana 10 lingotes cuando un referido hace su primera compra.",
+    a: "Sí. Comparte tu código y recibes 10 lingotes cuando tu amigo hace su primera compra.",
   },
 ];
 
@@ -58,20 +86,56 @@ const orgJsonLd = {
 <Layout>
   <!-- Hero -->
   <section class="mx-auto max-w-6xl px-5 pt-16 pb-10 text-center">
-    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">
-      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-      Sorteo verificable · provably-fair
-    </span>
-    <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
-      Sorteos de productos, <span class="text-emerald-600">transparentes de verdad</span>
-    </h1>
-    <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
-      Compra boletos, participa en un show en vivo, y verifica el resultado por tu cuenta.
-      Nadie -ni nosotros- puede manipular quién gana.
-    </p>
-    <div class="mt-8 flex items-center justify-center gap-3">
-      <a href="/sorteos" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">Ver sorteos</a>
-      <a href="/como-funciona" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">¿Cómo funciona?</a>
+    {featured ? (
+      <>
+        <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">
+          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          Sorteo en vivo{heroDate && ` · ${heroDate}`}{heroTime && ` · ${heroTime} hora Perú`}
+        </span>
+        <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+          ¿Te animas a ganar <span class="text-emerald-600">{featured.title}</span> por {lingotes(featured.ticketPrice)}
+          <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.8em] w-[0.8em] align-[-0.02em]" />?
+          Compra un ticket y {heroDate ? `el ${heroDate}` : "ese día"} puede ser tu día.
+        </h1>
+        <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
+          Tu ticket tiene un número único. El día del sorteo lo ves salir en vivo, y al terminar puedes revisar el resultado tú mismo.
+        </p>
+        <p class="mt-3 text-sm text-slate-400" data-usd={(featured.prizeValue / 100).toFixed(2)}>Valor aprox. del premio {usd(featured.prizeValue)}</p>
+        <div class="mt-8 flex items-center justify-center gap-3">
+          <a href={`/sorteos/${featured.slug}`} class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">Quiero mi ticket</a>
+          <a href="/como-funciona" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Ver cómo funciona</a>
+        </div>
+      </>
+    ) : (
+      <>
+        <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">
+          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          Sorteos en vivo
+        </span>
+        <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+          Compra un ticket y <span class="text-emerald-600">gana en vivo</span>
+        </h1>
+        <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
+          Tu ticket tiene un número único. El día del sorteo lo ves salir en vivo, y al terminar puedes revisar el resultado tú mismo.
+        </p>
+        <div class="mt-8 flex items-center justify-center gap-3">
+          <a href="/sorteos" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">Quiero mi ticket</a>
+          <a href="/como-funciona" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Ver cómo funciona</a>
+        </div>
+      </>
+    )}
+
+    <div class="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
+      {[
+        ["hash", "Tu número queda registrado desde que lo compras"],
+        ["live", "Sorteo en vivo, en fecha y hora fijas"],
+        ["refresh", "Si el sorteo no se realiza, recuperas tus lingotes"],
+      ].map(([icon, text]) => (
+        <div class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600">
+          <Icon name={icon} class="h-4 w-4 shrink-0 text-emerald-600" />
+          <span>{text}</span>
+        </div>
+      ))}
     </div>
   </section>
 
@@ -79,10 +143,10 @@ const orgJsonLd = {
   <section class="mx-auto max-w-6xl px-5 py-10">
     <div class="mb-6 flex items-end justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-slate-900">Sorteos activos</h2>
-        <p class="text-sm text-slate-500">Participa antes de que cierren.</p>
+        <h2 class="text-2xl font-bold text-slate-900">Elige tu próximo premio</h2>
+        <p class="text-sm text-slate-500">Cada ticket es un número único a tu nombre.</p>
       </div>
-      <a href="/sorteos" class="text-sm font-semibold text-emerald-600 hover:underline">Ver todos →</a>
+      <a href="/sorteos" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 hover:underline">Ver todos <Icon name="arrow-right" class="h-4 w-4" /></a>
     </div>
     {active.length === 0 ? (
       <p class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">No hay sorteos activos ahora mismo.</p>
@@ -96,12 +160,12 @@ const orgJsonLd = {
   <!-- How it works -->
   <section class="border-y border-slate-100 bg-slate-50">
     <div class="mx-auto max-w-6xl px-5 py-14">
-      <h2 class="text-center text-2xl font-bold text-slate-900">Cómo funciona</h2>
+      <h2 class="text-center text-2xl font-bold text-slate-900">Tres pasos entre tú y tu premio</h2>
       <div class="mx-auto mt-10 grid max-w-4xl gap-8 sm:grid-cols-3">
         {[
-          ["1", "Compra boletos", "Recargas lingotes y compras boletos con número único. 1 USD = 10 lingotes."],
-          ["2", "Show en vivo", "Cuando cierra, un show gamificado revela al ganador, sincronizado para todos."],
-          ["3", "Verifica", "Al terminar revelamos la semilla. Reproduces el show y confirmas que fue justo."],
+          ["1", "Compra tu ticket", "Recargas lingotes con tarjeta, PayPal, MercadoPago o medios locales de tu país (10 lingotes = 1 USD). Cada ticket que compras tiene un número único que ves en tu cuenta al instante. Y por cada ticket te regalamos 1 lingote para el siguiente."],
+          ["2", "Mira salir tu número en vivo", "El día del sorteo a la hora fijada, se transmite en vivo para todos al mismo tiempo. El número ganador lo produce drand, una fuente pública de azar que usan proyectos en todo el mundo. Nosotros solo lo leemos en pantalla, igual que tú."],
+          ["3", "Revísalo con tus propios ojos", "Al terminar publicamos todos los datos del sorteo. Con un clic puedes repetirlo y ver que sale el mismo número. Sin saber programar, sin pedirle nada a nadie."],
         ].map(([n, t, d]) => (
           <div class="text-center">
             <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500 text-lg font-bold text-white">{n}</div>
@@ -113,18 +177,45 @@ const orgJsonLd = {
     </div>
   </section>
 
-  <!-- Past winners -->
-  {past.length > 0 && (
-    <section class="mx-auto max-w-6xl px-5 py-14">
-      <div class="mb-6">
-        <h2 class="text-2xl font-bold text-slate-900">Ganadores anteriores</h2>
-        <p class="text-sm text-slate-500">Cada uno con su sorteo verificable.</p>
+  <!-- Trust -->
+  <section class="mx-auto max-w-4xl px-5 py-14">
+    <div class="rounded-2xl border border-slate-200 bg-white p-8">
+      <h2 class="text-center text-xl font-bold text-slate-900">Por qué tu número tiene las mismas chances que todos</h2>
+      <div class="mx-auto mt-8 grid max-w-3xl gap-6 sm:grid-cols-3">
+        <div class="flex flex-col gap-2">
+          <Icon name="lock" class="h-5 w-5 text-emerald-600" />
+          <p class="text-sm text-slate-500">Antes de vender el primer ticket publicamos una huella digital (hash) que fija las reglas del sorteo. Desde ese momento no se pueden cambiar sin que se note.</p>
+        </div>
+        <div class="flex flex-col gap-2">
+          <Icon name="bolt" class="h-5 w-5 text-emerald-600" />
+          <p class="text-sm text-slate-500">El número ganador lo produce drand, una fuente de azar pública e independiente. No la controlamos ni podemos adelantarnos a ella.</p>
+        </div>
+        <div class="flex flex-col gap-2">
+          <Icon name="check-circle" class="h-5 w-5 text-emerald-600" />
+          <p class="text-sm text-slate-500">Cuando termina el sorteo publicamos la semilla y todos los datos. Tú, o cualquiera, puede repetir el sorteo y obtener el mismo resultado.</p>
+        </div>
       </div>
+      <p class="mt-8 text-center">
+        <a href="/como-funciona" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 hover:underline">Ver la explicación técnica completa <Icon name="arrow-right" class="h-4 w-4" /></a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Winners -->
+  <section class="mx-auto max-w-6xl px-5 py-14">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-slate-900">Los que ya se llevaron su premio</h2>
+    </div>
+    {past.length > 0 ? (
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {past.map((r) => <RaffleCard raffle={r} />)}
       </div>
-    </section>
-  )}
+    ) : (
+      <p class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">
+        Aquí verás a cada ganador, la grabación y los datos para revisarlo. Y si tienes ticket, aquí puede aparecer tu nombre.
+      </p>
+    )}
+  </section>
 
   <!-- FAQ -->
   <section class="mx-auto max-w-3xl px-5 py-14">
@@ -134,27 +225,15 @@ const orgJsonLd = {
         <details class="group px-6">
           <summary class="flex cursor-pointer list-none items-center justify-between py-5 font-semibold text-slate-900">
             {f.q}
-            <span class="ml-4 text-slate-400 transition group-open:rotate-45">+</span>
+            <Icon name="plus" class="ml-4 h-4 w-4 text-slate-400 transition group-open:rotate-45" />
           </summary>
           <p class="pb-5 text-slate-500">{f.a}</p>
         </details>
       ))}
     </div>
     <p class="mt-6 text-center text-sm text-slate-500">
-      ¿Otra duda? Mira <a href="/como-funciona" class="font-semibold text-emerald-600 hover:underline">cómo funciona</a>.
+      ¿Otra duda? Escríbenos a <a href="mailto:support@qori.cc" class="font-semibold text-emerald-600 hover:underline">support@qori.cc</a>.
     </p>
-  </section>
-
-  <!-- Trust band -->
-  <section class="mx-auto max-w-4xl px-5 pb-10">
-    <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-      <h2 class="text-xl font-bold text-slate-900">Provably-fair, no "confía en nosotros"</h2>
-      <p class="mx-auto mt-3 max-w-2xl text-slate-500">
-        Publicamos el compromiso de la semilla <em>antes</em> de vender. El azar viene de <strong>drand</strong>,
-        un faro público que no controlamos. Todo el show se reproduce con la semilla revelada.
-      </p>
-      <a href="/verificar" class="mt-6 inline-block rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Verificar un sorteo</a>
-    </div>
   </section>
 
   <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />

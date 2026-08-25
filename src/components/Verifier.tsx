@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import RaffleChat from "./RaffleChat";
+import Icon from "./Icon";
 
 const GAME_LABEL: Record<string, string> = {
   ELIMINATION: "Eliminación", DIGIT_REVEAL: "Revelado de dígitos",
   BOMBS: "Bombas", SQUID: "Luz roja, luz verde", HORSE_RACE: "Carrera",
 };
 const GAME_ICON: Record<string, string> = {
-  ELIMINATION: "⚡", DIGIT_REVEAL: "🔢", BOMBS: "💣", SQUID: "🟢", HORSE_RACE: "🐎",
+  ELIMINATION: "bolt", DIGIT_REVEAL: "hash", BOMBS: "fire", SQUID: "play", HORSE_RACE: "flag",
 };
 
 export default function Verifier() {
@@ -137,7 +138,7 @@ export default function Verifier() {
           <dl className="mt-3 space-y-2 text-xs">
             <div><dt className="text-slate-500">commitment = sha256(semilla)</dt><dd className="break-all font-mono text-slate-700">{raffle.fairness.commitment}</dd></div>
             <div><dt className="text-slate-500">semilla revelada</dt><dd className="break-all font-mono text-emerald-700">{raffle.fairness.serverSeed}</dd></div>
-            <div><dt className="text-slate-500">drand round · valor · raíz de boletos</dt><dd className="break-all font-mono text-slate-700">{raffle.fairness.drandRound} · {raffle.fairness.drandValue?.slice(0, 20)}… · {raffle.fairness.ticketsRoot?.slice(0, 20)}…</dd></div>
+            <div><dt className="text-slate-500">drand round · valor · raíz de tickets</dt><dd className="break-all font-mono text-slate-700">{raffle.fairness.drandRound} · {raffle.fairness.drandValue?.slice(0, 20)}… · {raffle.fairness.ticketsRoot?.slice(0, 20)}…</dd></div>
           </dl>
           {!result && (
             <button onClick={verify} disabled={loading} className="mt-4 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:bg-slate-300">
@@ -150,13 +151,13 @@ export default function Verifier() {
       {result && (
         <>
           <div className={`mt-4 rounded-2xl border p-6 ${verified ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
-            <div className="text-3xl">{verified ? "✅" : "❌"}</div>
+            <div>{verified ? <Icon name="check-circle" className="h-8 w-8 text-emerald-600" /> : <Icon name="x-circle" className="h-8 w-8 text-red-600" />}</div>
             <h3 className={`mt-2 text-lg font-bold ${verified ? "text-emerald-800" : "text-red-800"}`}>
               {verified ? "Verificado: el sorteo fue justo" : "¡Discrepancia detectada!"}
             </h3>
             <ul className="mt-3 space-y-1 text-sm">
-              <li className={result.commitmentOk ? "text-emerald-700" : "text-red-700"}>{result.commitmentOk ? "✓" : "✗"} La semilla revelada coincide con el compromiso público</li>
-              <li className={winnersMatch ? "text-emerald-700" : "text-red-700"}>{winnersMatch ? "✓" : "✗"} Los ganadores recalculados coinciden con los publicados</li>
+              <li className={`flex items-center gap-1.5 ${result.commitmentOk ? "text-emerald-700" : "text-red-700"}`}><Icon name={result.commitmentOk ? "check" : "x"} className="h-4 w-4 shrink-0" /> La semilla revelada coincide con el compromiso público</li>
+              <li className={`flex items-center gap-1.5 ${winnersMatch ? "text-emerald-700" : "text-red-700"}`}><Icon name={winnersMatch ? "check" : "x"} className="h-4 w-4 shrink-0" /> Los ganadores recalculados coinciden con los publicados</li>
               <li className="text-slate-600">{result.stages.length} etapas recalculadas desde la semilla</li>
             </ul>
           </div>
@@ -164,19 +165,19 @@ export default function Verifier() {
           {/* Static stage-by-stage history (no animation) */}
           <div className="mt-6">
             <h3 className="mb-1 text-lg font-bold text-slate-900">Historial del sorteo</h3>
-            <p className="mb-4 text-sm text-slate-500">Reconstruido desde la semilla. Cada etapa muestra los boletos descartados; al final, el ganador.</p>
+            <p className="mb-4 text-sm text-slate-500">Reconstruido desde la semilla. Cada etapa muestra los tickets descartados; al final, el ganador.</p>
 
             <div className="space-y-4">
               {result.stages.map((st: any, i: number) => (
                 <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-base">{GAME_ICON[st.game] ?? "•"}</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><Icon name={GAME_ICON[st.game] ?? "info"} className="h-4 w-4" /></span>
                     <div>
                       <div className="font-semibold text-slate-900">
                         Etapa {i + 1}: {GAME_LABEL[st.game] ?? st.game}
                         {st.isFinale && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">final</span>}
                       </div>
-                      <div className="text-xs text-slate-500">{st.eliminated.length} boleto(s) descartado(s)</div>
+                      <div className="text-xs text-slate-500">{st.eliminated.length} ticket(s) descartado(s)</div>
                     </div>
                   </div>
                   {st.game === "DIGIT_REVEAL" && st.data?.winnerNumbers && (
@@ -185,7 +186,7 @@ export default function Verifier() {
                   <div className="flex max-h-40 flex-wrap gap-1 overflow-auto">
                     {st.eliminated.map((idx: number) => {
                       const pp = part(idx);
-                      const tip = pp ? `Boleto #${pp.number} · ${pp.nickname || "Anónimo"}${pp.boughtAt ? " · " + new Date(pp.boughtAt).toLocaleDateString("es-PE") : ""}` : `#${num(idx)}`;
+                      const tip = pp ? `Ticket #${pp.number} · ${pp.nickname || "Anónimo"}${pp.boughtAt ? " · " + new Date(pp.boughtAt).toLocaleDateString("es-PE") : ""}` : `#${num(idx)}`;
                       return <span key={idx} title={tip} className="cursor-help rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500 hover:bg-slate-200">#{num(idx)}</span>;
                     })}
                   </div>
@@ -194,7 +195,7 @@ export default function Verifier() {
 
               {/* Winner(s) at the very end */}
               <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5">
-                <div className="text-2xl">🏆</div>
+                <div><Icon name="trophy" className="h-7 w-7 text-emerald-600" /></div>
                 <h4 className="mt-1 font-bold text-emerald-800">{recomputedWinners.length > 1 ? "Ganadores" : "Ganador"}</h4>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {(result.winners ?? []).map((idx: number, k: number) => {

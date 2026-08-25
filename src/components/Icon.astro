@@ -1,0 +1,15 @@
+---
+import { ICONS } from "../lib/icons";
+const { name, class: cls = "h-4 w-4" } = Astro.props;
+---
+<svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class={`inline-block shrink-0 ${cls}`}
+  aria-hidden="true"
+  set:html={ICONS[name] ?? ""}
+/>

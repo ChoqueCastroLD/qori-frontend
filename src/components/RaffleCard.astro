@@ -1,5 +1,6 @@
 ---
 import type { Raffle } from "../lib/api";
+import Icon from "./Icon.astro";
 import { lingotes, usd, pct, timeLeft } from "../lib/format";
 interface Props { raffle: Raffle }
 const { raffle: r } = Astro.props;
@@ -30,15 +31,15 @@ const winner = r.winners?.[0];
       <div class="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 p-3">
         {winner?.avatarUrl && <img src={winner.avatarUrl} class="h-8 w-8 rounded-full" alt="" />}
         <div class="text-sm">
-          <div class="font-semibold text-slate-900">🏆 {winner?.nickname ?? "Ganador"}</div>
-          <div class="text-xs text-slate-500">Boleto #{winner?.ticketNumber}</div>
+          <div class="flex items-center gap-1.5 font-semibold text-slate-900"><Icon name="trophy" class="h-4 w-4 text-amber-500" /> {winner?.nickname ?? "Ganador"}</div>
+          <div class="text-xs text-slate-500">Ticket #{winner?.ticketNumber}</div>
         </div>
       </div>
     ) : (
       <div class="mt-4">
         <div class="mb-1.5 flex justify-between text-xs text-slate-500">
-          <span>{sold} / {r.totalTickets} boletos</span>
-          <span class="font-medium text-slate-700" data-closes-at={r.closesAt}>⏱ {timeLeft(r.closesAt)}</span>
+          <span>{sold} / {r.totalTickets} tickets</span>
+          <span class="inline-flex items-center gap-1 font-medium text-slate-700"><Icon name="clock" class="h-3.5 w-3.5" /> <span data-closes-at={r.closesAt}>{timeLeft(r.closesAt)}</span></span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-slate-100">
           <div class="h-full rounded-full bg-emerald-500" style={`width:${progress}%`}></div>
@@ -49,9 +50,9 @@ const winner = r.winners?.[0];
     <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
       <span class="text-sm font-semibold text-slate-900">
       {r.ticketPrice === 0 ? "Gratis" : (<>{lingotes(r.ticketPrice)} <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.95em] w-[0.95em] align-[-0.12em]" /></>)}
-      <span class="text-xs font-normal text-slate-400"> /boleto</span>
+      <span class="text-xs font-normal text-slate-400"> /ticket</span>
     </span>
-      <span class="text-sm font-semibold text-emerald-600 group-hover:underline">{isDrawn ? "Ver resultado" : "Participar"} →</span>
+      <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 group-hover:underline">{isDrawn ? "Ver resultado" : "Participar"} <Icon name="arrow-right" class="h-4 w-4" /></span>
     </div>
   </div>
 </a>

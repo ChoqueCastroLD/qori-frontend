@@ -6,6 +6,7 @@ interface Me {
   nickname: string | null;
   email: string;
   balance: number;
+  ticketCount: number;
   role: string;
   avatarUrl: string | null;
 }
@@ -37,6 +38,15 @@ export default function Nav() {
     <div className="flex items-center gap-4 text-sm">
       {loading ? null : me ? (
         <>
+          <a
+            href="/cuenta"
+            className="hidden items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-200 sm:inline-flex"
+            title="Mis tickets"
+          >
+            <img src="/ticket.png" alt="tickets" className="inline-block h-[0.95em] w-[0.95em] shrink-0 align-[-0.12em]" />
+            {new Intl.NumberFormat("es-PE").format(me.ticketCount ?? 0)}
+            <span className="text-slate-400">{(me.ticketCount ?? 0) === 1 ? "ticket" : "tickets"}</span>
+          </a>
           <a
             href="/recargar"
             className="hidden items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-100 sm:inline-flex"

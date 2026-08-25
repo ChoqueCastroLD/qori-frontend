@@ -1,5 +1,6 @@
 import Lingote from "./Lingote";
 import TicketIcon from "./TicketIcon";
+import Icon from "./Icon";
 import { useEffect, useState } from "react";
 
 const LTYPE: Record<string, string> = {
@@ -7,10 +8,21 @@ const LTYPE: Record<string, string> = {
   TICKET_SPEND: "Compra", REFUND: "Reembolso", ADJUSTMENT: "Ajuste",
 };
 
+const METHOD_LABEL: Record<string, string> = {
+  MERCADOPAGO: "MercadoPago", PAYPAL: "PayPal", YAPE: "Yape",
+  PLIN: "Plin", TRANSFER: "Transferencia", CRYPTO: "Cripto",
+};
+const TOPUP_STATUS: Record<string, string> = {
+  PAID: "Acreditada", PENDING: "Pendiente", FAILED: "Fallida", REFUNDED: "Reembolsada",
+};
+const fmtDate = (iso: string) =>
+  new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+
 export default function Account() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"tickets" | "wallet" | "referrals">("tickets");
+  const [tab, setTab] = useState<"tickets" | "recargas" | "wallet" | "referrals">("tickets");
   const [tickets, setTickets] = useState<any[]>([]);
+  const [topups, setTopups] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [refs, setRefs] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +63,7 @@ export default function Account() {
           fetch("/api/me/tickets", { credentials: "include" }).then((r) => r.json()),
           fetch("/api/me/wallet", { credentials: "include" }).then((r) => r.json()),
           fetch("/api/me/referrals", { credentials: "include" }).then((r) => r.json()),
+          fetch("/api/topups/mine", { credentials: "include" }).then((r) => r.json()),
         ]);
       })
       .then((res) => {
@@ -58,6 +71,7 @@ export default function Account() {
         setTickets(res[0].tickets ?? []);
         setWallet(res[1]);
         setRefs(res[2]);
+        setTopups(res[3].topups ?? []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -73,7 +87,7 @@ export default function Account() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <span>Verifica tu correo para asegurar tu cuenta y poder cobrar si ganas.</span>
           {resent ? (
-            <span className="font-semibold text-amber-700">Correo enviado ✓</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-700">Correo enviado <Icon name="check" className="h-4 w-4" /></span>
           ) : (
             <button onClick={resendVerification} className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-500">Reenviar correo</button>
           )}
@@ -95,7 +109,7 @@ export default function Account() {
         </div>
         <div className="text-right">
           <div className="text-3xl font-bold text-emerald-600">{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></div>
-          <a href="/recargar" className="text-sm font-semibold text-emerald-600 hover:underline">Recargar →</a>
+          <a href="/recargar" className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 hover:underline">Recargar <Icon name="arrow-right" className="h-3.5 w-3.5" /></a>
         </div>
       </div>
 
@@ -120,7 +134,7 @@ export default function Account() {
       )}
 
       <div className="mt-6 flex gap-1 border-b border-slate-200">
-        {([["tickets", "Mis boletos"], ["wallet", "Movimientos"], ["referrals", "Referidos"]] as const).map(([k, label]) => (
+        {([["tickets", "Mis tickets"], ["recargas", "Recargas"], ["wallet", "Movimientos"], ["referrals", "Referidos"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className={`px-4 py-2.5 text-sm font-semibold ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{label}</button>
         ))}
       </div>
@@ -128,7 +142,7 @@ export default function Account() {
       {tab === "tickets" && (
         <div className="mt-6">
           {tickets.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Aún no tienes boletos. <a href="/sorteos" className="font-semibold text-emerald-600">Ver sorteos</a></p>
+            <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Aún no tienes tickets. <a href="/sorteos" className="font-semibold text-emerald-600">Ver sorteos</a></p>
           ) : (
             <div className="space-y-3">
               {tickets.map((t) => (
@@ -137,13 +151,48 @@ export default function Account() {
                     {t.raffle.images?.[0] && <img src={t.raffle.images[0]} className="h-12 w-12 rounded-lg object-cover" alt="" />}
                     <div>
                       <a href={`/sorteos/${t.raffle.slug}`} className="font-semibold text-slate-900 hover:underline">{t.raffle.title}</a>
-                      <div className="text-xs text-slate-500">{t.raffle.status === "DRAWN" ? "Finalizado" : "Activo"}</div>
+                      <div className="text-xs text-slate-500">{t.raffle.status === "DRAWN" ? "Finalizado" : "Activo"}{t.createdAt ? ` · comprado el ${fmtDate(t.createdAt)}` : ""}</div>
+                      {t.comment && <div className="mt-0.5 text-xs italic text-slate-400">“{t.comment}”</div>}
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-bold text-slate-700"><TicketIcon />#{t.number}</span>
-                    {t.win && <div className="mt-1 text-xs font-bold text-emerald-600">🏆 ¡Ganador!</div>}
+                    {t.win && <div className="mt-1 flex items-center justify-end gap-1 text-xs font-bold text-emerald-600"><Icon name="trophy" className="h-3.5 w-3.5" /> ¡Ganador!</div>}
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "recargas" && (
+        <div className="mt-6">
+          {topups.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Aún no has recargado lingotes. <a href="/recargar" className="font-semibold text-emerald-600">Recargar</a></p>
+          ) : (
+            <div className="space-y-3">
+              {topups.map((t) => (
+                <div key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                  <div>
+                    <div className="flex items-center gap-2 font-semibold text-slate-900">
+                      <Lingote /> {new Intl.NumberFormat("es-PE").format(t.lingotes)} lingotes
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${t.status === "PAID" ? "bg-emerald-100 text-emerald-700" : t.status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{TOPUP_STATUS[t.status] ?? t.status}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {METHOD_LABEL[t.method] ?? t.method} · USD {(t.amountUsd / 100).toFixed(2)} · {fmtDate(t.confirmedAt || t.createdAt)}
+                    </div>
+                  </div>
+                  {t.status === "PAID" ? (
+                    <button
+                      onClick={async () => { const { downloadReceipt } = await import("../lib/receipt"); downloadReceipt(t, { email: me.email, nickname: me.nickname }); }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <Icon name="document" className="h-4 w-4" /> Descargar recibo
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400">Recibo disponible al acreditarse</span>
+                  )}
                 </div>
               ))}
             </div>

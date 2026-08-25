@@ -1,7 +1,8 @@
 import Lingote from "./Lingote";
+import Icon from "./Icon";
 import { useEffect, useMemo, useState } from "react";
 
-// Fixed packages (USD cents → base + bonus lingotes). Must match the backend.
+// Fixed packages (USD cents -> base + bonus lingotes). Must match the backend.
 const PACKAGES = [
   { usd: 500, base: 50, bonus: 0 },
   { usd: 1000, base: 100, bonus: 10 },
@@ -99,7 +100,7 @@ export default function Recharge() {
 
       {BONUS_ACTIVE && (
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          <span className="text-base">🎁</span>
+          <Icon name="gift" className="h-5 w-5 shrink-0" />
           <span><strong>Bono por tiempo limitado:</strong> lingotes extra en los paquetes, solo hasta el <strong>15 de setiembre</strong>.</span>
         </div>
       )}
@@ -128,7 +129,7 @@ export default function Recharge() {
                 <li key={r.slug} className="flex justify-between text-xs text-slate-600">
                   <span className="truncate pr-2">{r.title}</span>
                   <span className="shrink-0 font-semibold text-slate-800">
-                    {r.ticketPrice === 0 ? "∞ (gratis)" : `${Math.floor(totalLingotes / r.ticketPrice)} boletos`}
+                    {r.ticketPrice === 0 ? "∞ (gratis)" : `${Math.floor(totalLingotes / r.ticketPrice)} tickets`}
                   </span>
                 </li>
               ))}

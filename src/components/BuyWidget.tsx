@@ -1,5 +1,6 @@
 import Lingote from "./Lingote";
 import TicketIcon from "./TicketIcon";
+import Icon from "./Icon";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -40,13 +41,13 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
       if (!res.ok) {
         if (d.error === "insufficient_funds") {
           setStatus("err");
-          setMsg("Saldo insuficiente. Recarga lingotes para continuar.");
+          setMsg("Lingotes insuficientes. Recarga para continuar.");
         } else if (d.error === "sold_out") {
           setStatus("err");
-          setMsg("No quedan suficientes boletos.");
+          setMsg("No quedan suficientes tickets.");
         } else if (d.error === "per_user_limit") {
           setStatus("err");
-          setMsg("Superas el máximo de boletos por persona.");
+          setMsg("Superas el máximo de tickets por persona.");
         } else {
           setStatus("err");
           setMsg("No se pudo completar la compra.");
@@ -65,7 +66,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
         const total = Number(soldEl.dataset.total || 0);
         const sold = Number(soldEl.dataset.sold || 0) + qty;
         soldEl.dataset.sold = String(sold);
-        soldEl.textContent = `${sold} / ${total} boletos`;
+        soldEl.textContent = `${sold} / ${total} tickets`;
         if (fillEl && total) fillEl.style.width = `${Math.min(100, Math.round((sold / total) * 100))}%`;
       }
     } catch {
@@ -88,7 +89,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
   if (status === "ok") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <img src="/ticket.png" alt="boleto" className="mx-auto h-14 w-14" />
+        <img src="/ticket.png" alt="ticket" className="mx-auto h-14 w-14" />
         <h3 className="mt-2 font-bold text-emerald-800">¡Ya estás participando!</h3>
         <p className="mt-1 text-sm text-emerald-700">Tus números:</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
@@ -96,7 +97,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
             <span key={n} className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1 font-mono text-sm font-bold text-emerald-700"><TicketIcon />#{n}</span>
           ))}
         </div>
-        <a href="/cuenta" className="mt-4 inline-block text-sm font-semibold text-emerald-700 underline">Ver mis boletos</a>
+        <a href="/cuenta" className="mt-4 inline-block text-sm font-semibold text-emerald-700 underline">Ver mis tickets</a>
       </div>
     );
   }
@@ -104,11 +105,11 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="mb-4 flex items-center justify-between text-sm">
-        <span className="text-slate-500">Tu saldo</span>
+        <span className="text-slate-500">Tus lingotes</span>
         <span className="font-semibold text-emerald-700">{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></span>
       </div>
 
-      <label className="mb-1 block text-sm font-medium text-slate-700">Cantidad de boletos</label>
+      <label className="mb-1 block text-sm font-medium text-slate-700">Cantidad de tickets</label>
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 hover:bg-slate-50">−</button>
         <input
@@ -141,18 +142,25 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
       </div>
 
       {msg && <p className={`mb-3 text-sm ${status === "err" ? "text-red-600" : "text-slate-600"}`}>{msg}</p>}
-      {status === "err" && msg.includes("Recarga") && (
-        <a href="/recargar" className="mb-3 block rounded-lg bg-amber-50 px-3 py-2 text-center text-sm font-semibold text-amber-700">Recargar lingotes →</a>
-      )}
+      {cost > me.balance ? (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+          <p className="flex items-center justify-center gap-1 text-sm font-semibold text-amber-800">
+            <Lingote /> Te faltan {new Intl.NumberFormat("es-PE").format(cost - me.balance)} lingotes
+          </p>
+          <a href="/recargar" className="mt-2 inline-flex items-center justify-center gap-1 rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-amber-400">
+            Conseguir lingotes <Icon name="arrow-right" className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      ) : null}
 
       <button
         onClick={buy}
         disabled={status === "loading" || cost > me.balance}
         className="w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
-        {status === "loading" ? "Procesando…" : cost > me.balance ? "Saldo insuficiente" : `Comprar ${qty} boleto${qty > 1 ? "s" : ""}`}
+        {status === "loading" ? "Procesando…" : cost > me.balance ? "Lingotes insuficientes" : `Comprar ${qty} ticket${qty > 1 ? "s" : ""}`}
       </button>
-      <p className="mt-2 text-center text-xs text-slate-400">Recibes +1 lingote de bono por cada boleto.</p>
+      <p className="mt-2 text-center text-xs text-slate-400">Recibes +1 lingote de bono por cada ticket.</p>
     </div>
   );
 }

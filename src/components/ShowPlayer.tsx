@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import RaffleChat from "./RaffleChat";
+import Icon from "./Icon";
 
 const GAME_META: Record<string, { label: string; icon: string; color: string }> = {
-  ELIMINATION: { label: "Eliminación", icon: "⚡", color: "bg-slate-900" },
-  DIGIT_REVEAL: { label: "Revelado de dígitos", icon: "🔢", color: "bg-indigo-600" },
-  BOMBS: { label: "Bombas", icon: "💣", color: "bg-orange-600" },
-  SQUID: { label: "Luz roja, luz verde", icon: "🟢", color: "bg-rose-600" },
-  HORSE_RACE: { label: "Carrera", icon: "🐎", color: "bg-amber-600" },
+  ELIMINATION: { label: "Eliminación", icon: "bolt", color: "bg-slate-900" },
+  DIGIT_REVEAL: { label: "Revelado de dígitos", icon: "hash", color: "bg-indigo-600" },
+  BOMBS: { label: "Bombas", icon: "fire", color: "bg-orange-600" },
+  SQUID: { label: "Luz roja, luz verde", icon: "stop", color: "bg-rose-600" },
+  HORSE_RACE: { label: "Carrera", icon: "flag", color: "bg-amber-600" },
 };
 
-// Fixed deterministic timeline → every client renders the same frame from the
+// Fixed deterministic timeline -> every client renders the same frame from the
 // shared startsAt clock (synchronized live show, no WebSocket needed).
 const STEP_MS = 450;
 const GAP_MS = 1400;
@@ -29,8 +30,8 @@ function Ticket({ p, mine, elim, winner }: { p: Participant; mine: boolean; elim
       <div className={`relative h-12 w-12 rounded-full shadow ${winner ? "ring-4 ring-emerald-400" : mine ? "ring-[3px] ring-sky-500" : "ring-2 ring-white"}`}>
         {p.avatarUrl ? <img src={p.avatarUrl} className="h-full w-full rounded-full object-cover" alt="" loading="lazy" />
           : <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-bold text-slate-600">{(p.nickname || "?")[0]}</div>}
-        {elim && <div className="absolute inset-0 flex items-center justify-center text-xl">✗</div>}
-        {winner && <div className="absolute -right-1 -top-1 text-lg">🏆</div>}
+        {elim && <div className="absolute inset-0 flex items-center justify-center text-slate-600"><Icon name="x" className="h-5 w-5" /></div>}
+        {winner && <div className="absolute -right-1 -top-1 text-amber-500"><Icon name="trophy" className="h-4 w-4" /></div>}
         {mine && !winner && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-sky-500 px-1.5 text-[9px] font-bold text-white">TÚ</div>}
       </div>
       <span className={`rounded px-1 font-mono text-[10px] font-bold ${winner ? "bg-emerald-100 text-emerald-700" : mine ? "text-sky-600" : "text-slate-500"}`}>#{p.number}</span>
@@ -40,7 +41,7 @@ function Ticket({ p, mine, elim, winner }: { p: Participant; mine: boolean; elim
           {p.avatarUrl ? <img src={p.avatarUrl} className="h-8 w-8 rounded-full object-cover" alt="" /> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500">{(p.nickname || "?")[0]}</span>}
           <div className="min-w-0">
             <div className="truncate text-xs font-bold text-slate-900">{p.nickname || "Anónimo"}</div>
-            <div className="font-mono text-[10px] text-slate-500">Boleto #{p.number}</div>
+            <div className="font-mono text-[10px] text-slate-500">Ticket #{p.number}</div>
           </div>
         </div>
         {p.comment && <div className="mt-1 line-clamp-2 text-[10px] italic text-slate-500">“{p.comment}”</div>}
@@ -110,7 +111,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   useEffect(() => {
     if (!data || !stages.length) return;
     const startsAtMs = new Date(data.startsAt).getTime();
-    if (Date.now() >= startsAtMs + totalDuration + 2000) return; // old → manual replay
+    if (Date.now() >= startsAtMs + totalDuration + 2000) return; // old -> manual replay
     const id = setInterval(() => {
       const elapsed = Date.now() - startsAtMs;
       if (elapsed < 0) { setSecsToStart(Math.ceil(-elapsed / 1000)); setLiveMode(true); return; }
@@ -178,7 +179,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
         <div className="mx-auto max-w-6xl px-5 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.color} text-lg text-white`}>{meta.icon}</span>
+              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.color} text-white`}><Icon name={meta.icon} className="h-5 w-5" /></span>
               <div>
                 <div className="text-sm font-bold text-slate-900">{data.raffle.title}</div>
                 <div className="text-xs text-slate-500">
@@ -193,9 +194,9 @@ export default function ShowPlayer({ slug }: { slug: string }) {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <button onClick={() => goStage(Math.max(0, stageIdx - 1))} disabled={stageIdx === 0} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm disabled:opacity-40">⏮</button>
-                <button onClick={() => setPlaying((p) => !p)} className="rounded-lg bg-emerald-600 px-5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">{playing ? "⏸" : "▶"}</button>
-                <button onClick={() => { if (!stageDone) setStep(stageElim.length); else goStage(Math.min(stages.length - 1, stageIdx + 1)); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm">⏭</button>
+                <button onClick={() => goStage(Math.max(0, stageIdx - 1))} disabled={stageIdx === 0} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm disabled:opacity-40"><Icon name="prev" className="h-5 w-5" /></button>
+                <button onClick={() => setPlaying((p) => !p)} className="rounded-lg bg-emerald-600 px-5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500"><Icon name={playing ? "pause" : "play"} className="h-5 w-5" /></button>
+                <button onClick={() => { if (!stageDone) setStep(stageElim.length); else goStage(Math.min(stages.length - 1, stageIdx + 1)); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm"><Icon name="next" className="h-5 w-5" /></button>
                 <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
                   <option value={0.5}>0.5x</option><option value={1}>1x</option><option value={2}>2x</option><option value={4}>4x</option>
                 </select>
@@ -204,8 +205,8 @@ export default function ShowPlayer({ slug }: { slug: string }) {
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {stages.map((s: any, i: number) => (
-              <button key={i} onClick={() => goStage(i)} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${i === stageIdx ? `${(GAME_META[s.game] ?? meta).color} text-white` : "bg-slate-100 text-slate-500"}`}>
-                {(GAME_META[s.game] ?? meta).icon} {i + 1}{s.isFinale ? "★" : ""}
+              <button key={i} onClick={() => goStage(i)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${i === stageIdx ? `${(GAME_META[s.game] ?? meta).color} text-white` : "bg-slate-100 text-slate-500"}`}>
+                <Icon name={(GAME_META[s.game] ?? meta).icon} className="h-3.5 w-3.5" /> {i + 1}{s.isFinale ? <Icon name="trophy" className="h-3.5 w-3.5" /> : null}
               </button>
             ))}
           </div>
@@ -217,7 +218,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
           <div className={`rounded-3xl border border-slate-200 p-5 ${stage?.game === "SQUID" && playing && !stageDone && step % 2 === 1 ? "bg-rose-50" : "bg-gradient-to-b from-slate-50 to-white"}`}>
             {isFinaleDone && (
               <div className="mb-5 rounded-2xl bg-emerald-50 p-5 text-center">
-                <div className="text-3xl">🎉</div>
+                <div className="flex justify-center text-emerald-600"><Icon name="trophy" className="h-8 w-8" /></div>
                 <h2 className="mt-1 text-lg font-bold text-emerald-800">{winners.length > 1 ? "¡Ganadores!" : "¡Ganador!"} {winners.map((w) => `#${participants[w]?.number}`).join(", ")}</h2>
                 <a href={`/verificar?slug=${slug}`} className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Verificar este resultado</a>
               </div>
