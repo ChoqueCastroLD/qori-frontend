@@ -79,7 +79,7 @@ export default function Nav() {
         {nf(me.ticketCount ?? 0)}
       </a>
 
-      <div className="relative" ref={ref}>
+      <div className="relative hidden md:block" ref={ref}>
         <button
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="menu"

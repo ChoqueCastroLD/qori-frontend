@@ -29,6 +29,8 @@ export const ICONS: Record<string, string> = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   "chevron-right": '<path d="m9 6 6 6-6 6"/>',
   "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  home: '<path d="m3 10 9-7 9 7"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M9.5 21v-6h5v6"/>',
+  dots: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
   user: '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M5 20a7 7 0 0 1 14 0"/>',
   logout: '<path d="M16 12H4m12 0-4 4m4-4-4-4m3-4h2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-2"/>',
   live: '<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
