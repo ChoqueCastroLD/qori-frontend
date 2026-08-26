@@ -38,14 +38,16 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function Admin() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"metrics" | "raffles" | "create">("metrics");
+  const [tab, setTab] = useState<"metrics" | "purchases" | "raffles" | "create">("metrics");
   const [raffles, setRaffles] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [purchases, setPurchases] = useState<any>(null);
   const [msg, setMsg] = useState("");
 
   function reload() {
     adminFetch("/admin/raffles").then((r) => r.ok && setRaffles(r.data));
     adminFetch("/admin/metrics").then((r) => r.ok && setMetrics(r.data));
+    adminFetch("/admin/purchases").then((r) => r.ok && setPurchases(r.data));
   }
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
@@ -86,12 +88,14 @@ export default function Admin() {
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
       <div className="mt-5 flex gap-1 border-b border-slate-200">
-        {([["metrics", "Métricas"], ["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
+        {([["metrics", "Métricas"], ["purchases", "Compras"], ["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`px-4 py-2.5 text-sm font-semibold ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500"}`}>{l}</button>
         ))}
       </div>
 
       {tab === "metrics" && <Metrics m={metrics} />}
+
+      {tab === "purchases" && <Purchases p={purchases} />}
 
       {tab === "raffles" && (
         <div className="mt-6 space-y-3">
@@ -138,6 +142,71 @@ function Metrics({ m }: { m: any }) {
           <div><div className="text-xs text-slate-500">Gastados en tickets</div><div className="text-lg font-bold text-slate-900">{nf(m.money.lingotesSpent)}</div></div>
           <div><div className="text-xs text-slate-500">En circulación (saldos)</div><div className="text-lg font-bold text-slate-900">{nf(m.money.lingotesCirculating)}</div></div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+const CUR_SYM: Record<string, string> = { PEN: "S/ ", USD: "$", MXN: "MX$", COP: "COL$", CLP: "CLP$", ARS: "AR$" };
+const money = (cur: string | null, minor: number | null) =>
+  minor == null ? "—" : `${CUR_SYM[cur ?? ""] ?? (cur ? cur + " " : "")}${(minor / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const pctFmt = (p: number | null) => (p == null ? "—" : (p * 100).toFixed(2) + "%");
+const METHOD: Record<string, string> = { MERCADOPAGO: "MercadoPago", PAYPAL: "PayPal", YAPE: "Yape", PLIN: "Plin", TRANSFER: "Transferencia", CRYPTO: "Cripto" };
+const PSTATUS: Record<string, string> = { PAID: "Pagado", PENDING: "Pendiente", FAILED: "Fallido", REFUNDED: "Reembolsado" };
+
+function Purchases({ p }: { p: any }) {
+  if (!p) return <p className="mt-6 text-slate-400">Cargando compras…</p>;
+  const t = p.totals;
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card icon="cash" label="Ingresos brutos" value={usd(t.grossUsd)} sub={`${t.count} compras`} />
+        <Card icon="chart" label="Comisión pasarela" value={usd(t.feeUsd)} sub={t.avgFeePct != null ? `~${(t.avgFeePct * 100).toFixed(2)}% promedio` : "sin datos"} />
+        <Card icon="trophy" label="Neto recibido" value={usd(t.netUsd)} sub="después de comisión" />
+        <Card icon="ticket" label="Lingotes vendidos" value={nf(t.lingotes)} sub="en compras pagadas" />
+      </div>
+      {t.missingFee > 0 && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          {t.missingFee} compra(s) pagada(s) aún sin desglose de comisión (se completan solo al leer del proveedor; recarga en unos segundos).
+        </p>
+      )}
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-100 text-xs text-slate-400">
+            <tr>
+              <th className="p-3">Fecha</th>
+              <th className="p-3">Usuario</th>
+              <th className="p-3">Método</th>
+              <th className="p-3 text-right">Pagó (bruto)</th>
+              <th className="p-3 text-right">Comisión</th>
+              <th className="p-3 text-right">Neto</th>
+              <th className="p-3 text-right">Lingotes</th>
+              <th className="p-3">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {p.purchases.map((r: any) => (
+              <tr key={r.id} className="border-b border-slate-50 last:border-0">
+                <td className="p-3 text-xs text-slate-500">{fmt(r.confirmedAt || r.createdAt)}</td>
+                <td className="p-3"><div className="font-medium text-slate-800">{r.user?.nickname || "—"}</div><div className="text-xs text-slate-400">{r.user?.email}</div></td>
+                <td className="p-3 text-slate-600">{METHOD[r.method] ?? r.method}</td>
+                <td className="p-3 text-right">
+                  <div className="font-medium text-slate-800">{r.grossAmount != null ? money(r.chargeCurrency, r.grossAmount) : usd(r.amountUsd)}</div>
+                  {r.grossAmount != null && <div className="text-xs text-slate-400">{usd(r.amountUsd)}</div>}
+                </td>
+                <td className="p-3 text-right">
+                  {r.feeAmount != null ? (
+                    <><div className="font-medium text-red-600">-{money(r.chargeCurrency, r.feeAmount)}</div><div className="text-xs text-slate-400">{pctFmt(r.feePct)}</div></>
+                  ) : <span className="text-slate-300">—</span>}
+                </td>
+                <td className="p-3 text-right font-medium text-emerald-700">{r.netAmount != null ? money(r.chargeCurrency, r.netAmount) : "—"}</td>
+                <td className="p-3 text-right text-slate-700">{nf(r.lingotes)}</td>
+                <td className="p-3"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${r.status === "PAID" ? "bg-emerald-100 text-emerald-700" : r.status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{PSTATUS[r.status] ?? r.status}</span></td>
+              </tr>
+            ))}
+            {p.purchases.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-slate-400">Aún no hay compras.</td></tr>}
+          </tbody>
+        </table>
       </div>
     </div>
   );
