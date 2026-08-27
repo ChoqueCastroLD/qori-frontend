@@ -38,11 +38,11 @@ const winner = r.winners?.[0];
     ) : (
       <div class="mt-4">
         <div class="mb-1.5 flex justify-between text-xs text-slate-500">
-          <span>{sold} / {r.totalTickets} tickets</span>
+          <span data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} tickets</span>
           <span class="inline-flex items-center gap-1 font-medium text-slate-700"><Icon name="clock" class="h-3.5 w-3.5" /> <span data-closes-at={r.closesAt}>{timeLeft(r.closesAt)}</span></span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-          <div class="h-full rounded-full bg-emerald-500" style={`width:${progress}%`}></div>
+          <div class="h-full rounded-full bg-emerald-500" data-live-fill={r.slug} data-live-total={r.totalTickets} style={`width:${progress}%`}></div>
         </div>
       </div>
     )}

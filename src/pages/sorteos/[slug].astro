@@ -168,11 +168,11 @@ const exts = Array.isArray(r.extensions) ? r.extensions : [];
           <div class="space-y-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-1.5 flex justify-between text-sm text-slate-500">
-                <span id="rf-sold" data-sold={sold} data-total={r.totalTickets}>{sold} / {r.totalTickets} tickets</span>
+                <span id="rf-sold" data-sold={sold} data-total={r.totalTickets} data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} tickets</span>
                 <span class="flex items-center gap-1 font-medium text-slate-700"><Icon name="clock" class="h-4 w-4" /> <span data-closes-at={r.closesAt}>{timeLeft(r.closesAt)}</span></span>
               </div>
               <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                <div id="rf-fill" class="h-full rounded-full bg-emerald-500 transition-all" style={`width:${pct(sold, r.totalTickets)}%`}></div>
+                <div id="rf-fill" class="h-full rounded-full bg-emerald-500 transition-all" data-live-fill={r.slug} data-live-total={r.totalTickets} style={`width:${pct(sold, r.totalTickets)}%`}></div>
               </div>
               <p class="mt-2 text-xs text-slate-400">Mínimo {r.minTickets} tickets para sortear. Si no se alcanza, se reembolsa.</p>
               {(r.extensionCount ?? 0) > 0 && (

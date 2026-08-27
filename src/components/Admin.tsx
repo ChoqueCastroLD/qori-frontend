@@ -38,16 +38,23 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function Admin() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"metrics" | "purchases" | "raffles" | "create">("metrics");
+  const [tab, setTab] = useState<"metrics" | "purchases" | "users" | "raffles" | "create">("metrics");
   const [raffles, setRaffles] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [purchases, setPurchases] = useState<any>(null);
+  const [users, setUsers] = useState<any[] | null>(null);
   const [msg, setMsg] = useState("");
 
   function reload() {
     adminFetch("/admin/raffles").then((r) => r.ok && setRaffles(r.data));
     adminFetch("/admin/metrics").then((r) => r.ok && setMetrics(r.data));
     adminFetch("/admin/purchases").then((r) => r.ok && setPurchases(r.data));
+    adminFetch("/admin/users").then((r) => r.ok && setUsers(r.data));
+  }
+  async function toggleUserFlag(id: string, patch: any) {
+    const res = await adminFetch(`/admin/users/${id}/flags`, { method: "POST", body: JSON.stringify(patch) });
+    if (res.ok) adminFetch("/admin/users").then((r) => r.ok && setUsers(r.data));
+    else setMsg(`Error: ${res.data?.error ?? "no se pudo"}`);
   }
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
@@ -88,7 +95,7 @@ export default function Admin() {
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
       <div className="mt-5 flex gap-1 border-b border-slate-200">
-        {([["metrics", "Métricas"], ["purchases", "Compras"], ["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
+        {([["metrics", "Métricas"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`px-4 py-2.5 text-sm font-semibold ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500"}`}>{l}</button>
         ))}
       </div>
@@ -96,6 +103,8 @@ export default function Admin() {
       {tab === "metrics" && <Metrics m={metrics} />}
 
       {tab === "purchases" && <Purchases p={purchases} />}
+
+      {tab === "users" && <Users users={users} onToggle={toggleUserFlag} />}
 
       {tab === "raffles" && (
         <div className="mt-6 space-y-3">
@@ -207,6 +216,83 @@ function Purchases({ p }: { p: any }) {
             {p.purchases.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-slate-400">Aún no hay compras.</td></tr>}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button type="button" onClick={() => onChange(!on)} className="flex items-center gap-1.5 text-xs">
+      <span className={`relative h-5 w-9 rounded-full transition ${on ? "bg-emerald-500" : "bg-slate-300"}`}>
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
+      </span>
+      <span className={on ? "font-medium text-slate-700" : "text-slate-400"}>{label}</span>
+    </button>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return <div><div className="text-slate-400">{label}</div><div className="font-medium text-slate-700">{value}</div></div>;
+}
+
+function UserRow({ u, onToggle }: { u: any; onToggle: (id: string, patch: any) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+        <button onClick={() => setOpen((o) => !o)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          {u.avatarUrl
+            ? <img src={u.avatarUrl} className="h-9 w-9 shrink-0 rounded-full object-cover" alt="" />
+            : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-500">{(u.nickname || u.email)[0].toUpperCase()}</span>}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 font-medium text-slate-800">
+              <span className="truncate">{u.nickname || "sin apodo"}</span>
+              {u.role === "ADMIN" && <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">ADMIN</span>}
+              {u.emailVerified ? <Icon name="check-circle" className="h-3.5 w-3.5 text-emerald-600" /> : <Icon name="info" className="h-3.5 w-3.5 text-amber-500" />}
+            </div>
+            <div className="truncate text-xs text-slate-400">{u.email}</div>
+          </div>
+        </button>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+          <span title="Antigüedad de la cuenta">{accountAge(u.createdAt)}</span>
+          <span className="inline-flex items-center gap-1" title="Tickets"><img src="/ticket.png" className="h-3 w-3" alt="" />{u.ticketsOwned}</span>
+          <span className="inline-flex items-center gap-1" title="Saldo"><Lingote />{nf(u.balance)}</span>
+          <span title="Total recargado">{usd(u.spentUsd)}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Toggle on={u.canChat} onChange={(v) => onToggle(u.id, { canChat: v })} label="Chat" />
+          <Toggle on={u.canBuy} onChange={(v) => onToggle(u.id, { canBuy: v })} label="Comprar" />
+        </div>
+      </div>
+      {open && (
+        <div className="grid gap-3 border-t border-slate-100 p-3 text-xs sm:grid-cols-3 lg:grid-cols-4">
+          <Detail label="País" value={u.country || "—"} />
+          <Detail label="Registrado" value={fmt(u.createdAt)} />
+          <Detail label="Compras / intentos" value={`${u.orders} / ${u.buyAttempts}`} />
+          <Detail label="Tickets" value={String(u.ticketsOwned)} />
+          <Detail label="Lingotes gastados" value={nf(u.lingotesSpent)} />
+          <Detail label="Saldo lingotes" value={nf(u.balance)} />
+          <Detail label="Recargas" value={`${u.topupCount} · ${usd(u.spentUsd)}`} />
+          <Detail label="Medios de pago" value={u.methods?.length ? u.methods.map((m: string) => METHOD[m] ?? m).join(", ") : "—"} />
+          <Detail label="Referidos" value={String(u.referralsCount)} />
+          <Detail label="Código referido" value={u.referralCode} />
+          <Detail label="Correo verificado" value={u.emailVerified ? "sí" : "no"} />
+          <Detail label="Rol" value={u.role} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Users({ users, onToggle }: { users: any[] | null; onToggle: (id: string, patch: any) => void }) {
+  if (!users) return <p className="mt-6 text-slate-400">Cargando usuarios…</p>;
+  return (
+    <div className="mt-6">
+      <p className="mb-3 text-xs text-slate-400">{users.length} usuarios · toca una fila para ver el detalle</p>
+      <div className="space-y-2">
+        {users.map((u) => <UserRow key={u.id} u={u} onToggle={onToggle} />)}
+        {users.length === 0 && <p className="text-slate-400">No hay usuarios.</p>}
       </div>
     </div>
   );

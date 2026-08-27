@@ -51,6 +51,12 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
         } else if (d.error === "per_user_limit") {
           setStatus("err");
           setMsg("Superas el máximo de tickets por persona.");
+        } else if (d.error === "buy_disabled") {
+          setStatus("err");
+          setMsg("Tu cuenta no puede comprar tickets por ahora. Escríbenos a support@qori.cc si crees que es un error.");
+        } else if (d.error === "raffle_blocked" || d.error === "raffle_not_open") {
+          setStatus("err");
+          setMsg("Este sorteo no está disponible por ahora.");
         } else {
           setStatus("err");
           setMsg("No se pudo completar la compra.");
