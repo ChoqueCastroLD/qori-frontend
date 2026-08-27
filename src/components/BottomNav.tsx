@@ -1,7 +1,7 @@
 import Icon from "./Icon";
 import { useEffect, useState } from "react";
 
-interface Me { role: string; nickname: string | null; email: string }
+interface Me { role: string; nickname: string | null; username: string | null; email: string }
 
 export default function BottomNav() {
   const [me, setMe] = useState<Me | null>(null);
@@ -40,7 +40,7 @@ export default function BottomNav() {
     { href: "/sorteos", label: "Sorteos", icon: "ticket" },
     { href: "/ganadores", label: "Ganadores", icon: "trophy" },
     { href: "/recargar", label: "Recargar", icon: "plus", primary: true },
-    { href: me ? "/cuenta" : "/entrar", label: me ? "Cuenta" : "Entrar", icon: "user" },
+    { href: me ? (me.username ? `/u/${me.username}` : "/cuenta") : "/entrar", label: me ? "Cuenta" : "Entrar", icon: "user" },
   ] as const;
 
   return (

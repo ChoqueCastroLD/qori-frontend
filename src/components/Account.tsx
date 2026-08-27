@@ -30,8 +30,10 @@ export default function Account() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [nickname, setNickname] = useState("");
+  const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const [profErr, setProfErr] = useState("");
   const [copied, setCopied] = useState(false);
   const [resent, setResent] = useState(false);
 
@@ -40,17 +42,30 @@ export default function Account() {
     setResent(true);
   }
 
+  const USERNAME_ERR: Record<string, string> = {
+    username_invalid: "El usuario debe tener 3 a 20 caracteres: minúsculas, números o guion bajo.",
+    username_reserved: "Ese nombre de usuario está reservado.",
+    username_taken: "Ese nombre de usuario ya está en uso.",
+  };
+
   async function saveProfile() {
-    setSaving(true);
+    setSaving(true); setProfErr("");
+    const body: any = { nickname: nickname || undefined, avatarUrl: avatarUrl || undefined };
+    const uname = username.trim().toLowerCase();
+    if (uname && uname !== (me?.username ?? "")) body.username = uname;
     const res = await fetch("/api/me/profile", {
       method: "PATCH", credentials: "include", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ nickname: nickname || undefined, avatarUrl: avatarUrl || undefined }),
+      body: JSON.stringify(body),
     });
+    const d = await res.json().catch(() => ({}));
     if (res.ok) {
-      const d = await res.json();
       setMe(d.user);
       setEditing(false);
       window.dispatchEvent(new CustomEvent("qori:refresh"));
+    } else if (d?.error === "username_cooldown") {
+      setProfErr(`Solo puedes cambiar tu nombre de usuario una vez cada 15 días. Espera ${d.daysLeft} día(s) más.`);
+    } else {
+      setProfErr(USERNAME_ERR[d?.error] ?? "No se pudo guardar. Intenta de nuevo.");
     }
     setSaving(false);
   }
@@ -117,18 +132,27 @@ export default function Account() {
           {me.avatarUrl ? <img src={me.avatarUrl} className="h-14 w-14 rounded-full" alt="" /> : <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-200 text-xl font-bold text-slate-500">{(me.nickname || me.email)[0].toUpperCase()}</div>}
           <div>
             <h1 className="text-xl font-bold text-slate-900">{me.nickname || me.name || "Mi cuenta"}</h1>
-            <p className="text-sm text-slate-500">{me.email}</p>
+            {me.username
+              ? <a href={`/u/${me.username}`} className="text-sm font-medium text-emerald-700 hover:underline">@{me.username}</a>
+              : <p className="text-sm text-slate-400">Elige tu nombre de usuario en “Editar perfil”</p>}
+            <p className="text-xs text-slate-400">{me.email}</p>
             <button
-              onClick={() => { setNickname(me.nickname || ""); setAvatarUrl(me.avatarUrl || ""); setEditing((v) => !v); }}
+              onClick={() => { setNickname(me.nickname || ""); setUsername(me.username || ""); setAvatarUrl(me.avatarUrl || ""); setProfErr(""); setEditing((v) => !v); }}
               className="mt-1 text-xs font-semibold text-slate-500 hover:text-slate-900"
             >
               {editing ? "Cancelar" : "Editar perfil"}
             </button>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-3xl font-bold text-emerald-700">{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></div>
-          <a href="/recargar" className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:underline">Recargar <Icon name="arrow-right" className="h-3.5 w-3.5" /></a>
+        <div className="flex items-center gap-5">
+          <div className="text-right">
+            <div className="flex items-center justify-end gap-1 text-2xl font-bold text-emerald-700">{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></div>
+            <a href="/recargar" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline">Recargar <Icon name="arrow-right" className="h-3 w-3" /></a>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center justify-end gap-1 text-2xl font-bold text-slate-900"><img src="/ticket.png" alt="" className="h-5 w-5" />{new Intl.NumberFormat("es-PE").format(me.ticketCount ?? 0)}</div>
+            <div className="text-xs text-slate-500">tickets</div>
+          </div>
         </div>
       </div>
 
@@ -136,10 +160,18 @@ export default function Account() {
         <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Nombre de usuario (tu URL pública)</label>
+              <div className="flex items-center rounded-lg border border-slate-200 px-3 text-sm">
+                <span className="text-slate-400">qori.cc/u/</span>
+                <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20))} placeholder="tu_usuario" className="w-full bg-transparent py-2 outline-none" />
+              </div>
+              <p className="mt-1 text-xs text-slate-400">3 a 20 caracteres (minúsculas, números, guion bajo). Solo se puede cambiar una vez cada 15 días.</p>
+            </div>
+            <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Apodo público</label>
               <input value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 40))} placeholder="Cómo te verán en el show" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium text-slate-700">Foto de perfil</label>
               <ImageUpload
                 circle
@@ -151,6 +183,7 @@ export default function Account() {
             </div>
           </div>
           <p className="mt-2 text-xs text-slate-400">Por privacidad, puedes usar un apodo y una foto en lugar de tu foto real.</p>
+          {profErr && <p className="mt-2 text-sm text-red-600">{profErr}</p>}
           <button onClick={saveProfile} disabled={saving} className="mt-3 rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">
             {saving ? "Guardando…" : "Guardar"}
           </button>

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 interface Me {
   id: string;
   nickname: string | null;
+  username: string | null;
   email: string;
   balance: number;
   ticketCount: number;
@@ -109,7 +110,7 @@ export default function Nav() {
               <div className="truncate text-sm font-semibold text-slate-900">{me.nickname || "Mi cuenta"}</div>
               <div className="truncate text-xs text-slate-400">{me.email}</div>
             </div>
-            <a href="/cuenta" role="menuitem" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+            <a href={me.username ? `/u/${me.username}` : "/cuenta"} role="menuitem" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
               <Icon name="user" className="h-4 w-4 text-slate-400" /> Mi perfil
             </a>
             {me.role === "ADMIN" && (

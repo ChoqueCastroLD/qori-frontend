@@ -1,0 +1,13 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ProfileView from "../../components/ProfileView.tsx";
+import { ssrGet } from "../../lib/api";
+
+const { username } = Astro.params;
+const data = await ssrGet<any>(`/u/${username}`, null);
+if (!data) return Astro.redirect("/404");
+const p = data.profile;
+---
+<Layout title={`@${p.username} · qori`} description={`Perfil público de @${p.username} en qori: tickets y actividad.`} noindex={false}>
+  <ProfileView username={username} client:load />
+</Layout>
