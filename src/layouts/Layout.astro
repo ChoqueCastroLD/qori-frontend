@@ -146,30 +146,31 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
     </script>
 
     <script>
-      // Real-time ticket counts: one Server-Sent Events stream for the whole
-      // session (persists across View Transitions). When anyone buys, every open
-      // page updates its [data-live-sold] / [data-live-fill] for that raffle.
-      function qoriLive() {
-        const w = window as any;
-        if (w.__qoriLive) return;
-        const es = new EventSource("/api/raffles/live");
-        w.__qoriLive = es;
-        es.onmessage = (e) => {
-          let d: any;
-          try { d = JSON.parse(e.data); } catch { return; }
-          const total0 = Number(d.total) || 0;
-          document.querySelectorAll<HTMLElement>(`[data-live-sold="${d.slug}"]`).forEach((el) => {
-            const total = Number(el.getAttribute("data-live-total")) || total0;
-            el.textContent = `${d.sold} / ${total} tickets`;
-            if (el.id === "rf-sold") el.setAttribute("data-sold", String(d.sold));
-          });
-          document.querySelectorAll<HTMLElement>(`[data-live-fill="${d.slug}"]`).forEach((el) => {
-            const total = Number(el.getAttribute("data-live-total")) || total0;
-            if (total) el.style.width = Math.min(100, Math.round((d.sold / total) * 100)) + "%";
-          });
-        };
+      // Real-time ticket counts over one WebSocket for the whole session
+      // (persists across View Transitions). When anyone buys, every open page
+      // updates its [data-live-sold] / [data-live-fill] for that raffle.
+      function qoriApplyLive(d: any) {
+        const total0 = Number(d.total) || 0;
+        document.querySelectorAll<HTMLElement>(`[data-live-sold="${d.slug}"]`).forEach((el) => {
+          const total = Number(el.getAttribute("data-live-total")) || total0;
+          el.textContent = `${d.sold} / ${total} tickets`;
+          if (el.id === "rf-sold") el.setAttribute("data-sold", String(d.sold));
+        });
+        document.querySelectorAll<HTMLElement>(`[data-live-fill="${d.slug}"]`).forEach((el) => {
+          const total = Number(el.getAttribute("data-live-total")) || total0;
+          if (total) el.style.width = Math.min(100, Math.round((d.sold / total) * 100)) + "%";
+        });
       }
-      document.addEventListener("astro:page-load", qoriLive);
+      function qoriLiveConnect() {
+        const w = window as any;
+        if (w.__qoriWS && w.__qoriWS.readyState <= 1) return; // already open/connecting
+        const proto = location.protocol === "https:" ? "wss:" : "ws:";
+        const ws = new WebSocket(`${proto}//${location.host}/api/raffles/live`);
+        w.__qoriWS = ws;
+        ws.onmessage = (e) => { try { qoriApplyLive(JSON.parse(e.data)); } catch {} };
+        ws.onclose = () => { setTimeout(qoriLiveConnect, 3000); }; // auto-reconnect
+      }
+      document.addEventListener("astro:page-load", qoriLiveConnect);
     </script>
 
     <footer class="mt-24 border-t border-slate-100 bg-slate-50">
