@@ -9,8 +9,9 @@ const raffles = await ssrGet<Raffle[]>("/raffles", []);
 const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED").slice(0, 3);
 const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
 
-// Hero is driven by the top active raffle (most sales, then soonest to close).
-const featured = [...raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED")].sort((a, b) => {
+// Hero is driven by the top BUYABLE raffle (most sales, then soonest to close).
+// Blocked raffles still appear in the grid, just not as the hero CTA.
+const featured = [...raffles.filter((r) => (r.status === "OPEN" || r.status === "CLOSED") && !r.blocked)].sort((a, b) => {
   const sold = (b.ticketsSold ?? 0) - (a.ticketsSold ?? 0);
   if (sold !== 0) return sold;
   const ta = a.closesAt ? new Date(a.closesAt).getTime() : Infinity;
