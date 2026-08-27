@@ -165,7 +165,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
         const w = window as any;
         if (w.__qoriWS && w.__qoriWS.readyState <= 1) return; // already open/connecting
         const proto = location.protocol === "https:" ? "wss:" : "ws:";
-        const ws = new WebSocket(`${proto}//${location.host}/api/raffles/live`);
+        const ws = new WebSocket(`${proto}//${location.host}/api/live`);
         w.__qoriWS = ws;
         ws.onmessage = (e) => { try { qoriApplyLive(JSON.parse(e.data)); } catch {} };
         ws.onclose = () => { setTimeout(qoriLiveConnect, 3000); }; // auto-reconnect
