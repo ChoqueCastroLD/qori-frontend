@@ -218,7 +218,22 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
   const [closesAt, setClosesAt] = useState("");
   const [savingDate, setSavingDate] = useState(false);
   const [imgUrl, setImgUrl] = useState(r.images?.[0] ?? "");
+  const [blockReason, setBlockReason] = useState(r.blockReason ?? "");
+  const [blocking, setBlocking] = useState(false);
   const locked = r.status === "DRAWN" || r.status === "CANCELLED";
+  const blockHistory: any[] = Array.isArray(r.blockHistory) ? r.blockHistory : [];
+
+  async function toggleBlock(block: boolean) {
+    if (block && !blockReason.trim()) { setMsg("Escribe una razón para bloquear el sorteo."); return; }
+    setBlocking(true);
+    const res = await adminFetch(`/admin/raffles/${r.id}/block`, {
+      method: "POST",
+      body: JSON.stringify({ blocked: block, reason: block ? blockReason.trim() : undefined }),
+    });
+    setBlocking(false);
+    setMsg(res.ok ? (block ? "Sorteo bloqueado" : "Sorteo reactivado") : `Error: ${res.data?.error ?? "no se pudo"}`);
+    if (res.ok) onChanged();
+  }
 
   async function saveImage(url: string) {
     setImgUrl(url);
@@ -249,7 +264,10 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
     <div className="rounded-xl border border-slate-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <div className="font-semibold text-slate-900">{r.title}{r.legacy && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">histórico</span>}</div>
+          <div className="font-semibold text-slate-900">{r.title}
+            {r.legacy && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">histórico</span>}
+            {r.blocked && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"><Icon name="lock" className="h-3 w-3" /> bloqueado</span>}
+          </div>
           <div className="text-xs text-slate-500">{STATUS_LABEL[r.status] ?? r.status} · {r._count?.tickets ?? 0}/{r.totalTickets} tickets · mín {r.minTickets} · sorteo {fmt(r.closesAt)}</div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -280,6 +298,45 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                   </div>
                 </div>
               )}
+
+              {/* Block switch */}
+              <div className={`mb-4 rounded-lg border p-3 ${r.blocked ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Icon name="lock" className={`h-4 w-4 ${r.blocked ? "text-red-600" : "text-slate-500"}`} />
+                    <span className="text-sm font-semibold text-slate-800">{r.blocked ? "Sorteo bloqueado" : "Bloquear sorteo"}</span>
+                  </div>
+                  <button
+                    type="button" role="switch" aria-checked={r.blocked} disabled={blocking}
+                    onClick={() => toggleBlock(!r.blocked)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${r.blocked ? "bg-red-500" : "bg-slate-300"} disabled:opacity-50`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${r.blocked ? "left-[22px]" : "left-0.5"}`} />
+                  </button>
+                </div>
+                {r.blocked ? (
+                  <p className="mt-2 text-sm text-red-700"><span className="font-medium">Razón:</span> {r.blockReason || "—"}</p>
+                ) : (
+                  <input
+                    value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
+                    placeholder="Razón del bloqueo (obligatoria)"
+                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                )}
+                {blockHistory.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-medium text-slate-500">Historial de bloqueos ({blockHistory.length})</summary>
+                    <ul className="mt-2 space-y-1">
+                      {blockHistory.slice().reverse().map((h, i) => (
+                        <li key={i} className="text-xs text-slate-500">
+                          <span className={h.action === "block" ? "font-semibold text-red-600" : "font-semibold text-emerald-700"}>{h.action === "block" ? "Bloqueado" : "Reactivado"}</span>
+                          {" · "}{fmt(h.at)}{h.reason ? ` · ${h.reason}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
 
               <div className="grid gap-3 sm:grid-cols-4">
                 <Mini label="Tickets" value={`${detail.metrics.soldTickets}/${detail.raffle.totalTickets}`} sub={`${detail.metrics.fillPct}% · ${detail.metrics.reachedMin ? "mínimo alcanzado" : "bajo el mínimo"}`} />

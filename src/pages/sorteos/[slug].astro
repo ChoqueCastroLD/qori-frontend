@@ -140,7 +140,13 @@ const exts = Array.isArray(r.extensions) ? r.extensions : [];
 
       <!-- Right -->
       <div class="lg:sticky lg:top-24 lg:self-start">
-        {isDrawn ? (
+        {r.blocked ? (
+          <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+            <div class="flex items-center gap-2"><Icon name="lock" class="h-5 w-5 text-amber-700" /><h3 class="font-semibold text-amber-800">Sorteo no disponible</h3></div>
+            <p class="mt-2 text-sm text-amber-700">Este sorteo está temporalmente desactivado{r.blockReason ? `: ${r.blockReason}` : "."}</p>
+            <p class="mt-2 text-xs text-amber-600">Vuelve pronto, se reactivará en cuanto esté listo.</p>
+          </div>
+        ) : isDrawn ? (
           <div class="rounded-2xl border border-slate-200 bg-white p-6">
             <h3 class="flex items-center gap-2 text-lg font-bold text-slate-900"><Icon name="trophy" class="h-5 w-5 text-amber-500" /> Ganadores</h3>
             <ul class="mt-4 space-y-3">
