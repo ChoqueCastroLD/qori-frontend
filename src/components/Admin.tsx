@@ -388,9 +388,9 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
         <div className="border-t border-slate-100 p-4">
           {!detail ? <p className="text-sm text-slate-400">Cargando…</p> : (
             <>
-              {!locked && (
+              {(!locked || r.legacy) && (
                 <div className="mb-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Editar sorteo</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{r.legacy ? "Editar sorteo histórico (nombre, descripción y fotos)" : "Editar sorteo"}</div>
                   <div>
                     <label className="mb-1 block text-xs text-slate-500">Título</label>
                     <input value={form.title} onChange={(e) => set("title", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
@@ -416,15 +416,17 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                     </div>
                     <p className="mt-1 text-xs text-slate-400">La primera foto es la principal. JPG/PNG/WEBP, máx 6 MB.</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" value={form.prizeUsd} onChange={(e) => set("prizeUsd", e.target.value)} className={inpS} /></div>
-                    <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" value={form.ticketPrice} onChange={(e) => set("ticketPrice", e.target.value)} className={inpS} /></div>
-                    <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" value={form.winnersCount} onChange={(e) => set("winnersCount", e.target.value)} className={inpS} /></div>
-                    <div><label className="text-xs text-slate-500">Total tickets</label><input type="number" value={form.totalTickets} onChange={(e) => set("totalTickets", e.target.value)} className={inpS} /></div>
-                    <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" value={form.minTickets} onChange={(e) => set("minTickets", e.target.value)} className={inpS} /></div>
-                    <div><label className="text-xs text-slate-500">Máx. por persona</label><input type="number" value={form.maxPerUser} onChange={(e) => set("maxPerUser", e.target.value)} placeholder="sin límite" className={inpS} /></div>
-                    <div className="col-span-2 sm:col-span-3"><label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label><input type="datetime-local" value={form.closesAt} onChange={(e) => set("closesAt", e.target.value)} className={inpS} /></div>
-                  </div>
+                  {!locked && (
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" value={form.prizeUsd} onChange={(e) => set("prizeUsd", e.target.value)} className={inpS} /></div>
+                      <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" value={form.ticketPrice} onChange={(e) => set("ticketPrice", e.target.value)} className={inpS} /></div>
+                      <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" value={form.winnersCount} onChange={(e) => set("winnersCount", e.target.value)} className={inpS} /></div>
+                      <div><label className="text-xs text-slate-500">Total tickets</label><input type="number" value={form.totalTickets} onChange={(e) => set("totalTickets", e.target.value)} className={inpS} /></div>
+                      <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" value={form.minTickets} onChange={(e) => set("minTickets", e.target.value)} className={inpS} /></div>
+                      <div><label className="text-xs text-slate-500">Máx. por persona</label><input type="number" value={form.maxPerUser} onChange={(e) => set("maxPerUser", e.target.value)} placeholder="sin límite" className={inpS} /></div>
+                      <div className="col-span-2 sm:col-span-3"><label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label><input type="datetime-local" value={form.closesAt} onChange={(e) => set("closesAt", e.target.value)} className={inpS} /></div>
+                    </div>
+                  )}
                   <button onClick={saveEdit} disabled={saving} className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{saving ? "Guardando…" : "Guardar cambios"}</button>
                 </div>
               )}
