@@ -301,11 +301,23 @@ function Users({ users, onToggle }: { users: any[] | null; onToggle: (id: string
 function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<any>(null);
-  const [closesAt, setClosesAt] = useState("");
-  const [savingDate, setSavingDate] = useState(false);
-  const [imgUrl, setImgUrl] = useState(r.images?.[0] ?? "");
+  const [saving, setSaving] = useState(false);
   const [blockReason, setBlockReason] = useState(r.blockReason ?? "");
   const [blocking, setBlocking] = useState(false);
+  const [images, setImages] = useState<string[]>(Array.isArray(r.images) ? r.images : []);
+  const [form, setForm] = useState({
+    title: r.title ?? "",
+    description: r.description ?? "",
+    prizeUsd: (r.prizeValue ?? 0) / 100,
+    ticketPrice: r.ticketPrice ?? 0,
+    totalTickets: r.totalTickets ?? 1,
+    minTickets: r.minTickets ?? 1,
+    maxPerUser: r.maxTicketsPerUser ?? "",
+    winnersCount: r.winnersCount ?? 1,
+    closesAt: toLocalInput(r.closesAt),
+  });
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const inpS = "mt-0.5 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm";
   const locked = r.status === "DRAWN" || r.status === "CANCELLED";
   const blockHistory: any[] = Array.isArray(r.blockHistory) ? r.blockHistory : [];
 
@@ -321,28 +333,34 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
     if (res.ok) onChanged();
   }
 
-  async function saveImage(url: string) {
-    setImgUrl(url);
-    if (!url) return;
-    const res = await adminFetch(`/admin/raffles/${r.id}`, { method: "PATCH", body: JSON.stringify({ images: [url] }) });
-    setMsg(res.ok ? "Imagen actualizada" : `Error: ${res.data?.error ?? "no se pudo"}`);
-    if (res.ok) onChanged();
-  }
-
   async function toggle() {
     const next = !open;
     setOpen(next);
     if (next && !detail) {
       const d = await adminFetch(`/admin/raffles/${r.id}/detail`);
-      if (d.ok) { setDetail(d.data); setClosesAt(toLocalInput(d.data.raffle.closesAt)); }
+      if (d.ok) setDetail(d.data);
     }
   }
-  async function saveDate() {
-    setSavingDate(true);
-    const iso = closesAt ? new Date(closesAt).toISOString() : null;
-    const res = await adminFetch(`/admin/raffles/${r.id}`, { method: "PATCH", body: JSON.stringify({ closesAt: iso }) });
-    setSavingDate(false);
-    setMsg(res.ok ? "Fecha del sorteo actualizada" : `Error: ${res.data?.error ?? "no se pudo"}`);
+
+  async function saveEdit() {
+    if (!form.title.trim()) { setMsg("El título no puede estar vacío."); return; }
+    if (images.length === 0) { setMsg("El sorteo necesita al menos una foto."); return; }
+    setSaving(true);
+    const body: any = {
+      title: form.title.trim(),
+      description: form.description,
+      images,
+      prizeValue: Math.round(Number(form.prizeUsd) * 100),
+      ticketPrice: Number(form.ticketPrice),
+      totalTickets: Number(form.totalTickets),
+      minTickets: Number(form.minTickets),
+      winnersCount: Number(form.winnersCount),
+      closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
+    };
+    if (form.maxPerUser !== "" && Number(form.maxPerUser) > 0) body.maxTicketsPerUser = Number(form.maxPerUser);
+    const res = await adminFetch(`/admin/raffles/${r.id}`, { method: "PATCH", body: JSON.stringify(body) });
+    setSaving(false);
+    setMsg(res.ok ? "Sorteo actualizado" : `Error: ${res.data?.error ?? "no se pudo"}`);
     if (res.ok) onChanged();
   }
 
@@ -371,17 +389,43 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
           {!detail ? <p className="text-sm text-slate-400">Cargando…</p> : (
             <>
               {!locked && (
-                <div className="mb-4 space-y-3 rounded-lg bg-slate-50 p-3">
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label>
-                      <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <div className="mb-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Editar sorteo</div>
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-500">Título</label>
+                    <input value={form.title} onChange={(e) => set("title", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-500">Descripción</label>
+                    <textarea rows={4} value={form.description} onChange={(e) => set("description", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-500">Fotos</label>
+                    <div className="flex flex-wrap items-start gap-2">
+                      {images.map((img, i) => (
+                        <div key={i} className="relative">
+                          <img src={img} className="h-16 w-24 rounded-lg border border-slate-200 object-cover" alt="" />
+                          <button type="button" onClick={() => setImages(images.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow" title="Quitar">
+                            <Icon name="x" className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="w-24">
+                        <ImageUpload value="" onChange={(url) => url && setImages((im) => [...im, url])} endpoint="/admin/upload" hint="" />
+                      </div>
                     </div>
-                    <button onClick={saveDate} disabled={savingDate} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{savingDate ? "Guardando…" : "Guardar fecha"}</button>
+                    <p className="mt-1 text-xs text-slate-400">La primera foto es la principal. JPG/PNG/WEBP, máx 6 MB.</p>
                   </div>
-                  <div className="max-w-xs">
-                    <ImageUpload label="Imagen del sorteo (se guarda al subir)" value={imgUrl} onChange={saveImage} endpoint="/admin/upload" />
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" value={form.prizeUsd} onChange={(e) => set("prizeUsd", e.target.value)} className={inpS} /></div>
+                    <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" value={form.ticketPrice} onChange={(e) => set("ticketPrice", e.target.value)} className={inpS} /></div>
+                    <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" value={form.winnersCount} onChange={(e) => set("winnersCount", e.target.value)} className={inpS} /></div>
+                    <div><label className="text-xs text-slate-500">Total tickets</label><input type="number" value={form.totalTickets} onChange={(e) => set("totalTickets", e.target.value)} className={inpS} /></div>
+                    <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" value={form.minTickets} onChange={(e) => set("minTickets", e.target.value)} className={inpS} /></div>
+                    <div><label className="text-xs text-slate-500">Máx. por persona</label><input type="number" value={form.maxPerUser} onChange={(e) => set("maxPerUser", e.target.value)} placeholder="sin límite" className={inpS} /></div>
+                    <div className="col-span-2 sm:col-span-3"><label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label><input type="datetime-local" value={form.closesAt} onChange={(e) => set("closesAt", e.target.value)} className={inpS} /></div>
                   </div>
+                  <button onClick={saveEdit} disabled={saving} className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{saving ? "Guardando…" : "Guardar cambios"}</button>
                 </div>
               )}
 
