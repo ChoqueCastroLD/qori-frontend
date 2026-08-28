@@ -2,6 +2,8 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../components/Icon.astro";
 import BuyWidget from "../../components/BuyWidget.tsx";
+import DrawCountdown from "../../components/DrawCountdown.tsx";
+import LiveRedirect from "../../components/LiveRedirect.tsx";
 import { ssrGet, type Raffle } from "../../lib/api";
 import { lingotes, usd, pct, timeLeft, GAME_LABEL } from "../../lib/format";
 
@@ -20,6 +22,8 @@ if (!r) return Astro.redirect("/sorteos");
 const sold = r.ticketsSold ?? 0;
 const isDrawn = r.status === "DRAWN";
 const isOpen = r.status === "OPEN";
+// The live show is still playing (route people into it instead of spoiling).
+const showLive = !!(r.show && new Date(r.show.endsAt).getTime() > Date.now());
 
 // Country flags served from /public/flags (real SVGs, not emoji).
 const ZONES = [
@@ -171,6 +175,8 @@ const partTotal = partData.totalTickets ?? 0;
             <p class="mt-2 text-sm text-amber-700">Este sorteo está temporalmente desactivado{r.blockReason ? `: ${r.blockReason}` : "."}</p>
             <p class="mt-2 text-xs text-amber-600">Vuelve pronto, se reactivará en cuanto esté listo.</p>
           </div>
+        ) : (isDrawn && showLive) ? (
+          <LiveRedirect client:load slug={r.slug} endsAt={r.show!.endsAt} />
         ) : isDrawn ? (
           <div class="rounded-2xl border border-slate-200 bg-white p-6">
             <h3 class="flex items-center gap-2 text-lg font-bold text-slate-900"><Icon name="trophy" class="h-5 w-5 text-amber-500" /> Ganadores</h3>
@@ -191,6 +197,7 @@ const partTotal = partData.totalTickets ?? 0;
           </div>
         ) : (
           <div class="space-y-4">
+            {r.closesAt && <DrawCountdown client:load closesAt={r.closesAt} slug={r.slug} />}
             <div class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-1.5 flex justify-between text-sm text-slate-500">
                 <span id="rf-sold" data-sold={sold} data-total={r.totalTickets} data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} tickets</span>
@@ -199,8 +206,8 @@ const partTotal = partData.totalTickets ?? 0;
               <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div id="rf-fill" class="h-full rounded-full bg-emerald-500 transition-all" data-live-fill={r.slug} data-live-total={r.totalTickets} style={`width:${pct(sold, r.totalTickets)}%`}></div>
               </div>
-              <p class="mt-2 text-xs text-slate-400">Mínimo {r.minTickets} tickets para sortear. Si no se alcanza, se reembolsa.</p>
-              {(r.extensionCount ?? 0) > 0 && (
+              <p class="mt-2 text-xs text-slate-400">{r.minTickets > 0 ? `Mínimo ${r.minTickets} tickets para sortear. Si no se alcanza, se reembolsa.` : "Se sortea en la fecha programada, sin mínimo de tickets."}</p>
+              {(r.extensionCount ?? 0) > 0 && r.minTickets > 0 && sold < r.minTickets && (
                 <p class="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                   <Icon name="refresh" class="mt-0.5 h-4 w-4" />
                   <span>Postergado {r.extensionCount} vez{(r.extensionCount ?? 0) > 1 ? "ces" : ""} +24h para alcanzar el mínimo de tickets. Nueva fecha: <strong>{r.closesAt ? new Date(r.closesAt).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</strong>.</span>

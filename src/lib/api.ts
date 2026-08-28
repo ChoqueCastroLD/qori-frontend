@@ -58,6 +58,7 @@ export interface Raffle {
   extensions?: { at: string; ticketCount: number; minTickets: number; from: string | null; to: string }[];
   blocked?: boolean;
   blockReason?: string | null;
+  show?: { startsAt: string; endsAt: string } | null;
   ticketsSold?: number;
   fairness: {
     commitment: string;
