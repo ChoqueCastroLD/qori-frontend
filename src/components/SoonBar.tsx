@@ -22,8 +22,15 @@ export default function SoonBar() {
     };
     refetch();
     const tick = setInterval(() => setNow(Date.now()), 1000);
-    const rf = setInterval(refetch, 20000);
-    return () => { stop = true; clearInterval(tick); clearInterval(rf); };
+    const rf = setInterval(refetch, 15000);
+    const onVis = () => { if (!document.hidden) refetch(); };
+    document.addEventListener("visibilitychange", onVis);
+    document.addEventListener("astro:page-load", refetch);
+    return () => {
+      stop = true; clearInterval(tick); clearInterval(rf);
+      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("astro:page-load", refetch);
+    };
   }, []);
 
   if (!raffle) return null;

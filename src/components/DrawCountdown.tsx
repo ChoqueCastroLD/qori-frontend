@@ -50,7 +50,7 @@ export default function DrawCountdown({ closesAt, slug }: { closesAt: string; sl
           window.location.reload(); return;
         }
       } catch {}
-      if (!stop) setTimeout(poll, 2000);
+      if (!stop) setTimeout(poll, 1000);
     };
     poll();
     return () => { stop = true; };
@@ -105,7 +105,7 @@ export default function DrawCountdown({ closesAt, slug }: { closesAt: string; sl
         {d > 0 && <FlipBox value={d} label="días" />}
         <FlipBox value={h} label="hs" />
         <FlipBox value={m} label="min" />
-        {d === 0 && <FlipBox value={s} label="seg" />}
+        <FlipBox value={s} label="seg" />
       </div>
       <div className="mt-2 text-xs text-slate-400">
         {new Date(closesAt).toLocaleString("es-PE", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}

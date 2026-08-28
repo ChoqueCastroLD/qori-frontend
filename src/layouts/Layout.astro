@@ -67,7 +67,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
     <ClientRouter />
   </head>
   <body class="flex min-h-full flex-col bg-white pb-16 text-slate-900 antialiased md:pb-0">
-    <SoonBar client:idle transition:persist />
+    <SoonBar client:load transition:persist />
     <header class="sticky top-0 z-40 border-b border-slate-100 bg-white/90 backdrop-blur">
       <nav class="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-5 sm:py-3.5">
         <a href="/" class="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
@@ -169,7 +169,18 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
         const proto = location.protocol === "https:" ? "wss:" : "ws:";
         const ws = new WebSocket(`${proto}//${location.host}/api/live`);
         w.__qoriWS = ws;
-        ws.onmessage = (e) => { try { qoriApplyLive(JSON.parse(e.data)); } catch {} };
+        ws.onmessage = (e) => {
+          try {
+            const d = JSON.parse(e.data);
+            if (d.draw && d.slug) {
+              // The raffle just drew: if we're on its page, enter the live show now.
+              const p = location.pathname.replace(/\/$/, "");
+              if (p === `/sorteos/${d.slug}`) window.location.href = `/sorteos/${d.slug}/show`;
+              return;
+            }
+            qoriApplyLive(d);
+          } catch {}
+        };
         ws.onclose = () => { setTimeout(qoriLiveConnect, 3000); }; // auto-reconnect
       }
       document.addEventListener("astro:page-load", qoriLiveConnect);
