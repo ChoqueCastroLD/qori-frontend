@@ -7,6 +7,8 @@ import BombsGame from "./show/BombsGame";
 import SquidGame from "./show/SquidGame";
 import HorseRaceGame from "./show/HorseRaceGame";
 import DigitRevealGame from "./show/DigitRevealGame";
+import IceFloorGame from "./show/IceFloorGame";
+import MusicalChairsGame from "./show/MusicalChairsGame";
 import FinalScreen from "./show/FinalScreen";
 import { ConfettiCanvas } from "./show/Particles";
 import { hashSeed, type GameProps, type Participant } from "./show/shared";
@@ -18,6 +20,8 @@ const GAME_META: Record<string, { label: string; icon: string; color: string }> 
   BOMBS: { label: "Bombas", icon: "fire", color: "bg-orange-600" },
   SQUID: { label: "Luz roja, luz verde", icon: "stop", color: "bg-rose-600" },
   HORSE_RACE: { label: "Carrera", icon: "flag", color: "bg-amber-600" },
+  ICE_FLOOR: { label: "El piso es hielo", icon: "snow", color: "bg-cyan-600" },
+  MUSICAL_CHAIRS: { label: "Las sillas", icon: "music", color: "bg-violet-600" },
 };
 
 const GAME_COMPONENTS: Record<string, ComponentType<GameProps>> = {
@@ -26,12 +30,17 @@ const GAME_COMPONENTS: Record<string, ComponentType<GameProps>> = {
   SQUID: SquidGame,
   HORSE_RACE: HorseRaceGame,
   DIGIT_REVEAL: DigitRevealGame,
+  ICE_FLOOR: IceFloorGame,
+  MUSICAL_CHAIRS: MusicalChairsGame,
 };
 
 // Fixed deterministic timeline -> every client renders the same frame from the
 // shared startsAt clock (synchronized live show, no WebSocket needed).
-const STEP_MS = 450;
-const GAP_MS = 1400;
+// Each step is one elimination: ~2/3 build-up (target telegraphed, tension
+// audio) then the hit. If you change these, update the endsAt formula in
+// qori-api/src/index.ts (GET /raffles/:slug) to the SAME numbers.
+const STEP_MS = 1050;
+const GAP_MS = 2200;
 
 export default function ShowPlayer({ slug }: { slug: string }) {
   const [data, setData] = useState<any>(null);
@@ -139,11 +148,11 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   useEffect(() => {
     if (liveMode || !playing || !stage) return;
     if (!stageDone) {
-      tick.current = setTimeout(() => setStep((s) => s + 1), 360 / speed);
+      tick.current = setTimeout(() => setStep((s) => s + 1), STEP_MS / speed);
       return () => clearTimeout(tick.current);
     }
     if (stageIdx < stages.length - 1) {
-      tick.current = setTimeout(() => { setStageIdx((i) => i + 1); setStep(0); }, 1100 / speed);
+      tick.current = setTimeout(() => { setStageIdx((i) => i + 1); setStep(0); }, GAP_MS / speed);
       return () => clearTimeout(tick.current);
     }
     setPlaying(false);
@@ -158,12 +167,14 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     // Entering a stage: a tension riser for the finale, a whoosh otherwise.
     if (p.s !== stageIdx) { if (p.s !== -1 && step === 0) { stage.isFinale ? audio.riser(1.2) : audio.whoosh(); } return; }
     if (step <= p.st || step - p.st > 3) return; // backwards or a big jump: silent
+    const hasNext = step < stageElim.length; // someone else is about to fall
     switch (stage.game) {
-      case "ELIMINATION": audio.zap(); break;
+      case "ELIMINATION": audio.zap(); if (hasNext) audio.tension(0.35, 0.55); break;
       case "BOMBS": {
         const phases: number[][] = stage.data?.phases ?? [];
         let acc = 0; const ends = phases.map((ph) => (acc += ph.length));
         audio.boom(ends.includes(step));
+        if (hasNext) audio.fuse(); // ticking while the next bomb hops
         break;
       }
       case "SQUID": {
@@ -171,15 +182,38 @@ export default function ShowPlayer({ slug }: { slug: string }) {
         let a = 0;
         for (const r of rounds) { if (r.eliminated.length && step - 1 === a) { audio.alarm(); break; } a += r.eliminated.length; }
         audio.thud();
+        if (hasNext) audio.tension(0.4, 0.5);
         break;
       }
-      case "HORSE_RACE": audio.gallop(); if (step === stageElim.length) audio.whoosh(); break;
+      case "HORSE_RACE": {
+        audio.gallop(); audio.gallop(0.32); audio.gallop(0.64); // hooves fill the longer step
+        if (step === stageElim.length) audio.whoosh();
+        else audio.tension(0.45, 0.5);
+        break;
+      }
+      case "ICE_FLOOR": {
+        audio.iceShatter();
+        if (hasNext) { audio.crack(false, 0.4); audio.crack(true, 0.75); } // next tile groans
+        break;
+      }
+      case "MUSICAL_CHAIRS": {
+        const rounds: number[][] = stage.data?.rounds ?? [stageElim];
+        const starts: number[] = []; let acc2 = 0;
+        for (const r of rounds) { starts.push(acc2); acc2 += r.length; }
+        if (starts.includes(step - 1)) audio.musicStop(); // the round's first victim: silence hits
+        audio.thud();
+        // next elimination opens a new round -> the tune circles again
+        if (hasNext && starts.includes(step)) audio.melody(step);
+        else if (hasNext) audio.tension(0.4, 0.5);
+        break;
+      }
       case "DIGIT_REVEAL": {
         const n = stage.data?.revealOrder?.length ?? 0;
         const total = Math.max(1, stageElim.length);
         const revNow = step >= total ? n : Math.floor((step * n) / total);
         const revPrev = p.st >= total ? n : Math.floor((p.st * n) / total);
         if (revNow > revPrev) audio.ding(); else audio.tick();
+        if (step < total) audio.tension(0.45, 0.5);
         break;
       }
       default: audio.blip();

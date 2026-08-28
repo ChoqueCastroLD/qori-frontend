@@ -28,3 +28,10 @@
   100% { transform: translateY(-90.909%); }
 }
 .qori-slotspin { animation: qori-slotspin 0.6s linear infinite; will-change: transform; }
+
+/* Show: HORSE_RACE danger-lane pulse while the next victim is telegraphed. */
+@keyframes qori-lanedanger {
+  0%, 100% { background-color: rgba(244, 63, 94, 0.06); }
+  50% { background-color: rgba(244, 63, 94, 0.2); }
+}
+.qori-lanedanger { animation: qori-lanedanger 0.5s ease-in-out infinite; }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Avatar, OutTray, cellFor, gridLayout, hashSeed, rng, useNewSteps, useWidth, type GameProps } from "./shared";
+import { Avatar, OutTray, TargetRing, arenaMaxH, fitCellFor, gridLayout, hashSeed, rng, useNewSteps, useViewportH, useWidth, type GameProps } from "./shared";
 import { ParticleCanvas, type Burst } from "./Particles";
 import Icon from "../Icon";
 
@@ -18,15 +18,17 @@ export default function EliminationGame({ participants, stage, stageIdx, step, e
     [aliveBefore, stageElimSet, participants],
   );
 
-  const cell = cellFor(aliveBefore.length);
+  const vh = useViewportH();
+  const maxH = arenaMaxH(vh) - 60; // header strip + padding
   const W = Math.max(width, 280);
-  const layout = useMemo(() => gridLayout(alive.length, W - 32, cell, 10), [alive.length, W, cell]);
+  const { cell, gap } = useMemo(() => fitCellFor(aliveBefore.length, W - 32, maxH), [aliveBefore.length, W, maxH]);
+  const layout = useMemo(() => gridLayout(alive.length, W - 32, cell, gap), [alive.length, W, cell, gap]);
 
   // Position a victim had just before their step (pure function of data+step).
   const posBefore = (k: number) => {
     const prevSet = new Set(stageElim.slice(0, k - 1));
     const list = aliveBefore.filter((i) => !prevSet.has(i)).sort((a, b) => participants[b].number - participants[a].number);
-    const l = gridLayout(list.length, W - 32, cell, 10);
+    const l = gridLayout(list.length, W - 32, cell, gap);
     const idx = list.indexOf(stageElim[k - 1]);
     const p = l.pos(Math.max(0, idx));
     return { x: p.x + 16 + cell / 2, y: p.y + 24 + cell / 2 };
@@ -63,6 +65,7 @@ export default function EliminationGame({ participants, stage, stageIdx, step, e
         <div className="absolute left-1/2 top-1.5 -translate-x-1/2 text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/60">Arena</div>
         {width > 0 && alive.map((i, idx) => {
           const p = layout.pos(idx);
+          const targeted = step < stageElim.length && stageElim[step] === i; // next to fall: telegraphed
           return (
             <motion.div
               key={i}
@@ -70,9 +73,16 @@ export default function EliminationGame({ participants, stage, stageIdx, step, e
               animate={{ x: p.x + 16, y: p.y + 24, scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.7 }}
               className="absolute left-0 top-0"
-              style={{ width: cell }}
+              style={{ width: cell, zIndex: targeted ? 15 : undefined }}
             >
-              <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
+              <motion.div
+                animate={targeted ? { x: [0, -1.5, 1.5, -1, 1, 0] } : { x: 0 }}
+                transition={targeted ? { repeat: Infinity, duration: 0.28 } : { duration: 0.1 }}
+                className="relative"
+              >
+                {targeted && <TargetRing />}
+                <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
+              </motion.div>
             </motion.div>
           );
         })}

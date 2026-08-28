@@ -61,6 +61,24 @@ export function useWidth<T extends HTMLElement>(): [RefObject<T | null>, number]
   return [ref, w];
 }
 
+// Viewport height (layout input, not randomness) — lets arenas cap their own
+// height so no game ever forces the page to scroll to be watched.
+export function useViewportH(): number {
+  const [h, setH] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 800));
+  useEffect(() => {
+    const on = () => setH(window.innerHeight);
+    window.addEventListener("resize", on);
+    on();
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return h;
+}
+
+// Max arena height: fits under the sticky header inside the viewport.
+export function arenaMaxH(viewportH: number): number {
+  return Math.max(240, Math.round(viewportH * 0.62));
+}
+
 // Centered row-major grid: returns absolute positions for n items.
 export function gridLayout(n: number, width: number, cell: number, gap = 10) {
   const cols = Math.max(1, Math.floor((width + gap) / (cell + gap)));
@@ -77,6 +95,34 @@ export function gridLayout(n: number, width: number, cell: number, gap = 10) {
 
 export function cellFor(n: number): number {
   return n > 220 ? 34 : n > 120 ? 40 : n > 60 ? 46 : 54;
+}
+
+// Pick the biggest cell size whose grid of n items fits within maxH (given the
+// available width). Pure layout math — guarantees no page scroll for any count.
+export function fitCellFor(n: number, width: number, maxH: number): { cell: number; gap: number } {
+  const w = Math.max(200, width);
+  for (let cell = cellFor(n); cell >= 22; cell -= 2) {
+    const gap = cell >= 44 ? 10 : cell >= 34 ? 8 : 6;
+    const cols = Math.max(1, Math.floor((w + gap) / (cell + gap)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    if (rows * (cell + gap + 16) - gap <= maxH) return { cell, gap };
+  }
+  return { cell: 22, gap: 5 };
+}
+
+// Telegraph overlay: pulsing red target ring + crosshair over the NEXT victim.
+// Rendered whenever `step` says someone is about to fall — pure fn of step, and
+// the CSS pulse only animates presentation (no randomness, no clock state).
+export function TargetRing() {
+  return (
+    <div className="pointer-events-none absolute -inset-1.5 z-20" aria-hidden="true">
+      <div className="absolute inset-0 animate-ping rounded-full border-2 border-rose-500/80" />
+      <div className="absolute inset-0 rounded-full border-2 border-rose-400 shadow-[0_0_14px_3px_rgba(244,63,94,0.55)]" />
+      <svg viewBox="0 0 40 40" className="absolute inset-0 h-full w-full text-rose-300">
+        <path d="M20 1v6M20 33v6M1 20h6M33 20h6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
 }
 
 // Avatar bubble with mine/winner rings + hover card (buyer, comment, date).

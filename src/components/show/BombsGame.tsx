@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
 import { motion, useAnimationControls } from "framer-motion";
-import { Avatar, OutTray, cellFor, gridLayout, hashSeed, useNewSteps, useWidth, type GameProps } from "./shared";
+import { Avatar, OutTray, TargetRing, arenaMaxH, fitCellFor, gridLayout, hashSeed, rng, useNewSteps, useViewportH, useWidth, type GameProps } from "./shared";
 import { ParticleCanvas, type Burst } from "./Particles";
 
-// BOMBS: a bomb drops on each victim and detonates — fire, smoke, debris and
-// a shockwave ring. Completing a phase (data.phases group) triggers a bigger
-// blast plus a screen shake of the whole minefield.
+// BOMBS: before each hit, a lit bomb HOPS between ~3 seeded positions over the
+// crowd with a ticking fuse and a 3-2-1 countdown, then lands ON the victim
+// and detonates — fire, smoke, debris and a shockwave ring. Completing a phase
+// (data.phases group) triggers a bigger blast plus a screen shake.
 export default function BombsGame({ participants, stage, stageIdx, step, elimSeq, myIndices, winnerSet, isFinaleDone }: GameProps) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [bursts, setBursts] = useState<Burst[]>([]);
   const shakeCtl = useAnimationControls();
+  const vh = useViewportH();
 
   const aliveBefore: number[] = stage.aliveBefore ?? [];
   const stageElim: number[] = stage.eliminated ?? [];
@@ -26,14 +28,21 @@ export default function BombsGame({ participants, stage, stageIdx, step, elimSeq
     [aliveBefore, stageElimSet, participants],
   );
 
-  const cell = cellFor(aliveBefore.length);
+  const maxH = arenaMaxH(vh) - 70; // header strip + padding
   const W = Math.max(width, 280);
-  const layout = useMemo(() => gridLayout(alive.length, W - 32, cell, 10), [alive.length, W, cell]);
+  const { cell, gap } = useMemo(() => fitCellFor(aliveBefore.length, W - 32, maxH), [aliveBefore.length, W, maxH]);
+  const layout = useMemo(() => gridLayout(alive.length, W - 32, cell, gap), [alive.length, W, cell, gap]);
+
+  // Center of a slot in the CURRENT layout (offset matches the avatar grid).
+  const centerOf = (idx: number) => {
+    const p = layout.pos(Math.max(0, idx));
+    return { x: p.x + 16 + cell / 2, y: p.y + 30 + cell / 2 };
+  };
 
   const posBefore = (k: number) => {
     const prevSet = new Set(stageElim.slice(0, k - 1));
     const list = aliveBefore.filter((i) => !prevSet.has(i)).sort((a, b) => participants[b].number - participants[a].number);
-    const l = gridLayout(list.length, W - 32, cell, 10);
+    const l = gridLayout(list.length, W - 32, cell, gap);
     const idx = list.indexOf(stageElim[k - 1]);
     const p = l.pos(Math.max(0, idx));
     return { x: p.x + 16 + cell / 2, y: p.y + 30 + cell / 2 };
@@ -56,7 +65,26 @@ export default function BombsGame({ participants, stage, stageIdx, step, elimSeq
     );
   });
 
-  // Last victim: bomb-drop + shockwave + charred fall (all seed/step driven).
+  // The NEXT victim's bomb: hop path over 2 seeded decoy positions, landing on
+  // the target. Pure function of (stageIdx, step, victim) — live/replay match.
+  const hop = useMemo(() => {
+    if (step >= stageElim.length || !width || !alive.length) return null;
+    const victim = stageElim[step];
+    const tIdx = alive.indexOf(victim);
+    if (tIdx < 0) return null;
+    const r = rng(stageIdx, step, victim, 41);
+    const pick = () => {
+      let j = Math.floor(r() * alive.length);
+      if (j === tIdx) j = (j + 1) % alive.length;
+      return centerOf(j);
+    };
+    const d1 = pick();
+    const d2 = pick();
+    const t = centerOf(tIdx);
+    return { victim, d1, d2, t };
+  }, [step, stageIdx, stageElim, alive, width, W, cell, gap]);
+
+  // Victim just hit: shockwave + charred fall (the explosion FX is the canvas burst).
   const recent = useMemo(() => {
     const out: { i: number; k: number; at: { x: number; y: number } }[] = [];
     for (let k = Math.max(1, step - 1); k <= step; k++) {
@@ -65,7 +93,7 @@ export default function BombsGame({ participants, stage, stageIdx, step, elimSeq
       out.push({ i, k, at: posBefore(k) });
     }
     return out;
-  }, [step, stageIdx, stageElim, width, W, cell]);
+  }, [step, stageIdx, stageElim, width, W, cell, gap]);
 
   const phaseIdx = phaseEnds.findIndex((e) => step < e);
   const currentPhase = phaseIdx === -1 ? phases.length : phaseIdx + 1;
@@ -80,6 +108,7 @@ export default function BombsGame({ participants, stage, stageIdx, step, elimSeq
           </div>
           {width > 0 && alive.map((i, idx) => {
             const p = layout.pos(idx);
+            const targeted = hop?.victim === i;
             return (
               <motion.div
                 key={i}
@@ -87,27 +116,52 @@ export default function BombsGame({ participants, stage, stageIdx, step, elimSeq
                 animate={{ x: p.x + 16, y: p.y + 30 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.7 }}
                 className="absolute left-0 top-0"
-                style={{ width: cell }}
+                style={{ width: cell, zIndex: targeted ? 15 : undefined }}
               >
-                <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
+                <div className="relative">
+                  {targeted && <TargetRing />}
+                  <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
+                </div>
               </motion.div>
             );
           })}
+          {/* Hopping bomb: where will it land? Ends on the telegraphed victim. */}
+          {hop && (
+            <motion.div
+              key={`hop${stageIdx}-${step}`}
+              initial={{ x: hop.d1.x, y: hop.d1.y - 180, opacity: 0, scale: 0.7 }}
+              animate={{
+                x: [hop.d1.x, (hop.d1.x + hop.d2.x) / 2, hop.d2.x, (hop.d2.x + hop.t.x) / 2, hop.t.x],
+                y: [hop.d1.y, Math.min(hop.d1.y, hop.d2.y) - 52, hop.d2.y, Math.min(hop.d2.y, hop.t.y) - 52, hop.t.y],
+                opacity: 1,
+                scale: [1, 1.08, 1, 1.12, 1.05],
+              }}
+              transition={{ duration: 0.92, times: [0, 0.28, 0.5, 0.78, 1], ease: "easeInOut" }}
+              className="pointer-events-none absolute left-0 top-0 z-30"
+            >
+              <div className="relative -translate-x-1/2 -translate-y-[80%]">
+                {/* countdown over the fuse: 3 -> 2 -> 1 as it hops */}
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2 font-mono text-sm font-black">
+                  <motion.span className="absolute -translate-x-1/2 text-amber-300" animate={{ opacity: [1, 1, 0, 0, 0] }} transition={{ duration: 0.92, times: [0, 0.3, 0.34, 0.9, 1] }}>3</motion.span>
+                  <motion.span className="absolute -translate-x-1/2 text-orange-400" animate={{ opacity: [0, 0, 1, 1, 0] }} transition={{ duration: 0.92, times: [0, 0.34, 0.4, 0.72, 0.78] }}>2</motion.span>
+                  <motion.span className="absolute -translate-x-1/2 text-rose-400" animate={{ opacity: [0, 0, 0, 1, 1] }} transition={{ duration: 0.92, times: [0, 0.7, 0.76, 0.82, 1] }}>1</motion.span>
+                </div>
+                <svg viewBox="0 0 24 24" className="h-7 w-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]">
+                  <circle cx="12" cy="14" r="7" fill="#1c1917" stroke="#57534e" strokeWidth="1" />
+                  <circle cx="9.5" cy="11.5" r="1.6" fill="#44403c" />
+                  <path d="M12 7V4c0-1.5 2-2 3-1" stroke="#a8a29e" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+                  <motion.circle cx="15.4" cy="2.6" r="1.6" fill="#fbbf24" animate={{ opacity: [1, 0.3, 1], scale: [1, 1.35, 1] }} transition={{ repeat: Infinity, duration: 0.22 }} style={{ transformOrigin: "15.4px 2.6px" }} />
+                </svg>
+              </div>
+            </motion.div>
+          )}
           {recent.map((rct) => (
             <div key={`bomb${rct.k}`} className="pointer-events-none absolute left-0 top-0 z-10" style={{ transform: `translate(${rct.at.x}px, ${rct.at.y}px)` }}>
-              {/* falling bomb */}
-              <motion.div initial={{ y: -260, opacity: 1 }} animate={{ y: -cell / 2, opacity: [1, 1, 0] }} transition={{ duration: 0.3, times: [0, 0.85, 1], ease: "easeIn" }} className="absolute -translate-x-1/2">
-                <svg viewBox="0 0 24 24" className="h-6 w-6">
-                  <circle cx="12" cy="14" r="7" fill="#1c1917" stroke="#57534e" strokeWidth="1" />
-                  <path d="M12 7V4c0-1.5 2-2 3-1" stroke="#a8a29e" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-                  <circle cx="15.4" cy="2.6" r="1.4" fill="#fbbf24" />
-                </svg>
-              </motion.div>
               {/* shockwave ring */}
               <motion.div
                 initial={{ scale: 0.2, opacity: 0.9 }}
                 animate={{ scale: 3.2, opacity: 0 }}
-                transition={{ duration: 0.55, delay: 0.24, ease: "easeOut" }}
+                transition={{ duration: 0.55, ease: "easeOut" }}
                 className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-orange-300/80"
                 style={{ width: cell * 1.4, height: cell * 1.4, boxShadow: "0 0 30px 6px rgba(251,146,60,0.5)" }}
               />
@@ -115,7 +169,7 @@ export default function BombsGame({ participants, stage, stageIdx, step, elimSeq
               <motion.div
                 initial={{ x: -cell / 2, y: -cell / 2, opacity: 1, scale: 1 }}
                 animate={{ y: cell, opacity: 0, scale: 0.6, rotate: 20 }}
-                transition={{ duration: 0.7, delay: 0.26, ease: "easeIn" }}
+                transition={{ duration: 0.7, delay: 0.05, ease: "easeIn" }}
                 className="absolute brightness-[0.4]"
                 style={{ width: cell }}
               >

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Avatar, OutTray, cellFor, gridLayout, hashSeed, rng, useNewSteps, useWidth, type GameProps } from "./shared";
+import { Avatar, OutTray, TargetRing, arenaMaxH, fitCellFor, gridLayout, hashSeed, rng, useNewSteps, useViewportH, useWidth, type GameProps } from "./shared";
 import { ParticleCanvas, type Burst } from "./Particles";
 
 // REVELADO DE DIGITOS: a giant split-flap odometer. Unrevealed digit slots
@@ -27,14 +27,16 @@ export default function DigitRevealGame({ participants, stage, stageIdx, step, e
     [aliveBefore, stageElimSet, participants],
   );
 
-  const cell = cellFor(aliveBefore.length);
+  const vh = useViewportH();
+  const maxH = Math.max(120, arenaMaxH(vh) - 150); // digits board takes the top
   const W = Math.max(width, 280);
-  const layout = useMemo(() => gridLayout(alive.length, W - 32, cell, 10), [alive.length, W, cell]);
+  const { cell, gap } = useMemo(() => fitCellFor(aliveBefore.length, W - 32, maxH), [aliveBefore.length, W, maxH]);
+  const layout = useMemo(() => gridLayout(alive.length, W - 32, cell, gap), [alive.length, W, cell, gap]);
 
   const posBefore = (k: number) => {
     const prevSet = new Set(stageElim.slice(0, k - 1));
     const list = aliveBefore.filter((i) => !prevSet.has(i)).sort((a, b) => participants[b].number - participants[a].number);
-    const l = gridLayout(list.length, W - 32, cell, 10);
+    const l = gridLayout(list.length, W - 32, cell, gap);
     const idx = list.indexOf(stageElim[k - 1]);
     const p = l.pos(Math.max(0, idx));
     return { x: p.x + 16 + cell / 2, y: p.y + cell / 2 };
@@ -101,6 +103,7 @@ export default function DigitRevealGame({ participants, stage, stageIdx, step, e
         <div ref={ref} className="relative" style={{ minHeight: Math.max(140, layout.height + 20) }}>
           {width > 0 && alive.map((i, idx) => {
             const p = layout.pos(idx);
+            const targeted = step < stageElim.length && stageElim[step] === i;
             return (
               <motion.div
                 key={i}
@@ -108,9 +111,12 @@ export default function DigitRevealGame({ participants, stage, stageIdx, step, e
                 animate={{ x: p.x + 16, y: p.y }}
                 transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.7 }}
                 className="absolute left-0 top-0"
-                style={{ width: cell }}
+                style={{ width: cell, zIndex: targeted ? 15 : undefined }}
               >
-                <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
+                <div className="relative">
+                  {targeted && <TargetRing />}
+                  <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
+                </div>
               </motion.div>
             );
           })}

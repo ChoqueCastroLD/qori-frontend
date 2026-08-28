@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Avatar, OutTray, cellFor, gridLayout, hashSeed, rng, useNewSteps, useWidth, type GameProps } from "./shared";
+import { Avatar, OutTray, TargetRing, arenaMaxH, fitCellFor, gridLayout, hashSeed, rng, useNewSteps, useViewportH, useWidth, type GameProps } from "./shared";
 import { ParticleCanvas, type Burst } from "./Particles";
 
 // LUZ ROJA, LUZ VERDE: a watching doll + traffic light on top. On green,
@@ -32,11 +32,14 @@ export default function SquidGame({ participants, stage, stageIdx, step, elimSeq
     [aliveBefore, stageElimSet, participants],
   );
 
-  const cell = cellFor(aliveBefore.length);
+  const vh = useViewportH();
+  const maxH = arenaMaxH(vh);
   const W = Math.max(width, 280);
-  const startLayout = useMemo(() => gridLayout(aliveBefore.length, W - 32, cell, 8), [aliveBefore.length, W, cell]);
-  const DEPTH = 150; // how far the crowd advances toward the doll
   const TOP = 108; // doll + light area
+  const avail = Math.max(160, maxH - TOP - 40);
+  const DEPTH = Math.max(60, Math.min(150, Math.round(avail * 0.35))); // advance distance toward the doll
+  const { cell, gap } = useMemo(() => fitCellFor(aliveBefore.length, W - 32, avail - DEPTH), [aliveBefore.length, W, avail, DEPTH]);
+  const startLayout = useMemo(() => gridLayout(aliveBefore.length, W - 32, cell, gap), [aliveBefore.length, W, cell, gap]);
   const fieldH = TOP + DEPTH + startLayout.height + 40;
 
   // Fixed start slot per ticket (by rank in aliveBefore) + seeded speed/jitter.
@@ -107,6 +110,7 @@ export default function SquidGame({ participants, stage, stageIdx, step, elimSeq
         )}
         {width > 0 && alive.map((i) => {
           const p = posOf(i, progress);
+          const targeted = step < stageElim.length && stageElim[step] === i; // the doll has spotted them
           return (
             <motion.div
               key={i}
@@ -114,9 +118,10 @@ export default function SquidGame({ participants, stage, stageIdx, step, elimSeq
               animate={{ x: p.x, y: p.y }}
               transition={{ type: "spring", stiffness: 160, damping: 26, mass: 0.9 }}
               className="absolute left-0 top-0"
-              style={{ width: cell }}
+              style={{ width: cell, zIndex: targeted ? 15 : undefined }}
             >
-              <motion.div animate={redActive ? {} : { y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.7 + ((slotOf.get(i) ?? 0) % 5) * 0.08 }}>
+              <motion.div animate={redActive ? {} : { y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.7 + ((slotOf.get(i) ?? 0) % 5) * 0.08 }} className="relative">
+                {targeted && <TargetRing />}
                 <Avatar p={participants[i]} mine={myIndices.has(i)} winner={isFinaleDone && winnerSet.has(i)} size={cell} dark />
               </motion.div>
             </motion.div>

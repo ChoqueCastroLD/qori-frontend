@@ -85,9 +85,50 @@ export class ShowAudio {
   }
   alarm() { this.tone(620, 620, 0.12, "square", 0.12); this.tone(470, 470, 0.12, "square", 0.12, 0.14); }
   ding() { this.tone(1320, 1320, 0.35, "sine", 0.2); this.tone(1980, 1980, 0.3, "sine", 0.08, 0.01); }
-  gallop() { this.tone(220, 140, 0.05, "triangle", 0.12); this.tone(180, 120, 0.05, "triangle", 0.1, 0.09); }
+  gallop(when = 0) { this.tone(220, 140, 0.05, "triangle", 0.12, when); this.tone(180, 120, 0.05, "triangle", 0.1, when + 0.09); }
   heartbeat() { this.tone(95, 55, 0.13, "sine", 0.5); this.tone(85, 50, 0.16, "sine", 0.42, 0.17); }
   riser(dur = 1.2) { this.tone(120, 1000, dur, "sawtooth", 0.13); this.hiss(dur, 0.1, 400, "bandpass", 0, 3200); }
+  // Per-step build-up: a quiet crescendo scheduled to peak right before the
+  // next hit lands (delay/dur in seconds, tuned to STEP_MS in ShowPlayer).
+  tension(delay = 0.3, dur = 0.55) {
+    this.tone(180, 640, dur, "sawtooth", 0.07, delay);
+    this.hiss(dur, 0.05, 500, "bandpass", delay, 2600);
+  }
+  // Bomb fuse: three rising ticks while the bomb hops between positions.
+  fuse() {
+    this.tone(880, 880, 0.05, "square", 0.1, 0.12);
+    this.tone(1100, 1100, 0.05, "square", 0.11, 0.42);
+    this.tone(1450, 1450, 0.05, "square", 0.13, 0.7);
+    this.hiss(0.75, 0.04, 5200, "highpass", 0.1);
+  }
+  // Ice: dry crack snap; louder + lower as tension builds.
+  crack(deep = false, when = 0) {
+    this.hiss(0.09, deep ? 0.22 : 0.14, deep ? 1600 : 3200, "bandpass", when);
+    this.tone(deep ? 240 : 420, deep ? 90 : 200, 0.08, "triangle", deep ? 0.16 : 0.1, when);
+  }
+  // Ice tile gives way: crunch + glassy shards raining down.
+  iceShatter() {
+    this.crack(true);
+    this.hiss(0.5, 0.2, 4200, "highpass", 0.05, 900);
+    this.tone(1800, 700, 0.3, "sine", 0.09, 0.06);
+    this.tone(2400, 1100, 0.25, "sine", 0.06, 0.12);
+    this.tone(130, 45, 0.3, "sine", 0.3, 0.1);
+  }
+  // Musical chairs: a cheery looping ditty, two notes per step (index-driven,
+  // so live and replay play the same phrase).
+  melody(step: number) {
+    const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+    const a = scale[step % scale.length];
+    const b = scale[(step * 3 + 1) % scale.length];
+    this.tone(a, a, 0.16, "triangle", 0.12, 0.05);
+    this.tone(b, b, 0.16, "triangle", 0.12, 0.38);
+    this.tone(a / 2, a / 2, 0.3, "sine", 0.06, 0.05);
+  }
+  // The music STOPS: tape-stop pitch drop into silence, then a beat of nothing.
+  musicStop() {
+    this.tone(660, 60, 0.45, "sawtooth", 0.16);
+    this.hiss(0.3, 0.08, 2000, "lowpass", 0, 120);
+  }
   chime() {
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((f, i) => { this.tone(f, f, 0.7, "sine", 0.16, i * 0.13); this.tone(f * 2, f * 2, 0.4, "sine", 0.05, i * 0.13); });
