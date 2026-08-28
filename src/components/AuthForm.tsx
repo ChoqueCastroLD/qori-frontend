@@ -54,7 +54,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
     setLoading(false);
     if (!ok) { setErr(ERR[d.error] ?? "No se pudo enviar el código."); return; }
     setStep("code");
-    setNotice(`Te enviamos un código de 6 dígitos a ${email}. Revisa tu correo (y spam).`);
+    setNotice(`Te enviamos un código de 6 dígitos a ${email}. Revisa tu correo (y la carpeta de spam). Puede tardar unos minutos en llegar, no te preocupes.`);
   }
 
   // Register step 2: create account
@@ -123,7 +123,10 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       {notice && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">{notice}</p>}
       <div className="mt-5"><label className="mb-1 block text-sm font-medium text-slate-700">Código de 6 dígitos</label>
         <input inputMode="numeric" pattern="[0-9]*" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required placeholder="123456" className={`${inp} text-center text-lg font-bold tracking-[0.4em]`} /></div>
-      <button type="button" onClick={requestCode as any} disabled={loading} className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-900">Reenviar código</button>
+      <div className="mt-2 flex items-center justify-between">
+        <button type="button" onClick={requestCode as any} disabled={loading} className="text-xs font-semibold text-slate-500 hover:text-slate-900">Reenviar código</button>
+        <span className="text-xs text-slate-400">El correo puede tardar unos minutos.</span>
+      </div>
       <div className="mt-4"><label className="mb-1 block text-sm font-medium text-slate-700">Nombre</label>
         <input value={name} onChange={(e) => setName(e.target.value)} required className={inp} /></div>
       <div className="mt-4"><label className="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
