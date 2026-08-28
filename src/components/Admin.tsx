@@ -532,7 +532,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   // Default draw time: 48h from now, in local time for the datetime picker.
   const [f, setF] = useState<any>({
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
-    minTickets: 50, winnersCount: 1, games: ["ELIMINATION", "DIGIT_REVEAL", "SQUID", "HORSE_RACE", "BOMBS"], finale: "BOMBS",
+    minTickets: 50, winnersCount: 1, maxPerUser: "", games: ["ELIMINATION", "DIGIT_REVEAL", "SQUID", "HORSE_RACE", "BOMBS"], finale: "BOMBS",
     image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
   const [err, setErr] = useState("");
@@ -549,6 +549,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       totalTickets: Number(f.totalTickets), minTickets: Number(f.minTickets),
       winnersCount: Number(f.winnersCount), games: f.games, finale: f.finale,
       closesAt: new Date(f.closesAt).toISOString(),
+      ...(f.maxPerUser !== "" && Number(f.maxPerUser) > 0 ? { maxTicketsPerUser: Number(f.maxPerUser) } : {}),
     };
     const r = await adminFetch("/admin/raffles", { method: "POST", body: JSON.stringify(body) });
     if (r.ok) onCreated(); else setErr(JSON.stringify(r.data));
@@ -568,6 +569,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
         <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" className={inp} value={f.winnersCount} onChange={(e) => setF({ ...f, winnersCount: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">Total tickets</label><input type="number" className={inp} value={f.totalTickets} onChange={(e) => setF({ ...f, totalTickets: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" className={inp} value={f.minTickets} onChange={(e) => setF({ ...f, minTickets: e.target.value })} /></div>
+        <div><label className="text-xs text-slate-500">Máx. tickets por persona</label><input type="number" className={inp} value={f.maxPerUser} placeholder="sin límite" onChange={(e) => setF({ ...f, maxPerUser: e.target.value })} /></div>
         <div>
           <label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label>
           <input type="datetime-local" required className={inp} value={f.closesAt} onChange={(e) => setF({ ...f, closesAt: e.target.value })} />
