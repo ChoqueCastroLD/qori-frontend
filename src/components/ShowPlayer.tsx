@@ -1,7 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, LayoutGroup } from "framer-motion";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { motion } from "framer-motion";
 import RaffleChat from "./RaffleChat";
 import Icon from "./Icon";
+import EliminationGame from "./show/EliminationGame";
+import BombsGame from "./show/BombsGame";
+import SquidGame from "./show/SquidGame";
+import HorseRaceGame from "./show/HorseRaceGame";
+import DigitRevealGame from "./show/DigitRevealGame";
+import FinalScreen from "./show/FinalScreen";
+import { ConfettiCanvas } from "./show/Particles";
+import { hashSeed, type GameProps, type Participant } from "./show/shared";
+import { getShowAudio } from "./show/audio";
 
 const GAME_META: Record<string, { label: string; icon: string; color: string }> = {
   ELIMINATION: { label: "Eliminación", icon: "bolt", color: "bg-slate-900" },
@@ -11,45 +20,18 @@ const GAME_META: Record<string, { label: string; icon: string; color: string }> 
   HORSE_RACE: { label: "Carrera", icon: "flag", color: "bg-amber-600" },
 };
 
+const GAME_COMPONENTS: Record<string, ComponentType<GameProps>> = {
+  ELIMINATION: EliminationGame,
+  BOMBS: BombsGame,
+  SQUID: SquidGame,
+  HORSE_RACE: HorseRaceGame,
+  DIGIT_REVEAL: DigitRevealGame,
+};
+
 // Fixed deterministic timeline -> every client renders the same frame from the
 // shared startsAt clock (synchronized live show, no WebSocket needed).
 const STEP_MS = 450;
 const GAP_MS = 1400;
-
-interface Participant { number: number; nickname: string | null; avatarUrl: string | null; comment: string | null; boughtAt?: string | null; }
-
-function fmtDate(iso?: string | null): string {
-  if (!iso) return "";
-  try { return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
-  catch { return ""; }
-}
-
-function Ticket({ p, mine, elim, winner }: { p: Participant; mine: boolean; elim: boolean; winner: boolean }) {
-  return (
-    <div className={`group relative flex w-[52px] flex-col items-center gap-1 transition-[filter,opacity] duration-500 ${elim ? "opacity-45 grayscale" : ""}`}>
-      <div className={`relative h-12 w-12 rounded-full shadow ${winner ? "ring-4 ring-emerald-400" : mine ? "ring-[3px] ring-sky-500" : "ring-2 ring-white"}`}>
-        {p.avatarUrl ? <img src={p.avatarUrl} className="h-full w-full rounded-full object-cover" alt="" loading="lazy" />
-          : <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-bold text-slate-600">{(p.nickname || "?")[0]}</div>}
-        {elim && <div className="absolute inset-0 flex items-center justify-center text-slate-600"><Icon name="x" className="h-5 w-5" /></div>}
-        {winner && <div className="absolute -right-1 -top-1 text-amber-500"><Icon name="trophy" className="h-4 w-4" /></div>}
-        {mine && !winner && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-sky-500 px-1.5 text-[9px] font-bold text-white">TÚ</div>}
-      </div>
-      <span className={`rounded px-1 font-mono text-[10px] font-bold ${winner ? "bg-emerald-100 text-emerald-700" : mine ? "text-sky-600" : "text-slate-500"}`}>#{p.number}</span>
-      {/* Hover card: buyer, photo, comment, purchase date */}
-      <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 hidden w-44 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-2.5 text-left shadow-xl group-hover:block">
-        <div className="flex items-center gap-2">
-          {p.avatarUrl ? <img src={p.avatarUrl} className="h-8 w-8 rounded-full object-cover" alt="" /> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500">{(p.nickname || "?")[0]}</span>}
-          <div className="min-w-0">
-            <div className="truncate text-xs font-bold text-slate-900">{p.nickname || "Anónimo"}</div>
-            <div className="font-mono text-[10px] text-slate-500">Ticket #{p.number}</div>
-          </div>
-        </div>
-        {p.comment && <div className="mt-1 line-clamp-2 text-[10px] italic text-slate-500">“{p.comment}”</div>}
-        {p.boughtAt && <div className="mt-1 text-[10px] text-slate-400">Comprado: {fmtDate(p.boughtAt)}</div>}
-      </div>
-    </div>
-  );
-}
 
 export default function ShowPlayer({ slug }: { slug: string }) {
   const [data, setData] = useState<any>(null);
@@ -61,7 +43,9 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   const [speed, setSpeed] = useState(1);
   const [liveMode, setLiveMode] = useState(false);
   const [secsToStart, setSecsToStart] = useState(0);
+  const [soundOn, setSoundOn] = useState(true);
   const tick = useRef<any>(null);
+  const audio = useMemo(() => getShowAudio(), []);
 
   useEffect(() => {
     fetch(`/api/raffles/${slug}/show`, { credentials: "include" })
@@ -75,6 +59,15 @@ export default function ShowPlayer({ slug }: { slug: string }) {
         setMyNums(new Set(d.tickets.filter((t: any) => t.raffle?.slug === slug).map((t: any) => t.number)));
       }).catch(() => {});
   }, [slug]);
+
+  // AudioContext can only start after a user gesture (browser policy).
+  useEffect(() => {
+    const init = () => { audio.ensure(); window.removeEventListener("pointerdown", init); window.removeEventListener("keydown", init); };
+    window.addEventListener("pointerdown", init);
+    window.addEventListener("keydown", init);
+    return () => { window.removeEventListener("pointerdown", init); window.removeEventListener("keydown", init); };
+  }, [audio]);
+  useEffect(() => { audio.setMuted(!soundOn); }, [soundOn, audio]);
 
   const show = data?.show;
   const participants: Participant[] = data?.participants ?? [];
@@ -139,18 +132,9 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   }, [stageIdx, step, stages, stage]);
   const elimSet = useMemo(() => new Set(elimSeq), [elimSeq]);
 
-  // Active tickets: descending by number. Eliminated: appended in REVERSE discard
-  // order (first discarded ends up last of all). Reorders animate via layout.
-  const gridOrder = useMemo(() => {
-    if (!participants.length) return [];
-    const active = participants.map((_, i) => i).filter((i) => !elimSet.has(i))
-      .sort((a, b) => participants[b].number - participants[a].number);
-    return [...active, ...elimSeq.slice().reverse()];
-  }, [participants, elimSet, elimSeq]);
-
   const stageElim: number[] = stage?.eliminated ?? [];
   const stageDone = step >= stageElim.length;
-  const isFinaleDone = stageIdx === stages.length - 1 && stageDone;
+  const isFinaleDone = stageIdx === stages.length - 1 && stageDone && stages.length > 0;
 
   useEffect(() => {
     if (liveMode || !playing || !stage) return;
@@ -165,13 +149,83 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     setPlaying(false);
   }, [playing, step, stageIdx, stageDone, speed, stage, stages.length]);
 
+  // --- Sound design per game, fired on step advances only (never on jumps). ---
+  const prevPos = useRef<{ s: number; st: number }>({ s: -1, st: 0 });
+  useEffect(() => {
+    const p = prevPos.current;
+    prevPos.current = { s: stageIdx, st: step };
+    if (!stage) return;
+    // Entering a stage: a tension riser for the finale, a whoosh otherwise.
+    if (p.s !== stageIdx) { if (p.s !== -1 && step === 0) { stage.isFinale ? audio.riser(1.2) : audio.whoosh(); } return; }
+    if (step <= p.st || step - p.st > 3) return; // backwards or a big jump: silent
+    switch (stage.game) {
+      case "ELIMINATION": audio.zap(); break;
+      case "BOMBS": {
+        const phases: number[][] = stage.data?.phases ?? [];
+        let acc = 0; const ends = phases.map((ph) => (acc += ph.length));
+        audio.boom(ends.includes(step));
+        break;
+      }
+      case "SQUID": {
+        const rounds: { light: string; eliminated: number[] }[] = stage.data?.rounds ?? [];
+        let a = 0;
+        for (const r of rounds) { if (r.eliminated.length && step - 1 === a) { audio.alarm(); break; } a += r.eliminated.length; }
+        audio.thud();
+        break;
+      }
+      case "HORSE_RACE": audio.gallop(); if (step === stageElim.length) audio.whoosh(); break;
+      case "DIGIT_REVEAL": {
+        const n = stage.data?.revealOrder?.length ?? 0;
+        const total = Math.max(1, stageElim.length);
+        const revNow = step >= total ? n : Math.floor((step * n) / total);
+        const revPrev = p.st >= total ? n : Math.floor((p.st * n) / total);
+        if (revNow > revPrev) audio.ding(); else audio.tick();
+        break;
+      }
+      default: audio.blip();
+    }
+    // Final stretch: heartbeat when only a few remain — edge-of-seat tension.
+    if (stage.isFinale) {
+      const alive = participants.length - elimSet.size;
+      if (alive > winners.length && alive <= 4) audio.heartbeat();
+    }
+  }, [stageIdx, step, stage, audio]);
+
+  // Finale chime, once, when the last elimination lands.
+  const chimed = useRef(false);
+  useEffect(() => {
+    if (isFinaleDone && !chimed.current) { chimed.current = true; audio.chime(); }
+    if (!isFinaleDone) chimed.current = false;
+  }, [isFinaleDone, audio]);
+
   function goStage(i: number) { setStageIdx(i); setStep(0); setPlaying(false); }
+  // Replay from the top in manual mode (from the final screen's "Ver de nuevo").
+  function replay() {
+    chimed.current = false;
+    prevPos.current = { s: -1, st: 0 };
+    setLiveMode(false);
+    setStageIdx(0); setStep(0); setPlaying(true);
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
+  }
 
   if (error) return <div className="mx-auto max-w-2xl px-5 py-20 text-center text-slate-400">{error} <a href={`/sorteos/${slug}`} className="text-emerald-700">Volver</a></div>;
   if (!data) return <p className="py-20 text-center text-slate-400">Cargando show…</p>;
 
   const meta = GAME_META[stage?.game] ?? GAME_META.ELIMINATION;
+  const GameComp = GAME_COMPONENTS[stage?.game] ?? EliminationGame;
   const aliveCount = participants.length - elimSet.size;
+  const confettiSeed = hashSeed(stages.length, participants.length, ...winners);
+
+  const soundBtn = (
+    <button
+      onClick={() => { audio.ensure(); setSoundOn((s) => !s); }}
+      className={`rounded-lg border px-2.5 py-1.5 text-sm ${soundOn ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-400"}`}
+      title={soundOn ? "Silenciar" : "Activar sonido"}
+      aria-label={soundOn ? "Silenciar" : "Activar sonido"}
+    >
+      <Icon name={soundOn ? "volume" : "volume-off"} className="h-5 w-5" />
+    </button>
+  );
 
   return (
     <div>
@@ -188,9 +242,12 @@ export default function ShowPlayer({ slug }: { slug: string }) {
               </div>
             </div>
             {liveMode ? (
-              <div className="flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-1.5">
-                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500"></span>
-                <span className="text-sm font-bold text-rose-600">{secsToStart > 0 ? `Empieza en ${secsToStart}s` : "EN VIVO"}</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-1.5">
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500"></span>
+                  <span className="text-sm font-bold text-rose-600">{secsToStart > 0 ? `Empieza en ${secsToStart}s` : "EN VIVO"}</span>
+                </div>
+                {soundBtn}
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -200,39 +257,46 @@ export default function ShowPlayer({ slug }: { slug: string }) {
                 <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
                   <option value={0.5}>0.5x</option><option value={1}>1x</option><option value={2}>2x</option><option value={4}>4x</option>
                 </select>
+                {soundBtn}
               </div>
             )}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {stages.map((s: any, i: number) => (
-              <button key={i} onClick={() => goStage(i)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${i === stageIdx ? `${(GAME_META[s.game] ?? meta).color} text-white` : "bg-slate-100 text-slate-500"}`}>
-                <Icon name={(GAME_META[s.game] ?? meta).icon} className="h-3.5 w-3.5" /> {i + 1}{s.isFinale ? <Icon name="trophy" className="h-3.5 w-3.5" /> : null}
-              </button>
-            ))}
+            {stages.map((s: any, i: number) => {
+              const cls = `inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${i === stageIdx ? `${(GAME_META[s.game] ?? meta).color} text-white` : "bg-slate-100 text-slate-500"}`;
+              const inner = <><Icon name={(GAME_META[s.game] ?? meta).icon} className="h-3.5 w-3.5" /> {i + 1}{s.isFinale ? <Icon name="trophy" className="h-3.5 w-3.5" /> : null}</>;
+              // Live: passive progress indicator (no jumping — preserves the illusion).
+              return liveMode
+                ? <span key={i} className={`${cls} cursor-default select-none`}>{inner}</span>
+                : <button key={i} onClick={() => goStage(i)} className={cls}>{inner}</button>;
+            })}
           </div>
         </div>
       </div>
 
       <div className="mx-auto grid max-w-6xl gap-6 px-5 py-6 lg:grid-cols-[1fr_320px]">
         <div>
-          <div className={`rounded-3xl border border-slate-200 p-5 ${stage?.game === "SQUID" && playing && !stageDone && step % 2 === 1 ? "bg-rose-50" : "bg-gradient-to-b from-slate-50 to-white"}`}>
-            {isFinaleDone && (
-              <div className="mb-5 rounded-2xl bg-emerald-50 p-5 text-center">
-                <div className="flex justify-center text-emerald-700"><Icon name="trophy" className="h-8 w-8" /></div>
-                <h2 className="mt-1 text-lg font-bold text-emerald-800">{winners.length > 1 ? "¡Ganadores!" : "¡Ganador!"} {winners.map((w) => `#${participants[w]?.number}`).join(", ")}</h2>
-                <a href={`/verificar?slug=${slug}`} className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Verificar este resultado</a>
-              </div>
-            )}
-            <LayoutGroup>
-              <div className="flex max-h-[58vh] flex-wrap justify-center gap-2.5 overflow-y-auto lg:max-h-none lg:overflow-visible">
-                {gridOrder.map((i) => (
-                  <motion.div key={i} layout transition={{ type: "spring", stiffness: 550, damping: 42, mass: 0.6 }}>
-                    <Ticket p={participants[i]} mine={myIndices.has(i)} elim={elimSet.has(i)} winner={isFinaleDone && winnerSet.has(i)} />
-                  </motion.div>
-                ))}
-              </div>
-            </LayoutGroup>
-          </div>
+          {isFinaleDone ? (
+            <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 220, damping: 24 }}>
+              <FinalScreen winners={winners} participants={participants} slug={slug} onReplay={replay} />
+            </motion.div>
+          ) : (
+            <div className="relative">
+              {stage && (
+                <GameComp
+                  participants={participants}
+                  stage={stage}
+                  stageIdx={stageIdx}
+                  step={step}
+                  elimSeq={elimSeq}
+                  elimSet={elimSet}
+                  myIndices={myIndices}
+                  winnerSet={winnerSet}
+                  isFinaleDone={isFinaleDone}
+                />
+              )}
+            </div>
+          )}
           <p className="mt-3 text-center text-xs text-slate-400">Todo el show se deriva de la semilla comprometida - reproducible y verificable. Los eliminados se van al final; nada se oculta.</p>
         </div>
 

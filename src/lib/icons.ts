@@ -34,4 +34,6 @@ export const ICONS: Record<string, string> = {
   user: '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M5 20a7 7 0 0 1 14 0"/>',
   logout: '<path d="M16 12H4m12 0-4 4m4-4-4-4m3-4h2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-2"/>',
   live: '<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
+  volume: '<path d="M11 5 6.5 9H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5L11 19V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.2 6a9 9 0 0 1 0 12"/>',
+  "volume-off": '<path d="M11 5 6.5 9H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5L11 19V5Z"/><path d="m15.5 9.5 5 5m0-5-5 5"/>',
 };
