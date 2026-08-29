@@ -233,7 +233,7 @@ const partTotal = partData.totalTickets ?? 0;
               </div>
             )}
 
-            {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} />}
+            {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} total={r.totalTickets} sold={sold} />}
           </div>
         )}
       </div>

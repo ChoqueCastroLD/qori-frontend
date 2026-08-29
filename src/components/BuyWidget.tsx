@@ -8,9 +8,11 @@ interface Props {
   slug: string;
   ticketPrice: number;
   maxPerUser: number | null;
+  total: number;
+  sold: number;
 }
 
-export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
+export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold }: Props) {
   const [me, setMe] = useState<{ balance: number } | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [qty, setQty] = useState(1);
@@ -28,7 +30,22 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
   }, []);
 
   const cost = qty * ticketPrice;
-  const max = maxPerUser ?? 100;
+  // Cap at what's actually available; only tighten further if the raffle sets a
+  // per-user limit. No arbitrary ceiling when there's no per-user limit.
+  const remaining = Math.max(1, total - sold);
+  const max = maxPerUser != null ? Math.min(maxPerUser, remaining) : remaining;
+
+  // Quick-pick options that always make sense for this max: for a small cap
+  // just list 1..max (so a limit of 3 shows 1 2 3), otherwise a few round
+  // steps plus the max itself.
+  const quicks = (max <= 6
+    ? Array.from({ length: max }, (_, i) => i + 1)
+    : Array.from(new Set([1, 5, 10, 25, 50, 100, max].filter((n) => n >= 1 && n <= max)))
+  ).sort((a, b) => a - b);
+
+  // Keep the chosen amount within bounds if the max shrinks (e.g. tickets sell
+  // out live while the widget is open).
+  useEffect(() => { setQty((q) => Math.max(1, Math.min(max, q))); }, [max]);
 
   async function buy() {
     setStatus("loading");
@@ -137,14 +154,15 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser }: Props) {
           min={1}
           max={max}
           value={qty}
-          onChange={(e) => setQty(Math.max(1, Math.min(max, Number(e.target.value) || 1)))}
+          onKeyDown={(e) => { if (["-", "+", "e", "E", "."].includes(e.key)) e.preventDefault(); }}
+          onChange={(e) => { const n = Math.floor(Number(e.target.value)); setQty(!n || n < 1 ? 1 : Math.min(max, n)); }}
           className="h-10 w-full rounded-lg border border-slate-200 text-center font-semibold"
         />
         <button type="button" onClick={() => setQty((q) => Math.min(max, q + 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 hover:bg-slate-50">+</button>
       </div>
-      <div className="mt-2 flex gap-1.5">
-        {[1, 5, 10, 25].map((n) => (
-          <button type="button" key={n} onClick={() => setQty(Math.min(max, n))} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">{n}</button>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {quicks.map((n) => (
+          <button type="button" key={n} onClick={() => setQty(n)} className={`rounded-md px-2.5 py-1 text-xs font-medium ${qty === n ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{n}</button>
         ))}
       </div>
 
