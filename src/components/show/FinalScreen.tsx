@@ -33,10 +33,6 @@ function WinnerBlock({ p, pos }: { p?: Participant; pos: number }) {
 export default function FinalScreen({
   winners, participants, slug, onReplay,
 }: { winners: number[]; participants: Participant[]; slug: string; onReplay: () => void }) {
-  const nonWinners = useMemo(
-    () => participants.map((_, i) => i).filter((i) => !winners.includes(i)),
-    [participants, winners],
-  );
   const single = winners.length === 1;
   const top3 = winners.slice(0, 3);
   const rest = winners.slice(3);
@@ -84,21 +80,6 @@ export default function FinalScreen({
         </div>
       </div>
 
-      {nonWinners.length > 0 && (
-        <div className="relative z-10 mt-6 rounded-2xl bg-white/5 p-4 text-left">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">Participaron ({nonWinners.length})</div>
-          <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
-            {nonWinners.map((i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/70">
-                {participants[i]?.avatarUrl
-                  ? <img src={participants[i].avatarUrl!} className="h-4 w-4 rounded-full object-cover" alt="" />
-                  : <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[8px] font-bold">{(participants[i]?.nickname || "?")[0]}</span>}
-                #{participants[i]?.number}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

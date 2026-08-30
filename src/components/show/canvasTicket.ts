@@ -31,9 +31,10 @@ export interface TicketDraw {
   mine?: boolean;
   winner?: boolean;
   alpha?: number;
-  showLabel?: boolean; // "#NN" chip under the disc
+  showLabel?: boolean; // "#NN" chip on the disc edge
   showName?: boolean;  // nickname chip under the disc
   dim?: boolean;       // greyed / eliminated look
+  compact?: boolean;   // dense scenes: number centred on the disc, no chips/name
 }
 
 function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -81,15 +82,20 @@ export function drawTicket(ctx: CanvasRenderingContext2D, t: TicketDraw) {
     const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.05);
     g.addColorStop(0, shade(base, 45)); g.addColorStop(0.55, base); g.addColorStop(1, shade(base, -40));
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    if (r >= 9) {
+    if (!t.compact && r >= 10) {
       const letter = (t.nickname?.trim()?.[0] ?? String(t.number)).toUpperCase();
       ctx.fillStyle = t.dim ? "#6b6b76" : "rgba(255,255,255,0.95)";
       ctx.font = `700 ${Math.round(r * 1.0)}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(letter, x, y);
-    } else {
-      ctx.fillStyle = "rgba(255,255,255,0.92)"; ctx.font = `700 ${Math.max(8, Math.round(r * 0.95))}px Inter, system-ui, sans-serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(t.number), x, y);
     }
+  }
+  // compact: the ticket number sits centred on the disc, outlined so it reads
+  // over a photo or colour (dense scenes like the rockets orbit).
+  if (t.compact) {
+    ctx.fillStyle = t.dim ? "#7a7a84" : "#fff"; ctx.strokeStyle = "rgba(0,0,0,0.72)"; ctx.lineWidth = Math.max(2, r * 0.22);
+    ctx.font = `800 ${Math.max(8, Math.round(r * 0.82))}px Inter, system-ui, sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    ctx.strokeText(String(t.number), x, y); ctx.fillText(String(t.number), x, y);
   }
   // glossy top highlight
   ctx.globalAlpha = (t.alpha ?? 1) * (t.dim ? 0.06 : 0.18);
@@ -103,25 +109,29 @@ export function drawTicket(ctx: CanvasRenderingContext2D, t: TicketDraw) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.strokeStyle = t.dim ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.28)"; ctx.lineWidth = 1.5; ctx.stroke();
 
-  // name + number chips under the disc
-  let below = y + r + 4;
+  // ALWAYS show the ticket number — a compact "#N" pill riding the disc's lower
+  // edge, readable over a photo or a colour+initial.
+  if (!t.compact && r >= 8 && (t.showLabel ?? true)) {
+    const lbl = "#" + t.number;
+    const fs = Math.max(8.5, Math.round(r * 0.46));
+    ctx.font = `800 ${fs}px Inter, system-ui, sans-serif`;
+    const w = ctx.measureText(lbl).width + 8; const h = fs + 5;
+    const cyy = y + r - h * 0.35;
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 4;
+    ctx.fillStyle = t.mine ? "rgba(56,225,255,0.95)" : t.winner ? "rgba(245,179,1,0.95)" : "rgba(8,8,12,0.82)";
+    rrect(ctx, x - w / 2, cyy - h / 2, w, h, h / 2); ctx.fill(); ctx.restore();
+    ctx.fillStyle = t.mine || t.winner ? "#0b0b12" : "rgba(255,255,255,0.96)"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(lbl, x, cyy + 0.5);
+  }
+  // name chip under the disc (when there's room)
   if (t.showName && r >= 13 && t.nickname) {
     const name = t.nickname.length > 12 ? t.nickname.slice(0, 11) + "…" : t.nickname;
+    const below = y + r + 5;
     ctx.font = `600 ${Math.max(9, Math.round(r * 0.42))}px Inter, system-ui, sans-serif`;
-    const w = ctx.measureText(name).width + 10; const h = Math.round(r * 0.62);
-    ctx.fillStyle = "rgba(8,8,12,0.72)"; rrect(ctx, x - w / 2, below, w, h, h / 2); ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.92)"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const w = ctx.measureText(name).width + 10; const h = Math.round(r * 0.6);
+    ctx.fillStyle = "rgba(8,8,12,0.7)"; rrect(ctx, x - w / 2, below, w, h, h / 2); ctx.fill();
+    ctx.fillStyle = "rgba(235,238,245,0.95)"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(name, x, below + h / 2 + 0.5);
-    below += h + 3;
-  }
-  if (t.showLabel && r >= 9) {
-    const lbl = "#" + t.number;
-    ctx.font = `700 ${Math.max(9, Math.round(r * 0.5))}px Inter, system-ui, sans-serif`;
-    const w = ctx.measureText(lbl).width + 8; const h = Math.round(r * 0.6);
-    ctx.fillStyle = t.mine ? "rgba(56,225,255,0.9)" : t.winner ? "rgba(245,179,1,0.92)" : "rgba(8,8,12,0.7)";
-    rrect(ctx, x - w / 2, below, w, h, h / 2); ctx.fill();
-    ctx.fillStyle = t.mine || t.winner ? "#0b0b12" : "rgba(255,255,255,0.9)"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(lbl, x, below + h / 2 + 0.5);
   }
   ctx.restore();
 }

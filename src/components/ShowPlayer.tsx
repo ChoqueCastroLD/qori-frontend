@@ -3,14 +3,21 @@ import { motion } from "framer-motion";
 import RaffleChat from "./RaffleChat";
 import Icon from "./Icon";
 import EliminationGame from "./show/EliminationGame";
-import BombsGame from "./show/BombsGame";
+import BombsGame, { duration as bombsDur, elimCountAt as bombsElim } from "./show/BombsGame";
 import SquidGame from "./show/SquidGame";
 import HorseRaceGame from "./show/HorseRaceGame";
 import DigitRevealGame from "./show/DigitRevealGame";
 import IceFloorGame from "./show/IceFloorGame";
 import MusicalChairsGame from "./show/MusicalChairsGame";
-import RocketsGame from "./show/RocketsGame";
-import RouletteGame from "./show/RouletteGame";
+import RocketsGame, { duration as rocketsDur, elimCountAt as rocketsElim } from "./show/RocketsGame";
+import RouletteGame, { duration as rouletteDur, elimCountAt as rouletteElim } from "./show/RouletteGame";
+// Self-timed games run their own choreography clock; ShowPlayer only needs their
+// total duration + how many eliminations have landed by a given elapsed ms.
+const SELF: Record<string, { duration: (s: any) => number; elimAt: (s: any, ms: number) => number }> = {
+  ROCKETS: { duration: rocketsDur, elimAt: rocketsElim },
+  BOMBS: { duration: bombsDur, elimAt: bombsElim },
+  ROULETTE: { duration: rouletteDur, elimAt: rouletteElim },
+};
 import FinalScreen from "./show/FinalScreen";
 import { ConfettiCanvas } from "./show/Particles";
 import { hashSeed, type GameProps, type Participant } from "./show/shared";
@@ -47,6 +54,43 @@ const GAME_COMPONENTS: Record<string, ComponentType<GameProps>> = {
 // qori-api/src/index.ts (GET /raffles/:slug) to the SAME numbers.
 const STEP_MS = 1050;
 const GAP_MS = 2200;
+
+// Losers tray under the arena: grouped by stage (most recent stage on top),
+// most recent loser first within each group; photo/initial + ticket number.
+function StageLosers({ stages, stageIdx, step, participants, myIndices, meta }: any) {
+  const groups: { label: string; color: string; nums: { n: number; name: string; url: string | null; mine: boolean }[] }[] = [];
+  for (let si = stageIdx; si >= 0; si--) {
+    const st = stages[si]; if (!st) continue;
+    const elim: number[] = st.eliminated ?? [];
+    const cnt = si < stageIdx ? elim.length : step;
+    if (cnt <= 0) continue;
+    const taken = elim.slice(0, cnt).slice().reverse();
+    const m = meta[st.game] ?? { label: st.game, color: "bg-slate-700" };
+    groups.push({ label: `Etapa ${si + 1} · ${m.label}`, color: m.color, nums: taken.map((i: number) => ({ n: participants[i]?.number ?? i + 1, name: participants[i]?.nickname ?? "", url: participants[i]?.avatarUrl ?? null, mine: myIndices.has(i) })) });
+  }
+  if (!groups.length) return null;
+  const total = groups.reduce((a, g) => a + g.nums.length, 0);
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Fuera ({total}) — por etapa, recientes primero</div>
+      <div className="space-y-3">
+        {groups.map((g, gi) => (
+          <div key={gi}>
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-500"><span className={`inline-block h-2 w-2 rounded-full ${g.color}`}></span>{g.label} <span className="text-slate-400">· {g.nums.length}</span></div>
+            <div className="flex flex-wrap gap-1.5">
+              {g.nums.map((t, i) => (
+                <span key={i} className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 font-mono text-xs ${t.mine ? "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-300" : "bg-slate-100 text-slate-500"}`}>
+                  {t.url ? <img src={t.url} className="h-5 w-5 rounded-full object-cover" alt="" /> : <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-[9px] font-bold text-white">{(t.name?.[0] ?? "#").toUpperCase()}</span>}
+                  #{t.n}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ShowPlayer({ slug }: { slug: string }) {
   const [data, setData] = useState<any>(null);
@@ -97,6 +141,18 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     return s;
   }, [participants, myNums]);
 
+  // Self-timed shows: every stage's game owns its choreography. Per-stage
+  // duration + cumulative offsets drive one epoch clock (synced live via
+  // startsAt; a local start in replay).
+  const selfTimed = stages.length > 0 && stages.every((s: any) => SELF[s.game]);
+  const durations = useMemo(
+    () => stages.map((s: any) => (SELF[s.game] ? SELF[s.game].duration(s) : (s.eliminated?.length ?? 0) * STEP_MS)),
+    [stages],
+  );
+  const offsets = useMemo(() => { const o: number[] = []; let t = 0; for (let i = 0; i < durations.length; i++) { o.push(t); t += durations[i] + GAP_MS; } return o; }, [durations]);
+  const showTotal = useMemo(() => (durations.length ? offsets[offsets.length - 1] + durations[durations.length - 1] : 0), [offsets, durations]);
+  const manualStartRef = useRef<number | null>(null);
+
   // --- Live synchronization (clock-driven) ---
   const totalDuration = useMemo(
     () => stages.reduce((acc: number, s: any, i: number) => acc + s.eliminated.length * STEP_MS + (i < stages.length - 1 ? GAP_MS : 0), 0),
@@ -116,8 +172,30 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   }
   // If the draw just happened, drive the show by the shared clock so all viewers
   // see the same frame. Once it ends (or if it's an old draw), fall back to replay.
+  // Self-timed clock: advance stageIdx + step from one epoch playhead; each
+  // game animates itself at 60fps from stageStartMs.
   useEffect(() => {
-    if (!data || !stages.length) return;
+    if (!data || !stages.length || !selfTimed) return;
+    const liveStart = new Date(data.startsAt).getTime();
+    const live = Date.now() < liveStart + showTotal + 3000;
+    if (!live && manualStartRef.current == null) manualStartRef.current = Date.now();
+    const tick = () => {
+      const base = live ? liveStart : (manualStartRef.current ?? Date.now());
+      const playhead = Date.now() - base;
+      if (playhead < 0) { setSecsToStart(Math.ceil(-playhead / 1000)); setLiveMode(true); return; }
+      setSecsToStart(0); setLiveMode(live);
+      let si = 0; for (let i = 0; i < offsets.length; i++) if (playhead >= offsets[i]) si = i;
+      const st = stages[si]; const sMs = playhead - offsets[si];
+      const cnt = SELF[st.game] ? SELF[st.game].elimAt(st, sMs) : Math.floor(sMs / STEP_MS);
+      setStageIdx(si); setStep(Math.min(cnt, st.eliminated?.length ?? cnt));
+    };
+    tick();
+    const id = setInterval(tick, 150);
+    return () => clearInterval(id);
+  }, [data, selfTimed, offsets, showTotal]);
+
+  useEffect(() => {
+    if (!data || !stages.length || selfTimed) return;
     const startsAtMs = new Date(data.startsAt).getTime();
     if (Date.now() >= startsAtMs + totalDuration + 2000) return; // old -> manual replay
     const id = setInterval(() => {
@@ -152,7 +230,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   const isFinaleDone = stageIdx === stages.length - 1 && stageDone && stages.length > 0;
 
   useEffect(() => {
-    if (liveMode || !playing || !stage) return;
+    if (selfTimed || liveMode || !playing || !stage) return;
     if (!stageDone) {
       tick.current = setTimeout(() => setStep((s) => s + 1), STEP_MS / speed);
       return () => clearTimeout(tick.current);
@@ -238,12 +316,16 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     if (!isFinaleDone) chimed.current = false;
   }, [isFinaleDone, audio]);
 
-  function goStage(i: number) { setStageIdx(i); setStep(0); setPlaying(false); }
+  function goStage(i: number) {
+    if (selfTimed) { manualStartRef.current = Date.now() - (offsets[i] ?? 0); setLiveMode(false); setStageIdx(i); setStep(0); return; }
+    setStageIdx(i); setStep(0); setPlaying(false);
+  }
   // Replay from the top in manual mode (from the final screen's "Ver de nuevo").
   function replay() {
     chimed.current = false;
     prevPos.current = { s: -1, st: 0 };
     setLiveMode(false);
+    if (selfTimed) manualStartRef.current = Date.now();
     setStageIdx(0); setStep(0); setPlaying(true);
     try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
   }
@@ -255,6 +337,9 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   const GameComp = GAME_COMPONENTS[stage?.game] ?? EliminationGame;
   const aliveCount = participants.length - elimSet.size;
   const confettiSeed = hashSeed(stages.length, participants.length, ...winners);
+  const base = liveMode ? new Date(data.startsAt).getTime() : (manualStartRef.current ?? new Date(data.startsAt).getTime());
+  const stageStartMs = selfTimed ? base + (offsets[stageIdx] ?? 0) : null;
+  const hideTransport = liveMode || selfTimed; // self-timed games can't be scrubbed
 
   const soundBtn = (
     <button
@@ -281,11 +366,11 @@ export default function ShowPlayer({ slug }: { slug: string }) {
                 </div>
               </div>
             </div>
-            {liveMode ? (
+            {hideTransport ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-1.5">
-                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500"></span>
-                  <span className="text-sm font-bold text-rose-600">{secsToStart > 0 ? `Empieza en ${secsToStart}s` : "EN VIVO"}</span>
+                <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${liveMode ? "bg-rose-50" : "bg-slate-100"}`}>
+                  {liveMode && <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500"></span>}
+                  <span className={`text-sm font-bold ${liveMode ? "text-rose-600" : "text-slate-500"}`}>{liveMode ? (secsToStart > 0 ? `Empieza en ${secsToStart}s` : "EN VIVO") : "REPETICIÓN"}</span>
                 </div>
                 {soundBtn}
               </div>
@@ -333,11 +418,15 @@ export default function ShowPlayer({ slug }: { slug: string }) {
                   myIndices={myIndices}
                   winnerSet={winnerSet}
                   isFinaleDone={isFinaleDone}
+                  stageStartMs={stageStartMs}
+                  speed={speed}
                 />
               )}
             </div>
           )}
-          <p className="mt-3 text-center text-xs text-slate-400">Todo el show se deriva de la semilla comprometida - reproducible y verificable. Los eliminados se van al final; nada se oculta.</p>
+          {/* Losers, always below the arena — grouped by stage, most recent first. */}
+          {selfTimed && <StageLosers stages={stages} stageIdx={stageIdx} step={step} participants={participants} myIndices={myIndices} meta={GAME_META} />}
+          <p className="mt-3 text-center text-xs text-slate-400">Todo el show se deriva de la semilla comprometida - reproducible y verificable.</p>
         </div>
 
         <div className="lg:sticky lg:top-[150px] lg:self-start">

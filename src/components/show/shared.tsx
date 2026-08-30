@@ -21,6 +21,12 @@ export interface GameProps {
   myIndices: Set<number>;
   winnerSet: Set<number>;
   isFinaleDone: boolean;
+  // Self-timed games (rockets/bombs/roulette) run their own choreography clock.
+  // stageStartMs = epoch ms when this stage began (live, shared across viewers);
+  // null in manual replay → the game uses its own clock from mount. speed scales
+  // replay only.
+  stageStartMs?: number | null;
+  speed?: number;
 }
 
 // --- Deterministic PRNG: FNV-1a hash of stable inputs -> mulberry32 stream.
