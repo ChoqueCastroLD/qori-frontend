@@ -19,6 +19,8 @@ export const ICONS: Record<string, string> = {
   flag: '<path d="M5 21V4m0 0h11l-2 4 2 4H5"/>',
   snow: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M4.2 7.5 7.6 8.4M4.2 7.5l.9-3.4M19.8 16.5l-3.4-.9M19.8 16.5l-.9 3.4M4.2 16.5l.9 3.4M4.2 16.5l3.4-.9M19.8 7.5l-.9-3.4M19.8 7.5l-3.4.9"/>',
   music: '<path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
+  rocket: '<path d="M5 15c-1 1-1.5 3-1.5 4.5C5 19.5 7 19 8 18M9 15l-3-3c1-5 5-8 10-8 0 5-3 9-8 10ZM9 15l3 3M14.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>',
   play: '<path fill="currentColor" stroke="none" d="M7 4.5v15l13-7.5-13-7.5Z"/>',
   pause: '<path fill="currentColor" stroke="none" d="M8 5h3v14H8zm5 0h3v14h-3z"/>',
   prev: '<path fill="currentColor" stroke="none" d="M7 5h2v14H7zm11 0v14l-9-7 9-7Z"/>',

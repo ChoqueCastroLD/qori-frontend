@@ -44,7 +44,9 @@ export default function DrawCountdown({ closesAt, slug }: { closesAt: string; sl
       if (stop) return;
       try {
         const r = await fetch(`/api/raffles/${slug}`).then((x) => (x.ok ? x.json() : null));
-        if (r?.show?.startsAt) { window.location.href = `/sorteos/${slug}/show`; return; }
+        // Show is ready: reload THIS url — the raffle page renders the live show
+        // inline (same view, no navigation to another url).
+        if (r?.show?.startsAt) { window.location.reload(); return; }
         // Extended (+24h for min tickets) or cancelled: reload to show new state.
         if (r && (r.status === "CANCELLED" || (r.status === "OPEN" && r.closesAt && new Date(r.closesAt).getTime() > Date.now() + 1500))) {
           window.location.reload(); return;
@@ -69,7 +71,7 @@ export default function DrawCountdown({ closesAt, slug }: { closesAt: string; sl
       <div className="rounded-2xl border border-slate-900 bg-slate-900 p-6 text-center text-white">
         <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         <div className="text-lg font-bold">El sorteo está por comenzar…</div>
-        <div className="mt-1 text-sm text-white/60">Te llevamos al show en vivo en segundos. No cierres esta página.</div>
+        <div className="mt-1 text-sm text-white/60">El show en vivo arranca aquí mismo en segundos. No cierres esta página.</div>
       </div>
     );
   }

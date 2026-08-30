@@ -42,6 +42,10 @@ export const GAME_LABEL: Record<string, string> = {
   BOMBS: "Bombas",
   SQUID: "Luz roja, luz verde",
   HORSE_RACE: "Carrera",
+  ICE_FLOOR: "El piso es hielo",
+  MUSICAL_CHAIRS: "Las sillas",
+  ROCKETS: "Cohetes",
+  ROULETTE: "Ruleta rusa",
 };
 
 export function timeLeft(iso: string | null): string {

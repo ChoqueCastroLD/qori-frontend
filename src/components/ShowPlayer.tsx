@@ -9,6 +9,8 @@ import HorseRaceGame from "./show/HorseRaceGame";
 import DigitRevealGame from "./show/DigitRevealGame";
 import IceFloorGame from "./show/IceFloorGame";
 import MusicalChairsGame from "./show/MusicalChairsGame";
+import RocketsGame from "./show/RocketsGame";
+import RouletteGame from "./show/RouletteGame";
 import FinalScreen from "./show/FinalScreen";
 import { ConfettiCanvas } from "./show/Particles";
 import { hashSeed, type GameProps, type Participant } from "./show/shared";
@@ -22,6 +24,8 @@ const GAME_META: Record<string, { label: string; icon: string; color: string }> 
   HORSE_RACE: { label: "Carrera", icon: "flag", color: "bg-amber-600" },
   ICE_FLOOR: { label: "El piso es hielo", icon: "snow", color: "bg-cyan-600" },
   MUSICAL_CHAIRS: { label: "Las sillas", icon: "music", color: "bg-violet-600" },
+  ROCKETS: { label: "Cohetes", icon: "rocket", color: "bg-orange-600" },
+  ROULETTE: { label: "Ruleta rusa", icon: "target", color: "bg-stone-700" },
 };
 
 const GAME_COMPONENTS: Record<string, ComponentType<GameProps>> = {
@@ -32,6 +36,8 @@ const GAME_COMPONENTS: Record<string, ComponentType<GameProps>> = {
   DIGIT_REVEAL: DigitRevealGame,
   ICE_FLOOR: IceFloorGame,
   MUSICAL_CHAIRS: MusicalChairsGame,
+  ROCKETS: RocketsGame,
+  ROULETTE: RouletteGame,
 };
 
 // Fixed deterministic timeline -> every client renders the same frame from the

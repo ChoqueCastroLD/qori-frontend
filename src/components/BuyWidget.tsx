@@ -20,6 +20,9 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold }
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "err">("idle");
   const [msg, setMsg] = useState("");
   const [numbers, setNumbers] = useState<number[]>([]);
+  // Numbers this user already holds in THIS raffle (so they can keep buying
+  // more up to the per-user limit instead of being locked out after one buy).
+  const [myNumbers, setMyNumbers] = useState<number[]>([]);
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
@@ -27,7 +30,14 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold }
       .then((d) => setMe(d?.user ?? null))
       .catch(() => {})
       .finally(() => setLoaded(true));
-  }, []);
+    fetch("/api/me/tickets", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const nums = (d?.tickets ?? []).filter((t: any) => t.raffle?.slug === slug).map((t: any) => t.number);
+        if (nums.length) setMyNumbers(nums.sort((a: number, b: number) => a - b));
+      })
+      .catch(() => {});
+  }, [slug]);
 
   const cost = qty * ticketPrice;
   // Cap at what's actually available; only tighten further if the raffle sets a

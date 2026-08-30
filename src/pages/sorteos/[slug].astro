@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import Icon from "../../components/Icon.astro";
 import BuyWidget from "../../components/BuyWidget.tsx";
 import DrawCountdown from "../../components/DrawCountdown.tsx";
-import LiveRedirect from "../../components/LiveRedirect.tsx";
+import ShowPlayer from "../../components/ShowPlayer.tsx";
 import { ssrGet, type Raffle } from "../../lib/api";
 import { lingotes, usd, pct, timeLeft, GAME_LABEL } from "../../lib/format";
 
@@ -13,6 +13,10 @@ const GAME_DESC: Record<string, string> = {
   SQUID: "Estilo luz roja / luz verde: en cada luz roja se elimina un grupo de tickets.",
   HORSE_RACE: "Los tickets avanzan como en una carrera; los que quedan atrás salen.",
   BOMBS: "Caen bombas que explotan tickets por fases hasta llegar al ganador.",
+  ICE_FLOOR: "El piso de hielo se agrieta en oleadas hasta que caen los tickets.",
+  MUSICAL_CHAIRS: "Los tickets giran alrededor de las sillas; quien queda sin silla sale.",
+  ROCKETS: "Los tickets orbitan y una zona de impacto lanza meteoritos que eliminan a los más cercanos.",
+  ROULETTE: "Final de ruleta rusa: los finalistas en un tambor; el revólver dispara hasta que queda uno.",
 };
 
 const { slug } = Astro.params;
@@ -47,6 +51,9 @@ const partTotal = partData.totalTickets ?? 0;
 ---
 
 <Layout title={`${r.title} · qori`} description={r.description}>
+  {showLive ? (
+    <ShowPlayer client:only="react" slug={slug} />
+  ) : (
   <div class="mx-auto max-w-6xl px-5 py-10">
     <a href="/sorteos" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
       <Icon name="arrow-right" class="h-4 w-4 rotate-180" /> Volver a sorteos
@@ -175,8 +182,6 @@ const partTotal = partData.totalTickets ?? 0;
             <p class="mt-2 text-sm text-amber-700">Este sorteo está temporalmente desactivado{r.blockReason ? `: ${r.blockReason}` : "."}</p>
             <p class="mt-2 text-xs text-amber-600">Vuelve pronto, se reactivará en cuanto esté listo.</p>
           </div>
-        ) : (isDrawn && showLive) ? (
-          <LiveRedirect client:load slug={r.slug} endsAt={r.show!.endsAt} />
         ) : isDrawn ? (
           <div class="rounded-2xl border border-slate-200 bg-white p-6">
             <h3 class="flex items-center gap-2 text-lg font-bold text-slate-900"><Icon name="trophy" class="h-5 w-5 text-amber-500" /> Ganadores</h3>
@@ -239,4 +244,5 @@ const partTotal = partData.totalTickets ?? 0;
       </div>
     </div>
   </div>
+  )}
 </Layout>

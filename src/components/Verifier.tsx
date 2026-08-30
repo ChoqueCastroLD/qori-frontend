@@ -67,7 +67,7 @@ export default function Verifier() {
         body: JSON.stringify({
           serverSeed: f.serverSeed, commitment: f.commitment, publicEntropy,
           ticketCount: raffle.ticketsSold, winnersCount: raffle.winnersCount,
-          games: raffle.games, finale: raffle.finale,
+          games: raffle.games, finale: raffle.finale, showVersion: f.showVersion,
         }),
       });
       setResult(await res.json());

@@ -4,7 +4,7 @@ import Icon from "./Icon";
 import ImageUpload from "./ImageUpload";
 import Skeleton from "./Skeleton";
 
-const GAMES = ["ELIMINATION", "DIGIT_REVEAL", "BOMBS", "SQUID", "HORSE_RACE", "ICE_FLOOR", "MUSICAL_CHAIRS"];
+const GAMES = ["ROCKETS", "BOMBS", "ROULETTE"];
 
 async function adminFetch(path: string, init?: RequestInit) {
   const res = await fetch(`/api${path}`, { credentials: "include", headers: { "content-type": "application/json" }, ...init });
