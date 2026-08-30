@@ -85,9 +85,11 @@ export function hudBar(ctx: CanvasRenderingContext2D, W: number, opts: { title: 
     const titleW = ctx.measureText(opts.title).width + opts.title.length * 0.5;
     ctx.font = "700 11px Inter, system-ui, sans-serif"; const pw = ctx.measureText(opts.phase.toUpperCase()).width + 20;
     const px = x + 16 + titleW + 14;
-    ctx.fillStyle = hexA(opts.accent, 0.2); rr(ctx, px, cy - 9, pw, 18, 9); ctx.fill();
-    ctx.strokeStyle = hexA(opts.accent, 0.55); ctx.lineWidth = 1; rr(ctx, px + 0.5, cy - 8.5, pw - 1, 17, 9); ctx.stroke();
-    label(ctx, opts.phase, px + pw / 2, cy, { size: 11, weight: 700, color: lighten(opts.accent), align: "center", upper: true, spacing: 0.6 });
+    if (px + pw < x + w - 110) { // skip the chip when it would collide with the right-side counter
+      ctx.fillStyle = hexA(opts.accent, 0.2); rr(ctx, px, cy - 9, pw, 18, 9); ctx.fill();
+      ctx.strokeStyle = hexA(opts.accent, 0.55); ctx.lineWidth = 1; rr(ctx, px + 0.5, cy - 8.5, pw - 1, 17, 9); ctx.stroke();
+      label(ctx, opts.phase, px + pw / 2, cy, { size: 11, weight: 700, color: lighten(opts.accent), align: "center", upper: true, spacing: 0.6 });
+    }
   }
   // right: alive / goal
   label(ctx, `Quedan ${opts.alive}`, x + w - 16, cy, { size: 13, weight: 700, color: TXT, align: "right" });
