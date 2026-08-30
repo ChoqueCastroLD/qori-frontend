@@ -92,7 +92,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold }
       }
       setNumbers(d.numbers);
       setStatus("ok");
-      setMe((m) => (m ? { balance: m.balance - cost + qty } : m));
+      setMe((m) => (m ? { balance: m.balance - cost + (ticketPrice > 0 ? qty : 0) } : m));
       // Tell the nav (and any other island) to refresh the balance.
       window.dispatchEvent(new CustomEvent("qori:refresh"));
       // Update the raffle progress bar in place (no reload).
