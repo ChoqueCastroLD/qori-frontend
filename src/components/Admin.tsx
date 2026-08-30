@@ -532,7 +532,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   // Default draw time: 48h from now, in local time for the datetime picker.
   const [f, setF] = useState<any>({
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
-    minTickets: 50, winnersCount: 1, maxPerUser: "", games: ["ELIMINATION", "DIGIT_REVEAL", "SQUID", "HORSE_RACE", "BOMBS"], finale: "BOMBS",
+    minTickets: 50, winnersCount: 1, maxPerUser: "", games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
     image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
   const [err, setErr] = useState("");
