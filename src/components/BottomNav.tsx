@@ -23,10 +23,13 @@ export default function BottomNav() {
     return () => document.removeEventListener("astro:page-load", onLoad);
   }, []);
 
-  // Lock background scroll while the "Más" sheet is open.
+  // Lock background scroll while the "Más" sheet is open; Escape closes it.
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", more);
-    return () => document.body.classList.remove("overflow-hidden");
+    if (!more) return () => document.body.classList.remove("overflow-hidden");
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMore(false); };
+    document.addEventListener("keydown", onKey);
+    return () => { document.body.classList.remove("overflow-hidden"); document.removeEventListener("keydown", onKey); };
   }, [more]);
 
   async function logout() {

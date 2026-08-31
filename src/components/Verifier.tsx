@@ -71,7 +71,12 @@ export default function Verifier() {
           games: raffle.games, finale: raffle.finale, showVersion: f.showVersion,
         }),
       });
-      setResult(await res.json());
+      const d = await res.json().catch(() => null);
+      if (!res.ok || !d || !Array.isArray(d.stages)) {
+        setError("No se pudo recalcular el sorteo. Intenta de nuevo en unos segundos.");
+      } else {
+        setResult(d);
+      }
     } catch { setError("Error al verificar."); }
     setLoading(false);
   }

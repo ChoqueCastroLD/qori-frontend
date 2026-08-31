@@ -139,7 +139,7 @@ export default function Recharge() {
                 <li key={r.slug} className="flex justify-between text-xs text-slate-600">
                   <span className="truncate pr-2">{r.title}</span>
                   <span className="shrink-0 font-semibold text-slate-800">
-                    {r.ticketPrice === 0 ? "∞ (gratis)" : `${Math.floor(totalLingotes / r.ticketPrice)} tickets`}
+                    {r.ticketPrice === 0 ? "Gratis" : `${Math.floor(totalLingotes / r.ticketPrice)} tickets`}
                   </span>
                 </li>
               ))}

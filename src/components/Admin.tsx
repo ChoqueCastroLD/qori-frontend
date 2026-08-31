@@ -538,12 +538,18 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   });
   const [err, setErr] = useState("");
   function toggleGame(g: string) {
-    setF((s: any) => ({ ...s, games: s.games.includes(g) ? s.games.filter((x: string) => x !== g) : [...s.games, g] }));
+    setF((s: any) => {
+      const games = s.games.includes(g) ? s.games.filter((x: string) => x !== g) : [...s.games, g];
+      // If the current finale was deselected, fall back to the last remaining game.
+      const finale = games.includes(s.finale) ? s.finale : (games[games.length - 1] ?? "");
+      return { ...s, games, finale };
+    });
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setErr("");
     if (!f.image) { setErr("Sube una imagen para el sorteo."); return; }
     if (!f.closesAt) { setErr("Elige la fecha y hora del sorteo."); return; }
+    if (f.games.length === 0) { setErr("Elige al menos un juego para el show."); return; }
     const body = {
       slug: f.slug, title: f.title, description: f.description, images: [f.image],
       prizeValue: Math.round(f.prizeUsd * 100), ticketPrice: Number(f.ticketPrice),

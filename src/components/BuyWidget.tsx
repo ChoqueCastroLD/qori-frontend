@@ -295,7 +295,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
       >
         {status === "loading" ? "Procesando…" : cost > me.balance ? "Lingotes insuficientes" : `Comprar ${qty} ticket${qty > 1 ? "s" : ""}`}
       </button>
-      <p className="mt-2 text-center text-xs text-slate-400">Recibes +1 lingote de bono por cada ticket.</p>
+      {ticketPrice > 0 && <p className="mt-2 text-center text-xs text-slate-400">Recibes +1 lingote de bono por cada ticket.</p>}
     </div>
   );
 }

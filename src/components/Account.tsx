@@ -99,19 +99,18 @@ export default function Account() {
       .then((d) => {
         if (!d?.user) { window.location.href = "/entrar"; return; }
         setMe(d.user);
-        return Promise.all([
-          fetch("/api/me/tickets", { credentials: "include" }).then((r) => r.json()),
-          fetch("/api/me/wallet", { credentials: "include" }).then((r) => r.json()),
-          fetch("/api/me/referrals", { credentials: "include" }).then((r) => r.json()),
-          fetch("/api/topups/mine", { credentials: "include" }).then((r) => r.json()),
-        ]);
+        // Each fetch degrades to null on HTTP error / network failure so one
+        // broken endpoint never blanks the whole page.
+        const j = (path: string) =>
+          fetch(path, { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        return Promise.all([j("/api/me/tickets"), j("/api/me/wallet"), j("/api/me/referrals"), j("/api/topups/mine")]);
       })
       .then((res) => {
         if (!res) return;
-        setTickets(res[0].tickets ?? []);
-        setWallet(res[1]);
-        setRefs(res[2]);
-        setTopups(res[3].topups ?? []);
+        setTickets(res[0]?.tickets ?? []);
+        setWallet(res[1] && Array.isArray(res[1].entries) ? res[1] : null);
+        setRefs(res[2]?.code ? res[2] : null);
+        setTopups(res[3]?.topups ?? []);
       })
       .finally(() => setLoading(false));
   }, []);

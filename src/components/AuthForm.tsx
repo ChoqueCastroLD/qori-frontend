@@ -18,7 +18,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [ref, setRef] = useState(
-    typeof window !== "undefined" ? new URLSearchParams(location.search).get("ref") ?? "" : "",
+    typeof window !== "undefined" ? (new URLSearchParams(location.search).get("ref") ?? "").toUpperCase() : "",
   );
   const [err, setErr] = useState("");
   const [notice, setNotice] = useState("");
