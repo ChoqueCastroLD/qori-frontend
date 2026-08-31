@@ -31,6 +31,7 @@ export default function Recharge() {
   const [fx, setFx] = useState<Record<string, number> | null>(null);
   const [raffles, setRaffles] = useState<any[]>([]);
   const [mpMsg, setMpMsg] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
+  const [payErr, setPayErr] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
@@ -60,14 +61,23 @@ export default function Recharge() {
 
   async function pay() {
     setLoading(true);
-    const res = await fetch("/api/topups", {
-      method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ amountUsd: sel, method }),
-    });
-    const d = await res.json().catch(() => ({}));
-    if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; }
+    setPayErr("");
+    try {
+      const res = await fetch("/api/topups", {
+        method: "POST", credentials: "include", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ amountUsd: sel, method }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; }
+      setPayErr(
+        d?.error === "mp_not_configured" || d?.error === "paypal_not_configured"
+          ? "Ese medio de pago no está disponible por ahora. Prueba con el otro."
+          : "No se pudo iniciar el pago. Intenta de nuevo en unos segundos.",
+      );
+    } catch {
+      setPayErr("Error de red. Revisa tu conexión e intenta de nuevo.");
+    }
     setLoading(false);
-    alert("No se pudo iniciar el pago. Intenta de nuevo.");
   }
 
   if (!me) return <p className="py-20 text-center text-slate-400">Cargando…</p>;
@@ -78,7 +88,7 @@ export default function Recharge() {
     const ref = localRef(p.usd);
     return (
       <button
-        type="button" onClick={() => setSel(p.usd)}
+        type="button" aria-pressed={active} onClick={() => setSel(p.usd)}
         className={`relative flex flex-col rounded-xl border p-3 text-left transition ${active ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}
       >
         {premium && <span className="absolute -top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-900">PREMIUM</span>}
@@ -95,7 +105,7 @@ export default function Recharge() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Recargar lingotes</h1>
-      <p className="mt-1 text-sm text-slate-500">1 USD = 10 lingotes. Saldo actual: <strong>{me.balance} <Lingote /></strong></p>
+      <p className="mt-1 text-sm text-slate-500">1 USD = 10 lingotes. Saldo actual: <strong>{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></strong></p>
       {mpMsg && <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${mpMsg.tone === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{mpMsg.text}</p>}
 
       {BONUS_ACTIVE && (
@@ -140,17 +150,18 @@ export default function Recharge() {
         {/* Payment method */}
         <label className="mb-2 mt-5 block text-sm font-medium text-slate-700">Método de pago</label>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setMethod("MERCADOPAGO")} className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 ${method === "MERCADOPAGO" ? "border-emerald-500 bg-emerald-50" : "border-slate-200"}`}>
+          <button type="button" aria-pressed={method === "MERCADOPAGO"} onClick={() => setMethod("MERCADOPAGO")} className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 transition ${method === "MERCADOPAGO" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/mercadopago.svg" alt="MercadoPago" className="h-6" />
             <span className="text-[11px] text-slate-500">Yape · Plin · Tarjeta</span>
           </button>
-          <button type="button" onClick={() => setMethod("PAYPAL")} className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 ${method === "PAYPAL" ? "border-emerald-500 bg-emerald-50" : "border-slate-200"}`}>
+          <button type="button" aria-pressed={method === "PAYPAL"} onClick={() => setMethod("PAYPAL")} className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 transition ${method === "PAYPAL" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/paypal.svg" alt="PayPal" className="h-6" />
             <span className="text-[11px] text-slate-500">Tarjeta o saldo PayPal</span>
           </button>
         </div>
 
-        <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">
+        {payErr && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{payErr}</p>}
+        <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
           {loading ? "Redirigiendo…" : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
         </button>
         <p className="mt-2 text-center text-xs text-slate-400">Pago seguro. Los lingotes se acreditan automáticamente al confirmarse.</p>

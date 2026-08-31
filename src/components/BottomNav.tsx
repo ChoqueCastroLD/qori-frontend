@@ -70,6 +70,8 @@ export default function BottomNav() {
           ))}
           <button
             onClick={() => setMore(true)}
+            aria-expanded={more}
+            aria-haspopup="dialog"
             className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-slate-500"
           >
             <Icon name="dots" className="h-6 w-6" />

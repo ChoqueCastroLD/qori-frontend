@@ -67,6 +67,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
     <ClientRouter />
   </head>
   <body class="flex min-h-full flex-col bg-white pb-16 text-slate-900 antialiased md:pb-0">
+    <a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-slate-900 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Saltar al contenido</a>
     <SoonBar client:load transition:persist />
     <header class="sticky top-0 z-40 border-b border-slate-100 bg-white/90 backdrop-blur">
       <nav class="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-5 sm:py-3.5">
@@ -83,7 +84,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
       </nav>
     </header>
 
-    <main class="flex-1">
+    <main id="contenido" class="flex-1">
       <slot />
     </main>
 
@@ -93,7 +94,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
       // Live countdown for [data-closes-at]. Re-runs after each View Transition
       // via astro:page-load; a single interval keeps ticking across navigations.
       function qoriTick() {
-        function fmt(iso) {
+        function fmt(iso: string) {
           var ms = new Date(iso).getTime() - Date.now();
           if (ms <= 0) return "Cerrado";
           var d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000);
@@ -152,6 +153,8 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
       // (persists across View Transitions). When anyone buys, every open page
       // updates its [data-live-sold] / [data-live-fill] for that raffle.
       function qoriApplyLive(d: any) {
+        // Let React islands (e.g. BuyWidget) react to live sold counts too.
+        window.dispatchEvent(new CustomEvent("qori:live", { detail: d }));
         const total0 = Number(d.total) || 0;
         document.querySelectorAll<HTMLElement>(`[data-live-sold="${d.slug}"]`).forEach((el) => {
           const total = Number(el.getAttribute("data-live-total")) || total0;
@@ -219,7 +222,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
         </div>
       </div>
       <div class="border-t border-slate-100 py-6 text-center text-xs text-slate-500">
-        © 2026 qori.cc · Solo mayores de 18 años · Juega con responsabilidad
+        © {new Date().getFullYear()} qori.cc · Solo mayores de 18 años · Juega con responsabilidad
       </div>
     </footer>
   </body>

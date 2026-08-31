@@ -113,6 +113,9 @@ export default function Nav() {
             <a href={me.username ? `/u/${me.username}` : "/cuenta"} role="menuitem" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
               <Icon name="user" className="h-4 w-4 text-slate-400" /> Mi perfil
             </a>
+            <a href="/cuenta" role="menuitem" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+              <Icon name="ticket" className="h-4 w-4 text-slate-400" /> Mis tickets
+            </a>
             {me.role === "ADMIN" && (
               <a href="/admin" role="menuitem" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                 <Icon name="chart" className="h-4 w-4 text-slate-400" /> Admin

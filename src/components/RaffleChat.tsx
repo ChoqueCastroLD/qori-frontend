@@ -6,6 +6,8 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [me, setMe] = useState<any>(null);
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState("");
   const [closesAt, setClosesAt] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const lastRef = useRef<string | null>(null);
@@ -42,12 +44,34 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const t = text.trim();
-    if (!t) return;
-    setText("");
-    await fetch(`/api/raffles/${slug}/chat`, {
-      method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: t }),
-    }).catch(() => {});
+    if (!t || sending) return;
+    setSending(true);
+    setSendErr("");
+    try {
+      const res = await fetch(`/api/raffles/${slug}/chat`, {
+        method: "POST", credentials: "include", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: t }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSendErr(
+          d?.error === "chat_disabled" ? "Tu cuenta no puede escribir en el chat por ahora."
+          : d?.error === "chat_closed" ? "El chat de este sorteo ya se cerró."
+          : d?.error === "too_fast" ? "Muy rápido. Espera un momento entre mensajes."
+          : "No se pudo enviar el mensaje. Intenta de nuevo.",
+        );
+        return;
+      }
+      setText("");
+      // Show our message immediately (the poll would take up to 2.5s).
+      if (d?.message) {
+        setMsgs((prev) => (prev.some((m) => m.id === d.message.id) ? prev : [...prev, d.message].slice(-120)));
+      }
+    } catch {
+      setSendErr("Error de red. Intenta de nuevo.");
+    } finally {
+      setSending(false);
+    }
   }
 
   const closeMs = closesAt ? new Date(closesAt).getTime() : null;
@@ -79,10 +103,13 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
       {closed ? (
         <div className="border-t border-slate-100 p-3 text-center text-xs text-slate-400">El chat de este sorteo se cerró. Quedó como historial.</div>
       ) : me ? (
-        <form onSubmit={send} className="flex gap-2 border-t border-slate-100 p-3">
-          <input value={text} onChange={(e) => setText(e.target.value.slice(0, 300))} placeholder="Escribe un mensaje..." className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          <button className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Enviar</button>
-        </form>
+        <div className="border-t border-slate-100 p-3">
+          {sendErr && <p role="alert" className="mb-2 text-xs text-red-600">{sendErr}</p>}
+          <form onSubmit={send} className="flex gap-2">
+            <input value={text} onChange={(e) => setText(e.target.value.slice(0, 300))} placeholder="Escribe un mensaje..." aria-label="Mensaje" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <button disabled={sending || !text.trim()} className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:bg-slate-300">Enviar</button>
+          </form>
+        </div>
       ) : (
         <div className="border-t border-slate-100 p-3 text-center text-xs text-slate-400">
           <a href="/entrar" className="font-semibold text-emerald-700">Entra</a> para participar en el chat.

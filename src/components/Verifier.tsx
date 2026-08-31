@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import RaffleChat from "./RaffleChat";
 import Icon from "./Icon";
+import { GAME_LABEL } from "../lib/format";
 
-const GAME_LABEL: Record<string, string> = {
-  ELIMINATION: "Eliminación", DIGIT_REVEAL: "Revelado de dígitos",
-  BOMBS: "Bombas", SQUID: "Luz roja, luz verde", HORSE_RACE: "Carrera",
-};
 const GAME_ICON: Record<string, string> = {
   ELIMINATION: "bolt", DIGIT_REVEAL: "hash", BOMBS: "fire", SQUID: "play", HORSE_RACE: "flag",
+  ICE_FLOOR: "snow", MUSICAL_CHAIRS: "music", ROCKETS: "rocket", ROULETTE: "target",
 };
 
 export default function Verifier() {
@@ -17,9 +15,10 @@ export default function Verifier() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [all, setAll] = useState<any[]>([]);
+  const [all, setAll] = useState<any[] | null>(null);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [loadingRaffle, setLoadingRaffle] = useState(false);
 
   useEffect(() => {
     fetch("/api/raffles", { credentials: "include" })
@@ -31,7 +30,7 @@ export default function Verifier() {
   }, []);
 
   // Only drawn, non-legacy raffles are verifiable.
-  const verifiable = all.filter((r) => r.status === "DRAWN" && !r.legacy);
+  const verifiable = (all ?? []).filter((r) => r.status === "DRAWN" && !r.legacy);
   const suggestions = q.trim().length === 0
     ? verifiable
     : verifiable.filter((r) => `${r.title} ${r.slug}`.toLowerCase().includes(q.trim().toLowerCase()));
@@ -44,16 +43,18 @@ export default function Verifier() {
   }
 
   async function load(s: string) {
-    setError(""); setResult(null); setRaffle(null); setParticipants([]);
+    setError(""); setResult(null); setRaffle(null); setParticipants([]); setLoadingRaffle(true);
     try {
       const r = await fetch(`/api/raffles/${s}`, { credentials: "include" }).then((x) => x.json());
       if (r.error) { setError("No se encontró el sorteo."); return; }
       if (r.legacy) { setError("Este sorteo es histórico: se realizó manualmente antes de la plataforma, por eso no tiene semilla ni drand y no es verificable provably-fair."); setRaffle(null); return; }
       if (r.status !== "DRAWN") { setError("Este sorteo aún no ha sido sorteado."); setRaffle(r); return; }
       setRaffle(r);
+      setQ((prev) => prev || r.title);
       const sh = await fetch(`/api/raffles/${s}/show`, { credentials: "include" }).then((x) => x.json());
       setParticipants(sh.participants ?? []);
     } catch { setError("Error al cargar."); }
+    finally { setLoadingRaffle(false); }
   }
 
   async function verify() {
@@ -126,11 +127,19 @@ export default function Verifier() {
               </ul>
             )}
           </div>
-          <button onClick={() => { const m = suggestions[0]; if (m) pick(m); else load(q.trim()); }} className="shrink-0 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Cargar</button>
+          <button onClick={() => { const m = suggestions[0]; if (m) pick(m); else if (q.trim()) load(q.trim()); }} disabled={loadingRaffle} className="shrink-0 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
+            {loadingRaffle ? "Cargando…" : "Cargar"}
+          </button>
         </div>
       </div>
 
-      {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {all !== null && verifiable.length === 0 && !raffle && !error && (
+        <p className="mt-6 rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+          Aún no hay sorteos verificables. Cuando un sorteo termine en la plataforma, aparecerá aquí para que lo revises tú mismo.
+        </p>
+      )}
+
+      {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       {raffle && raffle.status === "DRAWN" && (
         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -177,11 +186,11 @@ export default function Verifier() {
                         Etapa {i + 1}: {GAME_LABEL[st.game] ?? st.game}
                         {st.isFinale && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">final</span>}
                       </div>
-                      <div className="text-xs text-slate-500">{st.eliminated.length} ticket(s) descartado(s)</div>
+                      <div className="text-xs text-slate-500">{st.eliminated.length} {st.eliminated.length === 1 ? "ticket descartado" : "tickets descartados"}</div>
                     </div>
                   </div>
                   {st.game === "DIGIT_REVEAL" && st.data?.winnerNumbers && (
-                    <div className="mb-3 text-sm text-slate-600">Número(s) ganador(es) revelado(s): <strong>{(st.data.winnerNumbers as string[]).join(", ")}</strong></div>
+                    <div className="mb-3 text-sm text-slate-600">{(st.data.winnerNumbers as string[]).length === 1 ? "Número ganador revelado" : "Números ganadores revelados"}: <strong>{(st.data.winnerNumbers as string[]).join(", ")}</strong></div>
                   )}
                   <div className="flex max-h-40 flex-wrap gap-1 overflow-auto">
                     {st.eliminated.map((idx: number) => {

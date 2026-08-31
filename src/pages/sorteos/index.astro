@@ -4,11 +4,14 @@ import RaffleCard from "../../components/RaffleCard.astro";
 import { ssrGet, type Raffle } from "../../lib/api";
 
 const raffles = await ssrGet<Raffle[]>("/raffles", []);
-const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED");
-const past = raffles.filter((r) => r.status === "DRAWN" || r.status === "CANCELLED");
+const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED" || r.status === "DRAWING");
+// Finished raffles: most recent draw first.
+const past = raffles
+  .filter((r) => r.status === "DRAWN" || r.status === "CANCELLED")
+  .sort((a, b) => new Date(b.drawnAt ?? b.closesAt ?? 0).getTime() - new Date(a.drawnAt ?? a.closesAt ?? 0).getTime());
 ---
 
-<Layout title="Sorteos · qori">
+<Layout title="Sorteos · qori" description="Todos los sorteos activos y finalizados de qori. Elige tu premio, compra tu ticket con número único y mira el sorteo en vivo.">
   <div class="mx-auto max-w-6xl px-5 py-12">
     <h1 class="text-3xl font-bold text-slate-900">Sorteos</h1>
     <p class="mt-2 text-slate-500">Elige un sorteo y participa. Todos son verificables.</p>

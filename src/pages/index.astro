@@ -105,7 +105,9 @@ const orgJsonLd = {
         <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-500">
           Tu ticket tiene un número único. El día del sorteo lo ves salir en vivo, y al terminar puedes revisar el resultado tú mismo.
         </p>
-        <p class="mt-3 text-sm text-slate-500" data-usd={(featured.prizeValue / 100).toFixed(2)}>Valor aprox. del premio {usd(featured.prizeValue)}</p>
+        {featured.prizeValue > 0 && (
+          <p class="mt-3 text-sm text-slate-500" data-usd={(featured.prizeValue / 100).toFixed(2)}>Valor aprox. del premio {usd(featured.prizeValue)}</p>
+        )}
         <div class="mt-8 flex items-center justify-center gap-3">
           <a href={`/sorteos/${featured.slug}`} class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">Quiero mi ticket</a>
           <a href="/como-funciona" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Ver cómo funciona</a>

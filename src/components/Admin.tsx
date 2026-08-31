@@ -65,6 +65,7 @@ export default function Admin() {
   }, []);
 
   async function draw(id: string) {
+    if (!confirm("¿Sortear AHORA? Esto cierra la venta, ejecuta el sorteo y publica el resultado. No se puede deshacer.")) return;
     setMsg("Sorteando…");
     const r = await adminFetch(`/admin/raffles/${id}/draw`, { method: "POST" });
     setMsg(r.ok ? `Sorteado. Ganador(es): ${r.data.winners.map((w: any) => "#" + w.number).join(", ")}` : `Error: ${r.data?.error ?? "no se pudo"}`);
@@ -94,9 +95,9 @@ export default function Admin() {
       <h1 className="text-2xl font-bold text-slate-900">Panel de administración</h1>
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
-      <div className="mt-5 flex gap-1 border-b border-slate-200">
+      <div className="mt-5 flex gap-1 overflow-x-auto border-b border-slate-200">
         {([["metrics", "Métricas"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
-          <button key={k} onClick={() => setTab(k)} className={`px-4 py-2.5 text-sm font-semibold ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500"}`}>{l}</button>
+          <button key={k} onClick={() => setTab(k)} className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{l}</button>
         ))}
       </div>
 
@@ -552,7 +553,13 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       ...(f.maxPerUser !== "" && Number(f.maxPerUser) > 0 ? { maxTicketsPerUser: Number(f.maxPerUser) } : {}),
     };
     const r = await adminFetch("/admin/raffles", { method: "POST", body: JSON.stringify(body) });
-    if (r.ok) onCreated(); else setErr(JSON.stringify(r.data));
+    if (r.ok) { onCreated(); return; }
+    const ERRS: Record<string, string> = {
+      invalid_slug: "Slug inválido: usa solo minúsculas, números y guiones (ej. ps5-octubre).",
+      slug_taken: "Ya existe un sorteo con ese slug.",
+      finale_not_in_games: "El juego final debe estar entre los juegos elegidos.",
+    };
+    setErr(ERRS[r.data?.error] ?? `Error: ${r.data?.error ?? JSON.stringify(r.data)}`);
   }
   const inp = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
   return (

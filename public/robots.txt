@@ -3,5 +3,6 @@ Allow: /
 Disallow: /admin
 Disallow: /cuenta
 Disallow: /recargar
+Disallow: /recuperar
 
 Sitemap: https://qori.cc/sitemap.xml

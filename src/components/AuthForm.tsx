@@ -28,6 +28,11 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (typeof window !== "undefined" && new URLSearchParams(location.search).get("oauth") === "unavailable") {
       setNotice("El acceso con Google estará disponible pronto. Usa tu correo por ahora.");
     }
+    // Already logged in: go straight to the account page.
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.user) window.location.href = "/cuenta"; })
+      .catch(() => {});
   }, []);
 
   async function post(path: string, body: any) {
@@ -43,7 +48,15 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   async function login(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setErr("");
     const { ok, d } = await post("login", { email, password });
-    if (!ok) { setErr(ERR[d.error] ?? "No se pudo entrar."); setLoading(false); return; }
+    if (!ok) {
+      setErr(
+        d.error === "too_many_attempts"
+          ? "Demasiados intentos fallidos. Espera unos minutos o recupera tu contraseña."
+          : ERR[d.error] ?? "No se pudo entrar.",
+      );
+      setLoading(false);
+      return;
+    }
     window.location.href = "/cuenta";
   }
 
@@ -82,9 +95,10 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         <h1 className="text-2xl font-bold text-slate-900">Entrar</h1>
         <p className="mt-1 text-sm text-slate-500">Bienvenido de vuelta.</p>
         <div className="mt-5"><label className="mb-1 block text-sm font-medium text-slate-700">Correo</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inp} /></div>
+          <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inp} /></div>
         <div className="mt-4"><label className="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inp} /></div>
+          <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inp} />
+          <p className="mt-1.5 text-right"><a href="/recuperar" className="text-xs font-semibold text-slate-500 hover:text-slate-900">¿Olvidaste tu contraseña?</a></p></div>
         {notice && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">{notice}</p>}
         {err && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
         <button disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{loading ? "…" : "Entrar"}</button>
@@ -101,7 +115,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         <h1 className="text-2xl font-bold text-slate-900">Crear cuenta</h1>
         <p className="mt-1 text-sm text-slate-500">Verificamos tu correo antes de crear la cuenta.</p>
         <div className="mt-5"><label className="mb-1 block text-sm font-medium text-slate-700">Correo</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tucorreo@gmail.com" className={inp} /></div>
+          <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tucorreo@gmail.com" className={inp} /></div>
         <p className="mt-2 text-xs text-slate-400">Solo correos conocidos (Gmail, Outlook, Hotmail, Yahoo, iCloud…).</p>
         {notice && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">{notice}</p>}
         {err && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
@@ -122,15 +136,15 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       </p>
       {notice && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">{notice}</p>}
       <div className="mt-5"><label className="mb-1 block text-sm font-medium text-slate-700">Código de 6 dígitos</label>
-        <input inputMode="numeric" pattern="[0-9]*" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required placeholder="123456" className={`${inp} text-center text-lg font-bold tracking-[0.4em]`} /></div>
+        <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required placeholder="123456" className={`${inp} text-center text-lg font-bold tracking-[0.4em]`} /></div>
       <div className="mt-2 flex items-center justify-between">
         <button type="button" onClick={requestCode as any} disabled={loading} className="text-xs font-semibold text-slate-500 hover:text-slate-900">Reenviar código</button>
         <span className="text-xs text-slate-400">El correo puede tardar unos minutos.</span>
       </div>
       <div className="mt-4"><label className="mb-1 block text-sm font-medium text-slate-700">Nombre</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} required className={inp} /></div>
+        <input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required className={inp} /></div>
       <div className="mt-4"><label className="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
+        <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
           onInvalid={(e) => e.currentTarget.setCustomValidity("La contraseña debe tener al menos 8 caracteres.")}
           onInput={(e) => e.currentTarget.setCustomValidity("")} className={inp} /></div>
       <div className="mt-4"><label className="mb-1 block text-sm font-medium text-slate-700">Código de referido (opcional)</label>

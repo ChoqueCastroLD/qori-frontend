@@ -7,16 +7,25 @@ const { raffle: r } = Astro.props;
 const sold = r.ticketsSold ?? 0;
 const progress = pct(sold, r.totalTickets);
 const isDrawn = r.status === "DRAWN";
+// CLOSED/DRAWING = the draw is happening or imminent; not open for purchase.
+const isLive = r.status === "CLOSED" || r.status === "DRAWING";
+const isCancelled = r.status === "CANCELLED";
 const winner = r.winners?.[0];
+const image = r.images?.[0] ?? "/og.png";
+const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled ? "Ver detalle" : isLive ? "Ver el sorteo" : "Participar";
 ---
-<a href={`/sorteos/${r.slug}`} class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60">
+<a href={`/sorteos/${r.slug}`} class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
   <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
-    <img src={r.images[0]} alt={r.title} class="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+    <img src={image} alt={r.title} class="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
     <div class="absolute left-3 top-3 flex gap-2">
       {r.blocked ? (
         <span class="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white">No disponible</span>
       ) : isDrawn ? (
         <span class="rounded-full bg-slate-900/90 px-2.5 py-1 text-xs font-semibold text-white">Finalizado</span>
+      ) : isCancelled ? (
+        <span class="rounded-full bg-slate-400 px-2.5 py-1 text-xs font-semibold text-white">Cancelado</span>
+      ) : isLive ? (
+        <span class="flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white"><span class="h-1.5 w-1.5 animate-pulse rounded-full bg-white"></span>En sorteo</span>
       ) : (
         <span class="rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white">Activo</span>
       )}
@@ -27,15 +36,21 @@ const winner = r.winners?.[0];
   </div>
   <div class="flex flex-1 flex-col p-4">
     <h3 class="font-semibold text-slate-900 line-clamp-1">{r.title}</h3>
-    <p class="mt-1 text-sm text-slate-500" data-usd={(r.prizeValue / 100).toFixed(2)}>Valor aprox. {usd(r.prizeValue)}</p>
+    {r.prizeValue > 0 && (
+      <p class="mt-1 text-sm text-slate-500" data-usd={(r.prizeValue / 100).toFixed(2)}>Valor aprox. {usd(r.prizeValue)}</p>
+    )}
 
-    {isDrawn ? (
+    {isDrawn && winner ? (
       <div class="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 p-3">
-        {winner?.avatarUrl && <img src={winner.avatarUrl} class="h-8 w-8 rounded-full" alt="" />}
+        {winner.avatarUrl && <img src={winner.avatarUrl} class="h-8 w-8 rounded-full object-cover" alt="" loading="lazy" />}
         <div class="text-sm">
-          <div class="flex items-center gap-1.5 font-semibold text-slate-900"><Icon name="trophy" class="h-4 w-4 text-amber-500" /> {winner?.nickname ?? "Ganador"}</div>
-          <div class="text-xs text-slate-500">Ticket #{winner?.ticketNumber}</div>
+          <div class="flex items-center gap-1.5 font-semibold text-slate-900"><Icon name="trophy" class="h-4 w-4 text-amber-500" /> {winner.nickname ?? "Ganador"}</div>
+          <div class="text-xs text-slate-500">Ticket #{winner.ticketNumber}</div>
         </div>
+      </div>
+    ) : isDrawn || isCancelled ? (
+      <div class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">
+        {isCancelled ? "Sorteo cancelado: lingotes reembolsados." : "Resultado disponible en la página del sorteo."}
       </div>
     ) : (
       <div class="mt-4">
@@ -54,7 +69,7 @@ const winner = r.winners?.[0];
       {r.ticketPrice === 0 ? "Gratis" : (<>{lingotes(r.ticketPrice)} <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.95em] w-[0.95em] align-[-0.12em]" /></>)}
       <span class="text-xs font-normal text-slate-500"> /ticket</span>
     </span>
-      <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:underline">{r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : "Participar"} <Icon name="arrow-right" class="h-4 w-4" /></span>
+      <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:underline">{cta} <Icon name="arrow-right" class="h-4 w-4" /></span>
     </div>
   </div>
 </a>

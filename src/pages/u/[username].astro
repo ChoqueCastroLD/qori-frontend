@@ -9,5 +9,5 @@ if (!data) return Astro.redirect("/404");
 const p = data.profile;
 ---
 <Layout title={`@${p.username} · qori`} description={`Perfil público de @${p.username} en qori: tickets y actividad.`} noindex={false}>
-  <ProfileView username={username} client:load />
+  <ProfileView username={username!} client:load />
 </Layout>

@@ -20,6 +20,28 @@ const TOPUP_STATUS: Record<string, string> = {
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
+// One card per raffle with all its ticket numbers (instead of one row per ticket).
+function groupTickets(tickets: any[]) {
+  const map = new Map<string, { slug: string; title: string; image: string | null; status: string; lastAt: string | null; hasWin: boolean; tickets: any[] }>();
+  for (const t of tickets) {
+    let g = map.get(t.raffle.slug);
+    if (!g) {
+      g = { slug: t.raffle.slug, title: t.raffle.title, image: t.raffle.images?.[0] ?? null, status: t.raffle.status, lastAt: t.createdAt ?? null, hasWin: false, tickets: [] };
+      map.set(t.raffle.slug, g);
+    }
+    if (t.win) g.hasWin = true;
+    if (t.createdAt && (!g.lastAt || t.createdAt > g.lastAt)) g.lastAt = t.createdAt;
+    g.tickets.push(t);
+  }
+  for (const g of map.values()) g.tickets.sort((a, b) => a.number - b.number);
+  // Active raffles first, then most recent purchases.
+  return [...map.values()].sort((a, b) => {
+    const act = (s: string) => (s === "OPEN" || s === "CLOSED" || s === "DRAWING" ? 0 : 1);
+    if (act(a.status) !== act(b.status)) return act(a.status) - act(b.status);
+    return (b.lastAt ?? "").localeCompare(a.lastAt ?? "");
+  });
+}
+
 export default function Account() {
   const [me, setMe] = useState<any>(null);
   const [tab, setTab] = useState<"tickets" | "recargas" | "wallet" | "referrals">("tickets");
@@ -50,7 +72,8 @@ export default function Account() {
 
   async function saveProfile() {
     setSaving(true); setProfErr("");
-    const body: any = { nickname: nickname || undefined, avatarUrl: avatarUrl || undefined };
+    // Send both even when empty, so clearing the nickname/avatar also works.
+    const body: any = { nickname, avatarUrl };
     const uname = username.trim().toLowerCase();
     if (uname && uname !== (me?.username ?? "")) body.username = uname;
     const res = await fetch("/api/me/profile", {
@@ -113,7 +136,7 @@ export default function Account() {
     );
   if (!me) return null;
 
-  const refLink = typeof window !== "undefined" ? `${location.origin}/registro?ref=${refs?.code}` : "";
+  const refLink = typeof window !== "undefined" && refs?.code ? `${location.origin}/registro?ref=${refs.code}` : "";
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-10">
@@ -190,9 +213,9 @@ export default function Account() {
         </div>
       )}
 
-      <div className="mt-6 flex gap-1 border-b border-slate-200">
+      <div className="mt-6 flex gap-1 overflow-x-auto border-b border-slate-200">
         {([["tickets", "Mis tickets"], ["recargas", "Recargas"], ["wallet", "Movimientos"], ["referrals", "Referidos"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} className={`px-4 py-2.5 text-sm font-semibold ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{label}</button>
+          <button key={k} onClick={() => setTab(k)} className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{label}</button>
         ))}
       </div>
 
@@ -202,19 +225,28 @@ export default function Account() {
             <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Aún no tienes tickets. <a href="/sorteos" className="font-semibold text-emerald-700">Ver sorteos</a></p>
           ) : (
             <div className="space-y-3">
-              {tickets.map((t) => (
-                <div key={t.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center gap-3">
-                    {t.raffle.images?.[0] && <img src={t.raffle.images[0]} className="h-12 w-12 rounded-lg object-cover" alt="" />}
-                    <div>
-                      <a href={`/sorteos/${t.raffle.slug}`} className="font-semibold text-slate-900 hover:underline">{t.raffle.title}</a>
-                      <div className="text-xs text-slate-500">{t.raffle.status === "DRAWN" ? "Finalizado" : "Activo"}{t.createdAt ? ` · comprado el ${fmtDate(t.createdAt)}` : ""}</div>
-                      {t.comment && <div className="mt-0.5 text-xs italic text-slate-400">“{t.comment}”</div>}
+              {groupTickets(tickets).map((g) => (
+                <div key={g.slug} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {g.image && <img src={g.image} className="h-12 w-12 shrink-0 rounded-lg object-cover" alt="" />}
+                      <div className="min-w-0">
+                        <a href={`/sorteos/${g.slug}`} className="font-semibold text-slate-900 hover:underline">{g.title}</a>
+                        <div className="text-xs text-slate-500">
+                          {g.status === "DRAWN" ? "Finalizado" : g.status === "CANCELLED" ? "Cancelado (reembolsado)" : "Activo"}
+                          {" · "}{g.tickets.length} ticket{g.tickets.length > 1 ? "s" : ""}
+                          {g.lastAt ? ` · última compra ${fmtDate(g.lastAt)}` : ""}
+                        </div>
+                      </div>
                     </div>
+                    {g.hasWin && <span className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700"><Icon name="trophy" className="h-3.5 w-3.5" /> ¡Ganador!</span>}
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-bold text-slate-700"><TicketIcon />#{t.number}</span>
-                    {t.win && <div className="mt-1 flex items-center justify-end gap-1 text-xs font-bold text-emerald-700"><Icon name="trophy" className="h-3.5 w-3.5" /> ¡Ganador!</div>}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {g.tickets.map((t) => (
+                      <span key={t.id} title={t.comment ? `“${t.comment}”` : undefined} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-mono text-xs font-bold ${t.win ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
+                        <TicketIcon />#{t.number}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -257,17 +289,26 @@ export default function Account() {
         </div>
       )}
 
-      {tab === "wallet" && wallet && (
+      {tab === "wallet" && (
+        !wallet ? <p className="mt-6 rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">No se pudieron cargar los movimientos. Recarga la página.</p> :
         <div className="mt-6 space-y-2">
-          {wallet.entries.length === 0 ? <p className="text-slate-400">Sin movimientos.</p> : wallet.entries.map((e: any) => (
-            <div key={e.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-4 py-2.5 text-sm">
-              <span className="text-slate-600">{LTYPE[e.type] ?? e.type}{e.memo ? ` · ${e.memo}` : ""}</span>
-              <span className={e.amount >= 0 ? "font-semibold text-emerald-700" : "font-semibold text-slate-500"}>{e.amount >= 0 ? "+" : ""}{e.amount} <Lingote /></span>
+          {wallet.entries.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Sin movimientos todavía. Tu historial de lingotes aparecerá aquí.</p>
+          ) : wallet.entries.map((e: any) => (
+            <div key={e.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-white px-4 py-2.5 text-sm">
+              <div className="min-w-0">
+                <span className="text-slate-600">{LTYPE[e.type] ?? e.type}{e.memo ? ` · ${e.memo}` : ""}</span>
+                {e.createdAt && <span className="ml-2 whitespace-nowrap text-xs text-slate-400">{fmtDate(e.createdAt)}</span>}
+              </div>
+              <span className={`shrink-0 ${e.amount >= 0 ? "font-semibold text-emerald-700" : "font-semibold text-slate-500"}`}>{e.amount >= 0 ? "+" : ""}{e.amount} <Lingote /></span>
             </div>
           ))}
         </div>
       )}
 
+      {tab === "referrals" && !refs && (
+        <p className="mt-6 rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">No se pudo cargar tu información de referidos. Recarga la página.</p>
+      )}
       {tab === "referrals" && refs && (
         <div className="mt-6">
           <div className="rounded-2xl border border-slate-200 bg-white p-6">

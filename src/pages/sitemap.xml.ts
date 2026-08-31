@@ -4,7 +4,7 @@ import { ssrGet, type Raffle } from "../lib/api";
 const SITE = "https://qori.cc";
 
 export const GET: APIRoute = async () => {
-  const staticPages = ["/", "/sorteos", "/como-funciona", "/verificar", "/legal/terminos", "/legal/bases", "/legal/privacidad"];
+  const staticPages = ["/", "/sorteos", "/ganadores", "/como-funciona", "/verificar", "/legal/terminos", "/legal/bases", "/legal/privacidad"];
   const raffles = await ssrGet<Raffle[]>("/raffles", []);
 
   const urls: string[] = [];

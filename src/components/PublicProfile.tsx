@@ -2,6 +2,11 @@ import Icon from "./Icon";
 import Skeleton from "./Skeleton";
 import { useEffect, useState } from "react";
 
+const COUNTRY: Record<string, string> = {
+  PE: "Perú", MX: "México", CO: "Colombia", CL: "Chile",
+  AR: "Argentina", EC: "Ecuador", BO: "Bolivia", VE: "Venezuela",
+};
+
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 const fmtDay = (iso: string) =>
@@ -38,7 +43,12 @@ export default function PublicProfile({ username }: { username: string }) {
           <div className="text-sm font-medium text-emerald-700">@{p.username}</div>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500 sm:justify-start">
             <span>Miembro desde {fmtDay(p.createdAt)}</span>
-            {p.country && <span>{p.country}</span>}
+            {p.country && (
+              <span className="inline-flex items-center gap-1.5">
+                {COUNTRY[p.country] && <img src={`/flags/${p.country.toLowerCase()}.svg`} alt="" width="16" height="12" className="h-3 w-4 rounded-[2px] border border-slate-200 object-cover" />}
+                {COUNTRY[p.country] ?? p.country}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-3">
