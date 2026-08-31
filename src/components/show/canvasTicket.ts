@@ -1,4 +1,4 @@
-// Rich ticket rendering for the canvas games — cinematic dark theme. A ticket is
+// Rich ticket rendering for the canvas games - cinematic dark theme. A ticket is
 // a glowing disc showing the owner's PHOTO (clipped) or a gradient with their
 // initial, plus optional name + number chips. Images are cached and drawn once
 // loaded (never read back, so no CORS taint issues); until then we fall back to
@@ -109,7 +109,7 @@ export function drawTicket(ctx: CanvasRenderingContext2D, t: TicketDraw) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.strokeStyle = t.dim ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.28)"; ctx.lineWidth = 1.5; ctx.stroke();
 
-  // ALWAYS show the ticket number — a compact "#N" pill riding the disc's lower
+  // ALWAYS show the ticket number - a compact "#N" pill riding the disc's lower
   // edge, readable over a photo or a colour+initial.
   if (!t.compact && r >= 8 && (t.showLabel ?? true)) {
     const lbl = "#" + t.number;

@@ -158,8 +158,8 @@ function Metrics({ m }: { m: any }) {
 
 const CUR_SYM: Record<string, string> = { PEN: "S/ ", USD: "$", MXN: "MX$", COP: "COL$", CLP: "CLP$", ARS: "AR$" };
 const money = (cur: string | null, minor: number | null) =>
-  minor == null ? "—" : `${CUR_SYM[cur ?? ""] ?? (cur ? cur + " " : "")}${(minor / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const pctFmt = (p: number | null) => (p == null ? "—" : (p * 100).toFixed(2) + "%");
+  minor == null ? "-" : `${CUR_SYM[cur ?? ""] ?? (cur ? cur + " " : "")}${(minor / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const pctFmt = (p: number | null) => (p == null ? "-" : (p * 100).toFixed(2) + "%");
 const METHOD: Record<string, string> = { MERCADOPAGO: "MercadoPago", PAYPAL: "PayPal", YAPE: "Yape", PLIN: "Plin", TRANSFER: "Transferencia", CRYPTO: "Cripto" };
 const PSTATUS: Record<string, string> = { PAID: "Pagado", PENDING: "Pendiente", FAILED: "Fallido", REFUNDED: "Reembolsado" };
 
@@ -197,7 +197,7 @@ function Purchases({ p }: { p: any }) {
             {p.purchases.map((r: any) => (
               <tr key={r.id} className="border-b border-slate-50 last:border-0">
                 <td className="p-3 text-xs text-slate-500">{fmt(r.confirmedAt || r.createdAt)}</td>
-                <td className="p-3"><div className="font-medium text-slate-800">{r.user?.nickname || "—"}</div><div className="text-xs text-slate-400">{r.user?.email}</div></td>
+                <td className="p-3"><div className="font-medium text-slate-800">{r.user?.nickname || "-"}</div><div className="text-xs text-slate-400">{r.user?.email}</div></td>
                 <td className="p-3 text-slate-600">{METHOD[r.method] ?? r.method}</td>
                 <td className="p-3 text-right">
                   <div className="font-medium text-slate-800">{r.grossAmount != null ? money(r.chargeCurrency, r.grossAmount) : usd(r.amountUsd)}</div>
@@ -206,9 +206,9 @@ function Purchases({ p }: { p: any }) {
                 <td className="p-3 text-right">
                   {r.feeAmount != null ? (
                     <><div className="font-medium text-red-600">-{money(r.chargeCurrency, r.feeAmount)}</div><div className="text-xs text-slate-400">{pctFmt(r.feePct)}</div></>
-                  ) : <span className="text-slate-300">—</span>}
+                  ) : <span className="text-slate-300">-</span>}
                 </td>
-                <td className="p-3 text-right font-medium text-emerald-700">{r.netAmount != null ? money(r.chargeCurrency, r.netAmount) : "—"}</td>
+                <td className="p-3 text-right font-medium text-emerald-700">{r.netAmount != null ? money(r.chargeCurrency, r.netAmount) : "-"}</td>
                 <td className="p-3 text-right text-slate-700">{nf(r.lingotes)}</td>
                 <td className="p-3"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${r.status === "PAID" ? "bg-emerald-100 text-emerald-700" : r.status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{PSTATUS[r.status] ?? r.status}</span></td>
               </tr>
@@ -267,14 +267,14 @@ function UserRow({ u, onToggle }: { u: any; onToggle: (id: string, patch: any) =
       </div>
       {open && (
         <div className="grid gap-3 border-t border-slate-100 p-3 text-xs sm:grid-cols-3 lg:grid-cols-4">
-          <Detail label="País" value={u.country || "—"} />
+          <Detail label="País" value={u.country || "-"} />
           <Detail label="Registrado" value={fmt(u.createdAt)} />
           <Detail label="Compras / intentos" value={`${u.orders} / ${u.buyAttempts}`} />
           <Detail label="Tickets" value={String(u.ticketsOwned)} />
           <Detail label="Lingotes gastados" value={nf(u.lingotesSpent)} />
           <Detail label="Saldo lingotes" value={nf(u.balance)} />
           <Detail label="Recargas" value={`${u.topupCount} · ${usd(u.spentUsd)}`} />
-          <Detail label="Medios de pago" value={u.methods?.length ? u.methods.map((m: string) => METHOD[m] ?? m).join(", ") : "—"} />
+          <Detail label="Medios de pago" value={u.methods?.length ? u.methods.map((m: string) => METHOD[m] ?? m).join(", ") : "-"} />
           <Detail label="Referidos" value={String(u.referralsCount)} />
           <Detail label="Código referido" value={u.referralCode} />
           <Detail label="Correo verificado" value={u.emailVerified ? "sí" : "no"} />
@@ -447,7 +447,7 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                   </button>
                 </div>
                 {r.blocked ? (
-                  <p className="mt-2 text-sm text-red-700"><span className="font-medium">Razón:</span> {r.blockReason || "—"}</p>
+                  <p className="mt-2 text-sm text-red-700"><span className="font-medium">Razón:</span> {r.blockReason || "-"}</p>
                 ) : (
                   <input
                     value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
@@ -496,14 +496,14 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                     <tbody>
                       {detail.participants.map((p: any) => (
                         <tr key={p.userId} className="border-t border-slate-100 align-top">
-                          <td className="py-2 pr-3"><div className="font-medium text-slate-800">{p.nickname || "—"}</div><div className="text-xs text-slate-400">{p.email}</div></td>
-                          <td className="py-2 pr-3 text-slate-600">{p.country || "—"}</td>
+                          <td className="py-2 pr-3"><div className="font-medium text-slate-800">{p.nickname || "-"}</div><div className="text-xs text-slate-400">{p.email}</div></td>
+                          <td className="py-2 pr-3 text-slate-600">{p.country || "-"}</td>
                           <td className="py-2 pr-3 text-slate-600">{accountAge(p.accountCreatedAt)}</td>
                           <td className="py-2 pr-3 font-semibold text-slate-800">{p.tickets}</td>
                           <td className="py-2 pr-3 text-slate-600">{nf(p.lingotesSpent)}</td>
                           <td className="py-2 pr-3 text-slate-600">{nf(p.balance)}</td>
                           <td className="py-2 pr-3 text-xs text-slate-500">{fmt(p.firstBoughtAt)}</td>
-                          <td className="py-2 text-xs italic text-slate-500">{p.comments?.length ? p.comments.map((c: string, i: number) => <div key={i}>“{c}”</div>) : "—"}</td>
+                          <td className="py-2 text-xs italic text-slate-500">{p.comments?.length ? p.comments.map((c: string, i: number) => <div key={i}>“{c}”</div>) : "-"}</td>
                         </tr>
                       ))}
                     </tbody>

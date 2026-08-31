@@ -17,7 +17,7 @@ export default function DigitRevealGame({ participants, stage, stageIdx, step, e
   const revealOrder: number[] = stage.data?.revealOrder ?? [];
   const digitsFlat = useMemo(() => winnerNumbers.flatMap((n) => n.split("")), [winnerNumbers]);
 
-  // Digits revealed so far — proportional to elimination progress (pure fn).
+  // Digits revealed so far - proportional to elimination progress (pure fn).
   const revealedCount = step >= totalSteps ? revealOrder.length : Math.floor((step * revealOrder.length) / totalSteps);
   const revealedSet = useMemo(() => new Set(revealOrder.slice(0, revealedCount).map((d) => ((d % Math.max(1, digitsFlat.length)) + digitsFlat.length) % Math.max(1, digitsFlat.length))), [revealOrder, revealedCount, digitsFlat.length]);
 

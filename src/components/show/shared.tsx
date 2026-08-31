@@ -10,7 +10,7 @@ export interface Participant {
 }
 
 // Props every minigame receives. Everything a game renders MUST be a pure
-// function of (stage data, stageIdx, step) — no wall-clock or Math.random().
+// function of (stage data, stageIdx, step) - no wall-clock or Math.random().
 export interface GameProps {
   participants: Participant[];
   stage: any;
@@ -67,7 +67,7 @@ export function useWidth<T extends HTMLElement>(): [RefObject<T | null>, number]
   return [ref, w];
 }
 
-// Viewport height (layout input, not randomness) — lets arenas cap their own
+// Viewport height (layout input, not randomness) - lets arenas cap their own
 // height so no game ever forces the page to scroll to be watched.
 export function useViewportH(): number {
   const [h, setH] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 800));
@@ -104,7 +104,7 @@ export function cellFor(n: number): number {
 }
 
 // Pick the biggest cell size whose grid of n items fits within maxH (given the
-// available width). Pure layout math — guarantees no page scroll for any count.
+// available width). Pure layout math - guarantees no page scroll for any count.
 export function fitCellFor(n: number, width: number, maxH: number): { cell: number; gap: number } {
   const w = Math.max(200, width);
   for (let cell = cellFor(n); cell >= 22; cell -= 2) {
@@ -117,7 +117,7 @@ export function fitCellFor(n: number, width: number, maxH: number): { cell: numb
 }
 
 // Telegraph overlay: pulsing red target ring + crosshair over the NEXT victim.
-// Rendered whenever `step` says someone is about to fall — pure fn of step, and
+// Rendered whenever `step` says someone is about to fall - pure fn of step, and
 // the CSS pulse only animates presentation (no randomness, no clock state).
 export function TargetRing() {
   return (
@@ -186,7 +186,7 @@ export function OutTray({ participants, elimSeq, myIndices, dark = false }: { pa
   return (
     <div className={`mt-4 rounded-2xl border p-3 ${dark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"}`}>
       <div className={`mb-2 text-[11px] font-semibold uppercase tracking-wide ${dark ? "text-white/50" : "text-slate-400"}`}>
-        Fuera ({elimSeq.length}) — orden de eliminación, el último primero
+        Fuera ({elimSeq.length}) - orden de eliminación, el último primero
       </div>
       <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
         {rev.map((i) => (

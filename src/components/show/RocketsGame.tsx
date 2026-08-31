@@ -3,7 +3,7 @@ import { arenaMaxH, hashSeed, mulberry32, useViewportH, useWidth, type GameProps
 import { drawTicket } from "./canvasTicket";
 import { drawArenaBg, hudBar, phaseBanner, hexA } from "./arenaFx";
 
-// COHETES — self-timed, faithful to the owner's "lluvia de meteoritos": the
+// COHETES - self-timed, faithful to the owner's "lluvia de meteoritos": the
 // finalists orbit in rings; each WAVE an impact zone appears, roams the arena
 // scaring tickets, locks onto a cluster, then a meteor streaks in and the whole
 // wave pops together (ghost outlines linger where they flew). WHO falls and the

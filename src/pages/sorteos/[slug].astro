@@ -4,6 +4,7 @@ import Icon from "../../components/Icon.astro";
 import BuyWidget from "../../components/BuyWidget.tsx";
 import DrawCountdown from "../../components/DrawCountdown.tsx";
 import ShowPlayer from "../../components/ShowPlayer.tsx";
+import RaffleChat from "../../components/RaffleChat.tsx";
 import { ssrGet, type Raffle } from "../../lib/api";
 import { lingotes, usd, pct, timeLeft, GAME_LABEL } from "../../lib/format";
 
@@ -183,6 +184,7 @@ const partTotal = partData.totalTickets ?? 0;
             <p class="mt-2 text-xs text-amber-600">Vuelve pronto, se reactivará en cuanto esté listo.</p>
           </div>
         ) : isDrawn ? (
+          <div class="space-y-4">
           <div class="rounded-2xl border border-slate-200 bg-white p-6">
             <h3 class="flex items-center gap-2 text-lg font-bold text-slate-900"><Icon name="trophy" class="h-5 w-5 text-amber-500" /> Ganadores</h3>
             <ul class="mt-4 space-y-3">
@@ -199,6 +201,8 @@ const partTotal = partData.totalTickets ?? 0;
             {r.legacy
               ? <p class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">Sorteo histórico (hecho a mano antes de la plataforma).</p>
               : <a href={`/sorteos/${r.slug}/show`} class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"><Icon name="play" class="h-4 w-4" /> Ver el show</a>}
+          </div>
+          {!r.legacy && <RaffleChat client:load slug={r.slug} compact />}
           </div>
         ) : (
           <div class="space-y-4">

@@ -26,7 +26,7 @@ export default function HorseRaceGame({ participants, stage, stageIdx, step, eli
   }, [stageElim]);
 
   // Fit ALL lanes inside the viewport cap: row height derives from available
-  // height, avatar size from row height. Internal layout only — never scroll.
+  // height, avatar size from row height. Internal layout only - never scroll.
   const maxH = arenaMaxH(vh);
   const rowH = Math.max(26, Math.min(66, Math.floor((maxH - 40) / Math.max(1, lanes.length))));
   const cell = Math.max(20, Math.min(44, rowH - 12));
@@ -86,7 +86,7 @@ export default function HorseRaceGame({ participants, stage, stageIdx, step, eli
     setBursts((b) => [...b.slice(-10), ...fresh]);
   });
 
-  // Current leader (mid-race only) for the "1°" chip — pure fn of step.
+  // Current leader (mid-race only) for the "1°" chip - pure fn of step.
   const leader = useMemo(() => {
     if (step <= 0 || step >= totalSteps) return null;
     const inRace = lanes.filter((i) => (elimAt.get(i) ?? Infinity) > step);

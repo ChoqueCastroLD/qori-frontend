@@ -44,7 +44,7 @@ export default function DrawCountdown({ closesAt, slug }: { closesAt: string; sl
       if (stop) return;
       try {
         const r = await fetch(`/api/raffles/${slug}`).then((x) => (x.ok ? x.json() : null));
-        // Show is ready: reload THIS url — the raffle page renders the live show
+        // Show is ready: reload THIS url - the raffle page renders the live show
         // inline (same view, no navigation to another url).
         if (r?.show?.startsAt) { window.location.reload(); return; }
         // Extended (+24h for min tickets) or cancelled: reload to show new state.

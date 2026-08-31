@@ -1,4 +1,4 @@
-// Web Audio synthesis for the show — no audio files. All sounds are built
+// Web Audio synthesis for the show - no audio files. All sounds are built
 // from oscillators + seeded noise buffers. The AudioContext is only created
 // after a user gesture (ensure()); every call is guarded so a missing/blocked
 // audio stack can never break the show.

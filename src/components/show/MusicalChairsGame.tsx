@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Avatar, OutTray, arenaMaxH, useViewportH, useWidth, type GameProps } from "./shared";
 
-// LAS SILLAS — show, don't tell: a real ring of chairs sits in the center and
+// LAS SILLAS - show, don't tell: a real ring of chairs sits in the center and
 // the alive tickets literally WALK AROUND them (the ring spins). Chairs =
 // survivors of the current round (alive - ~10%). When a ticket is out it's
 // bumped off the ring. Who leaves and when is the stage's `eliminated` order

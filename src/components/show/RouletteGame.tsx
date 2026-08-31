@@ -3,7 +3,7 @@ import { arenaMaxH, useViewportH, useWidth, type GameProps } from "./shared";
 import { drawTicket } from "./canvasTicket";
 import { drawArenaBg, hudBar, label, rr, hexA, TXT, MUT } from "./arenaFx";
 
-// RULETA RUSA (final) — self-timed, faithful to the owner's "tambor oculto"
+// RULETA RUSA (final) - self-timed, faithful to the owner's "tambor oculto"
 // design. The REVOLVER is fixed on the right and fires STRAIGHT left; the DRUM
 // (ring of finalists) rotates to bring the aimed ticket in front of the muzzle.
 // Each cycle the cylinder swings open, bullets fly in and disappear (the
@@ -18,11 +18,11 @@ const GOLD = "#F5B301", BONE = "#E7E5DC", RED = "#ff5555", ORG = "#EF9F27";
 const ease = (p: number) => 1 - Math.pow(1 - p, 3);
 const smooth = (p: number) => p * p * (3 - 2 * p);
 
-// ---- choreography timing (ms) — ticks of the original * 16.667
+// ---- choreography timing (ms) - ticks of the original * 16.667
 const OPEN = 440, INS_EACH = 280, CLOSE = 340, WHIRL = 1250;
-const SPIN1 = 2300, SPIN2 = 420, AIM = 640, RESULT = 660, CELEB = 3200;
+const SPIN1 = 2300, SPIN2 = 420, AIM = 640, RESULT = 660, CELEB = 4600;
 
-// ---- design space (uniformly scaled to fit) — geometry from the reference
+// ---- design space (uniformly scaled to fit) - geometry from the reference
 const DW = 660, DH = 420;
 const CXW = 172, CYW = 208, DRAD = 124; // drum ring
 const GX = 492, GY = 208, MZ = GX - 100; // gun + muzzle
@@ -110,7 +110,7 @@ export default function RouletteGame({ participants, stage, myIndices, winnerSet
       ctx.restore(); ctx.globalAlpha = 1;
     };
 
-    // Fixed revolver aiming LEFT — geometry ported from the reference design.
+    // Fixed revolver aiming LEFT - geometry ported from the reference design.
     const drawGun = (recoil: number, hamm: number, cylOff: number, cylSpin: number, whirlA: number) => {
       const gx = GX + recoil, gy = GY;
       const steel = "#3c3c42", steel2 = "#4c4c54", line = "#71717c";
@@ -151,7 +151,7 @@ export default function RouletteGame({ participants, stage, myIndices, winnerSet
       ctx.moveTo(-3, 27); ctx.lineTo(10, 27); ctx.moveTo(-2, 36); ctx.lineTo(10, 36); ctx.stroke();
       ctx.restore();
       ctx.restore();
-      // cylinder — SOLID (chambers hidden); swings down-left when open
+      // cylinder - SOLID (chambers hidden); swings down-left when open
       const cpx = GX + 2 - 8 * cylOff + recoil, cpy = GY + 26 * cylOff;
       ctx.save(); ctx.translate(cpx, cpy); ctx.rotate(cylOff * 0.18);
       ctx.fillStyle = "#4a4a47"; ctx.strokeStyle = line; ctx.lineWidth = 1.5;
@@ -216,7 +216,7 @@ export default function RouletteGame({ participants, stage, myIndices, winnerSet
         });
       }
       s.lastMs = ms;
-      // celebration confetti — spawned over a window so late seekers see it too
+      // celebration confetti - spawned over a window so late seekers see it too
       if (celeb && ms - sched.celebAt < 2600 && s.confetti.length < 150) {
         for (let i = 0; i < 6; i++) s.confetti.push({ x: Math.random() * DW, y: -10 - Math.random() * 40, vx: (Math.random() - 0.5) * 2.5, vy: 1 + Math.random() * 2.5, rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, life: 1, c: PAL[Math.floor(Math.random() * PAL.length)], w: 5 + Math.random() * 4 });
       }
@@ -318,7 +318,7 @@ export default function RouletteGame({ participants, stage, myIndices, winnerSet
           x = x + (GX - 22 - x) * p; y = y + (GY - 26 - y) * p; r2 = BALLR + 18 * p;
           if (p > 0.2) { ctx.save(); ctx.shadowColor = GOLD; ctx.shadowBlur = 24; ctx.beginPath(); ctx.arc(x, y, r2 + 6 + Math.sin(tk * 0.1) * 2.5, 0, Math.PI * 2); ctx.strokeStyle = GOLD; ctx.lineWidth = 3; ctx.stroke(); ctx.restore(); }
         }
-        drawTicket(ctx, { x, y, r: r2, color: c.color(id), number: pt?.number ?? id + 1, nickname: pt?.nickname, avatarUrl: pt?.avatarUrl, mine: c.myIndices.has(id), winner: celeb && c.isFinaleDone && id === winId, showName: celeb && slot === winSlot && celebP > 0.6 });
+        drawTicket(ctx, { x, y, r: r2, color: c.color(id), number: pt?.number ?? id + 1, nickname: pt?.nickname, avatarUrl: pt?.avatarUrl, mine: c.myIndices.has(id), winner: celeb && slot === winSlot, showName: celeb && slot === winSlot && celebP > 0.6 });
       }
 
       // bang particles
@@ -329,7 +329,7 @@ export default function RouletteGame({ participants, stage, myIndices, winnerSet
       if (!celeb) {
         drawGun(recoil, hamm, cylOff, cylSpin, whirlA);
 
-        // muzzle flash — straight, at the muzzle
+        // muzzle flash - straight, at the muzzle
         if (flash > 0) {
           ctx.save(); ctx.translate(MZ + recoil, GY);
           ctx.shadowColor = GOLD; ctx.shadowBlur = 20; ctx.fillStyle = "#FAC775";

@@ -3,10 +3,10 @@ import { arenaMaxH, hashSeed, mulberry32, useViewportH, useWidth, type GameProps
 import { drawTicket } from "./canvasTicket";
 import { drawArenaBg, hudBar, phaseBanner, rr, hexA } from "./arenaFx";
 
-// BOMBAS "campo minado" — self-timed scripted show, faithful to the owner's
+// BOMBAS "campo minado" - self-timed scripted show, faithful to the owner's
 // reference: phase announcements as a clean modal, the cross bomb ROAMS the
 // grid with a live row+column telegraph and a 3-2-1 count, then ONE expanding
-// cross of fire wipes the whole row and column together (no mid-chaos reflow —
+// cross of fire wipes the whole row and column together (no mid-chaos reflow -
 // the grid compacts once, after the batch falls). The pineapple drops, bounces,
 // sits ticking and bursts: the host is SALVADO, mini-pineapples arc onto the
 // neighbours. The jumping bomb hops across decoys with a countdown before it
@@ -271,11 +271,12 @@ export default function BombsGame({ participants, stage, stageIdx, myIndices, wi
         const gTop = c.top + Math.max(0, (c.availH - ep.rows * c.rowH) / 2);
         if (ev.type === "cross") {
           const rel = ms - ev.annEnd;
-          // bomb position: roam over waypoints, settle on target for the count
+          const armLen = ev.detAt - ev.annEnd; const settle = armLen * 0.8;
+          // bomb position: roam over waypoints, settle on target for the last beat
           const wps = roam[sched.evs.indexOf(ev)] ?? [ev.target];
           let bx = 0, by = 0, curId = ev.target;
-          if (rel < SWEEP) {
-            const fp = rel / SWEEP; const segf = fp * (wps.length - 1);
+          if (rel < settle) {
+            const fp = rel / settle; const segf = fp * (wps.length - 1);
             const i0 = Math.min(wps.length - 2, Math.floor(segf)); const f = segf - i0;
             const a = posOf(wps[i0], ms), b = posOf(wps[i0 + 1], ms);
             const sm = f * f * (3 - 2 * f);
@@ -289,7 +290,7 @@ export default function BombsGame({ participants, stage, stageIdx, myIndices, wi
           if (ms < ev.detAt) {
             // row+column telegraph on the current ticket
             const slot = ep.slot.get(curId) ?? 0; const col = slot % sched.cols, row = Math.floor(slot / sched.cols);
-            const locked = rel >= SWEEP; const urgent = locked && ms > ev.detAt - COUNT_EACH * 2;
+            const locked = rel >= settle; const urgent = ms > ev.detAt - COUNT_EACH;
             ctx.save();
             ctx.globalAlpha = (urgent ? 0.15 : 0.09) + Math.sin(tk * (urgent ? 0.5 : 0.25)) * 0.04;
             ctx.fillStyle = RED;
@@ -402,8 +403,9 @@ export default function BombsGame({ participants, stage, stageIdx, myIndices, wi
         if (ev.type === "cross" && ms < ev.detAt) {
           const wps = roam[sched.evs.indexOf(ev)] ?? [ev.target];
           let bx: number, by: number;
-          if (rel < SWEEP) {
-            const fp = rel / SWEEP; const segf = fp * (wps.length - 1);
+          const armLen = ev.detAt - ev.annEnd; const settle = armLen * 0.8;
+          if (rel < settle) {
+            const fp = rel / settle; const segf = fp * (wps.length - 1);
             const i0 = Math.min(wps.length - 2, Math.floor(segf)); const f = segf - i0;
             const a = posOf(wps[i0], ms), b = posOf(wps[i0 + 1], ms);
             const sm = f * f * (3 - 2 * f);
@@ -413,7 +415,8 @@ export default function BombsGame({ participants, stage, stageIdx, myIndices, wi
           // red cross sight under the glyph
           ctx.save(); ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
           ctx.beginPath(); ctx.moveTo(bx - 13, by); ctx.lineTo(bx + 13, by); ctx.moveTo(bx, by - 13); ctx.lineTo(bx, by + 13); ctx.stroke(); ctx.restore();
-          const n = rel < SWEEP ? 3 : Math.max(1, 3 - Math.floor((rel - SWEEP) / COUNT_EACH));
+          // continuous countdown 5..1 across the whole arming window; frozen at 1
+          const n = Math.max(1, Math.ceil((1 - rel / armLen) * 4) + 1);
           countGlyph(bx, by - 26, n, tk, n <= 1);
         } else if (ev.type === "pine") {
           const hp = posOf(ev.host, ms);

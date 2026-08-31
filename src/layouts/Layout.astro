@@ -173,7 +173,7 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
           try {
             const d = JSON.parse(e.data);
             if (d.draw && d.slug) {
-              // The raffle just drew: if we're on its page, reload it — the page
+              // The raffle just drew: if we're on its page, reload it - the page
               // renders the live show inline (same url, no navigation).
               const p = location.pathname.replace(/\/$/, "");
               if (p === `/sorteos/${d.slug}`) window.location.reload();

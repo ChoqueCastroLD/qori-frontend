@@ -6,7 +6,7 @@ import { ParticleCanvas, type Burst } from "./Particles";
 // EL PISO ES HIELO: everyone stands on a chessboard of ice tiles over dark
 // water. In escalating waves (data.waves) the ice degrades: roughly half the
 // tiles show hairline cracks, half of those crack deeper the next wave, and so
-// on — plenty of scary fake-outs — until the tile under each doomed ticket
+// on - plenty of scary fake-outs - until the tile under each doomed ticket
 // SHATTERS and they drop through. Crack levels are a pure function of
 // (stage data, tile, step) via the seeded PRNG; nothing is random at runtime.
 export default function IceFloorGame({ participants, stage, stageIdx, step, elimSeq, myIndices, winnerSet, isFinaleDone }: GameProps) {
@@ -25,7 +25,7 @@ export default function IceFloorGame({ participants, stage, stageIdx, step, elim
   const waveIdx = waveEnds.findIndex((e) => step < e);
   const currentWave = waveIdx === -1 ? waves.length : waveIdx + 1;
 
-  // Fixed tile per ticket for the whole stage — the board never reflows, holes
+  // Fixed tile per ticket for the whole stage - the board never reflows, holes
   // stay where people fell (that's the scary part).
   const slots = useMemo(
     () => aliveBefore.slice().sort((a, b) => participants[b].number - participants[a].number),
@@ -166,7 +166,7 @@ export default function IceFloorGame({ participants, stage, stageIdx, step, elim
           if (stageElimSet.has(i)) return null;
           const p = layout.pos(slot);
           const lvl = levelOf(slot, i);
-          const panicking = lvl >= 2; // their ice is giving way — they feel it
+          const panicking = lvl >= 2; // their ice is giving way - they feel it
           return (
             <div key={i} className="absolute left-0 top-0" style={{ transform: `translate(${p.x + 16}px, ${p.y + 34}px)`, width: cell, zIndex: panicking ? 15 : 10 }}>
               <motion.div

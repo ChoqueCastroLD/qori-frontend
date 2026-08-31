@@ -6,8 +6,12 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [me, setMe] = useState<any>(null);
   const [text, setText] = useState("");
+  const [closesAt, setClosesAt] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const lastRef = useRef<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => setMe(d?.user ?? null));
@@ -17,6 +21,7 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
         const q = lastRef.current ? `?after=${encodeURIComponent(lastRef.current)}` : "";
         const d = await fetch(`/api/raffles/${slug}/chat${q}`, { credentials: "include" }).then((r) => r.json());
         if (!alive) return;
+        if ("closesAt" in d) setClosesAt(d.closesAt ?? null);
         if (d.messages?.length) {
           setMsgs((prev) => {
             const seen = new Set(prev.map((m) => m.id));
@@ -45,12 +50,18 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
     }).catch(() => {});
   }
 
+  const closeMs = closesAt ? new Date(closesAt).getTime() : null;
+  const closed = closeMs != null && now > closeMs;
+  const closingIn = closeMs != null && !closed ? Math.max(0, Math.ceil((closeMs - now) / 1000)) : null;
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
   return (
     <div className={`flex flex-col rounded-2xl border border-slate-200 bg-white ${compact ? "h-[420px]" : "h-[520px]"}`}>
       <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-rose-500"></span>
-        <h3 className="text-sm font-bold text-slate-900">Chat en vivo</h3>
+        <span className={`h-2 w-2 rounded-full ${closed ? "bg-slate-300" : "animate-pulse bg-rose-500"}`}></span>
+        <h3 className="text-sm font-bold text-slate-900">{closed ? "Chat (histórico)" : "Chat en vivo"}</h3>
         <span className="text-xs text-slate-400">{msgs.length} mensajes</span>
+        {closingIn != null && <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">Cierra en {mmss(closingIn)}</span>}
       </div>
       <div ref={boxRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {msgs.length === 0 ? (
@@ -65,9 +76,11 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
           </div>
         ))}
       </div>
-      {me ? (
+      {closed ? (
+        <div className="border-t border-slate-100 p-3 text-center text-xs text-slate-400">El chat de este sorteo se cerró. Quedó como historial.</div>
+      ) : me ? (
         <form onSubmit={send} className="flex gap-2 border-t border-slate-100 p-3">
-          <input value={text} onChange={(e) => setText(e.target.value.slice(0, 300))} placeholder="Escribe un mensaje…" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <input value={text} onChange={(e) => setText(e.target.value.slice(0, 300))} placeholder="Escribe un mensaje..." className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           <button className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Enviar</button>
         </form>
       ) : (

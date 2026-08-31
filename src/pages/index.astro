@@ -7,7 +7,11 @@ import { lingotes, usd } from "../lib/format";
 
 const raffles = await ssrGet<Raffle[]>("/raffles", []);
 const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED").slice(0, 3);
-const past = raffles.filter((r) => r.status === "DRAWN").slice(0, 3);
+// Finished raffles: most recent first (by draw date), latest 20.
+const past = raffles
+  .filter((r) => r.status === "DRAWN")
+  .sort((a, b) => new Date(b.drawnAt ?? b.closesAt ?? 0).getTime() - new Date(a.drawnAt ?? a.closesAt ?? 0).getTime())
+  .slice(0, 20);
 
 // Hero is driven by the top BUYABLE raffle (most sales, then soonest to close).
 // Blocked raffles still appear in the grid, just not as the hero CTA.

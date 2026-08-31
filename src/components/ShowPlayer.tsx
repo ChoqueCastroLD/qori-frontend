@@ -58,7 +58,7 @@ const GAP_MS = 2200;
 // Losers tray under the arena: grouped by stage (most recent stage on top),
 // most recent loser first within each group; photo/initial + ticket number.
 function StageLosers({ stages, stageIdx, step, participants, myIndices, meta }: any) {
-  const groups: { label: string; color: string; nums: { n: number; name: string; url: string | null; mine: boolean }[] }[] = [];
+  const groups: { label: string; color: string; nums: { n: number; name: string; url: string | null; mine: boolean; username: string | null; comment: string | null }[] }[] = [];
   for (let si = stageIdx; si >= 0; si--) {
     const st = stages[si]; if (!st) continue;
     const elim: number[] = st.eliminated ?? [];
@@ -66,24 +66,26 @@ function StageLosers({ stages, stageIdx, step, participants, myIndices, meta }: 
     if (cnt <= 0) continue;
     const taken = elim.slice(0, cnt).slice().reverse();
     const m = meta[st.game] ?? { label: st.game, color: "bg-slate-700" };
-    groups.push({ label: `Etapa ${si + 1} · ${m.label}`, color: m.color, nums: taken.map((i: number) => ({ n: participants[i]?.number ?? i + 1, name: participants[i]?.nickname ?? "", url: participants[i]?.avatarUrl ?? null, mine: myIndices.has(i) })) });
+    groups.push({ label: `Etapa ${si + 1} · ${m.label}`, color: m.color, nums: taken.map((i: number) => ({ n: participants[i]?.number ?? i + 1, name: participants[i]?.nickname ?? "", url: participants[i]?.avatarUrl ?? null, mine: myIndices.has(i), username: participants[i]?.username ?? null, comment: participants[i]?.comment ?? null })) });
   }
   if (!groups.length) return null;
   const total = groups.reduce((a, g) => a + g.nums.length, 0);
   return (
     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Fuera ({total}) — por etapa, recientes primero</div>
+      <div className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Fuera ({total}) - por etapa, recientes primero</div>
       <div className="space-y-3">
         {groups.map((g, gi) => (
           <div key={gi}>
             <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-500"><span className={`inline-block h-2 w-2 rounded-full ${g.color}`}></span>{g.label} <span className="text-slate-400">· {g.nums.length}</span></div>
             <div className="flex flex-wrap gap-1.5">
-              {g.nums.map((t, i) => (
-                <span key={i} className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 font-mono text-xs ${t.mine ? "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-300" : "bg-slate-100 text-slate-500"}`}>
-                  {t.url ? <img src={t.url} className="h-5 w-5 rounded-full object-cover" alt="" /> : <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-[9px] font-bold text-white">{(t.name?.[0] ?? "#").toUpperCase()}</span>}
-                  #{t.n}
-                </span>
-              ))}
+              {g.nums.map((t, i) => {
+                const tip = `${t.name || "Anónimo"} · #${t.n}${t.comment ? ` - "${t.comment}"` : ""}`;
+                const cls = `inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 font-mono text-xs ${t.mine ? "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-300" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`;
+                const inner = <>{t.url ? <img src={t.url} className="h-5 w-5 rounded-full object-cover" alt="" /> : <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-[9px] font-bold text-white">{(t.name?.[0] ?? "#").toUpperCase()}</span>}#{t.n}</>;
+                return t.username
+                  ? <a key={i} href={`/u/${t.username}`} title={tip} className={cls}>{inner}</a>
+                  : <span key={i} title={tip} className={cls}>{inner}</span>;
+              })}
             </div>
           </div>
         ))}
@@ -152,6 +154,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   const offsets = useMemo(() => { const o: number[] = []; let t = 0; for (let i = 0; i < durations.length; i++) { o.push(t); t += durations[i] + GAP_MS; } return o; }, [durations]);
   const showTotal = useMemo(() => (durations.length ? offsets[offsets.length - 1] + durations[durations.length - 1] : 0), [offsets, durations]);
   const manualStartRef = useRef<number | null>(null);
+  const [manualOverride, setManualOverride] = useState(false); // replay forces manual mode even mid-live
 
   // --- Live synchronization (clock-driven) ---
   const totalDuration = useMemo(
@@ -177,7 +180,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   useEffect(() => {
     if (!data || !stages.length || !selfTimed) return;
     const liveStart = new Date(data.startsAt).getTime();
-    const live = Date.now() < liveStart + showTotal + 3000;
+    const live = !manualOverride && Date.now() < liveStart + showTotal + 3000;
     if (!live && manualStartRef.current == null) manualStartRef.current = Date.now();
     const tick = () => {
       const base = live ? liveStart : (manualStartRef.current ?? Date.now());
@@ -192,7 +195,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     tick();
     const id = setInterval(tick, 150);
     return () => clearInterval(id);
-  }, [data, selfTimed, offsets, showTotal]);
+  }, [data, selfTimed, offsets, showTotal, manualOverride]);
 
   useEffect(() => {
     if (!data || !stages.length || selfTimed) return;
@@ -302,7 +305,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
       }
       default: audio.blip();
     }
-    // Final stretch: heartbeat when only a few remain — edge-of-seat tension.
+    // Final stretch: heartbeat when only a few remain - edge-of-seat tension.
     if (stage.isFinale) {
       const alive = participants.length - elimSet.size;
       if (alive > winners.length && alive <= 4) audio.heartbeat();
@@ -317,7 +320,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
   }, [isFinaleDone, audio]);
 
   function goStage(i: number) {
-    if (selfTimed) { manualStartRef.current = Date.now() - (offsets[i] ?? 0); setLiveMode(false); setStageIdx(i); setStep(0); return; }
+    if (selfTimed) { setManualOverride(true); manualStartRef.current = Date.now() - (offsets[i] ?? 0); setLiveMode(false); setStageIdx(i); setStep(0); return; }
     setStageIdx(i); setStep(0); setPlaying(false);
   }
   // Replay from the top in manual mode (from the final screen's "Ver de nuevo").
@@ -325,8 +328,17 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     chimed.current = false;
     prevPos.current = { s: -1, st: 0 };
     setLiveMode(false);
-    if (selfTimed) manualStartRef.current = Date.now();
+    if (selfTimed) { setManualOverride(true); manualStartRef.current = Date.now(); }
     setStageIdx(0); setStep(0); setPlaying(true);
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
+  }
+  // Replay just the final stage (the roulette) + its winner celebration.
+  function replayFinal() {
+    if (!stages.length) return;
+    chimed.current = false; prevPos.current = { s: -1, st: 0 };
+    const last = stages.length - 1;
+    if (selfTimed) { setManualOverride(true); setLiveMode(false); manualStartRef.current = Date.now() - (offsets[last] ?? 0); }
+    setStageIdx(last); setStep(0);
     try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
   }
 
@@ -390,7 +402,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
             {stages.map((s: any, i: number) => {
               const cls = `inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${i === stageIdx ? `${(GAME_META[s.game] ?? meta).color} text-white` : "bg-slate-100 text-slate-500"}`;
               const inner = <><Icon name={(GAME_META[s.game] ?? meta).icon} className="h-3.5 w-3.5" /> {i + 1}{s.isFinale ? <Icon name="trophy" className="h-3.5 w-3.5" /> : null}</>;
-              // Live: passive progress indicator (no jumping — preserves the illusion).
+              // Live: passive progress indicator (no jumping - preserves the illusion).
               return liveMode
                 ? <span key={i} className={`${cls} cursor-default select-none`}>{inner}</span>
                 : <button key={i} onClick={() => goStage(i)} className={cls}>{inner}</button>;
@@ -403,7 +415,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
         <div>
           {isFinaleDone ? (
             <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 220, damping: 24 }}>
-              <FinalScreen winners={winners} participants={participants} slug={slug} onReplay={replay} />
+              <FinalScreen winners={winners} participants={participants} slug={slug} onReplay={replay} onReplayFinal={replayFinal} />
             </motion.div>
           ) : (
             <div className="relative">
@@ -424,7 +436,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
               )}
             </div>
           )}
-          {/* Losers, always below the arena — grouped by stage, most recent first. */}
+          {/* Losers, always below the arena - grouped by stage, most recent first. */}
           {selfTimed && <StageLosers stages={stages} stageIdx={stageIdx} step={step} participants={participants} myIndices={myIndices} meta={GAME_META} />}
           <p className="mt-3 text-center text-xs text-slate-400">Todo el show se deriva de la semilla comprometida - reproducible y verificable.</p>
         </div>
