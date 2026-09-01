@@ -38,11 +38,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function Admin() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"metrics" | "purchases" | "users" | "raffles" | "create">("metrics");
+  const [tab, setTab] = useState<"metrics" | "purchases" | "users" | "raffles" | "winners" | "create">("metrics");
   const [raffles, setRaffles] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [purchases, setPurchases] = useState<any>(null);
   const [users, setUsers] = useState<any[] | null>(null);
+  const [winners, setWinners] = useState<any[] | null>(null);
   const [msg, setMsg] = useState("");
 
   function reload() {
@@ -50,6 +51,23 @@ export default function Admin() {
     adminFetch("/admin/metrics").then((r) => r.ok && setMetrics(r.data));
     adminFetch("/admin/purchases").then((r) => r.ok && setPurchases(r.data));
     adminFetch("/admin/users").then((r) => r.ok && setUsers(r.data));
+    adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
+  }
+  async function setPrizeStatus(id: string, prizeStatus: string) {
+    const res = await adminFetch(`/admin/winners/${id}`, { method: "PATCH", body: JSON.stringify({ prizeStatus }) });
+    if (res.ok) adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
+    else setMsg(`Error: ${res.data?.error ?? "no se pudo"}`);
+  }
+  async function notifyWinners() {
+    const dry = await adminFetch("/admin/winners/notify?dryRun=1", { method: "POST" });
+    if (!dry.ok) { setMsg(`Error: ${dry.data?.error ?? "no se pudo"}`); return; }
+    const n = dry.data?.count ?? 0;
+    if (n === 0) { setMsg("No hay ganadores pendientes de notificar."); return; }
+    if (!confirm(`Se enviará el correo de premio (con código de canje) a ${n} ganador(es) que aún no han sido notificados. ¿Continuar?`)) return;
+    setMsg("Enviando correos...");
+    const res = await adminFetch("/admin/winners/notify", { method: "POST" });
+    setMsg(res.ok ? `Correos enviados: ${res.data.sent}` : `Error: ${res.data?.error ?? "no se pudo"}`);
+    adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
   }
   async function toggleUserFlag(id: string, patch: any) {
     const res = await adminFetch(`/admin/users/${id}/flags`, { method: "POST", body: JSON.stringify(patch) });
@@ -96,7 +114,7 @@ export default function Admin() {
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
       <div className="mt-5 flex gap-1 overflow-x-auto border-b border-slate-200">
-        {([["metrics", "Métricas"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
+        {([["metrics", "Métricas"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["winners", "Ganadores"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{l}</button>
         ))}
       </div>
@@ -115,6 +133,8 @@ export default function Admin() {
           {raffles.length === 0 && <p className="text-slate-400">No hay sorteos.</p>}
         </div>
       )}
+
+      {tab === "winners" && <WinnersPanel winners={winners} onStatus={setPrizeStatus} onNotify={notifyWinners} />}
 
       {tab === "create" && <CreateRaffle onCreated={() => { setMsg("Sorteo creado"); setTab("raffles"); reload(); }} />}
     </div>
@@ -602,5 +622,65 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       {err && <p className="text-sm text-red-600">{err}</p>}
       <button className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white">Crear sorteo</button>
     </form>
+  );
+}
+
+const fmtD = (iso: string | null) => (iso ? new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : "-");
+
+function RevealCode({ code }: { code: string | null }) {
+  const [show, setShow] = useState(false);
+  if (!code) return <span className="text-xs text-slate-400">-</span>;
+  return (
+    <button onClick={() => setShow((s) => !s)} title="Mostrar/ocultar" className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2 py-1 font-mono text-xs font-bold tracking-wider text-emerald-300 hover:bg-slate-800">
+      <Icon name={show ? "eye-off" : "eye"} className="h-3.5 w-3.5" />
+      {show ? code : "QORI-****-****"}
+    </button>
+  );
+}
+
+function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; onStatus: (id: string, s: string) => void; onNotify: () => void }) {
+  if (!winners) return <div className="mt-6 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>;
+  const pending = winners.filter((w) => w.email && !w.notifiedAt && !w.raffle?.legacy).length;
+  return (
+    <div className="mt-6">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">{winners.length} ganador(es){pending > 0 ? ` · ${pending} sin notificar` : ""}</p>
+        <button onClick={onNotify} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+          <Icon name="bell" className="h-4 w-4" /> Notificar pendientes
+        </button>
+      </div>
+      {winners.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Aún no hay ganadores.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50 text-xs text-slate-400">
+              <tr><th className="p-3">Sorteo</th><th className="p-3">Ganador</th><th className="p-3">Ticket</th><th className="p-3">Valor</th><th className="p-3">Código</th><th className="p-3">Notificado</th><th className="p-3">Estado</th></tr>
+            </thead>
+            <tbody>
+              {winners.map((w) => (
+                <tr key={w.id} className="border-t border-slate-100 align-middle">
+                  <td className="p-3"><a href={`/sorteos/${w.raffle?.slug}`} className="font-semibold text-slate-800 hover:underline">{w.raffle?.title}</a></td>
+                  <td className="p-3"><div className="font-medium text-slate-800">{w.name ?? "-"}</div><div className="text-xs text-slate-400">{w.email ?? (w.raffle?.legacy ? "histórico" : "sin cuenta")}</div></td>
+                  <td className="p-3 font-mono text-slate-600">#{w.ticketNumber ?? "-"}</td>
+                  <td className="p-3 text-slate-600">{w.raffle?.prizeValue > 0 ? usd(w.raffle.prizeValue) : "-"}</td>
+                  <td className="p-3"><RevealCode code={w.claimCode} /></td>
+                  <td className="p-3 text-xs text-slate-500">{fmtD(w.notifiedAt)}</td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => onStatus(w.id, w.prizeStatus === "DELIVERED" ? "PENDING" : "DELIVERED")}
+                      className={`rounded-full px-2.5 py-1 text-xs font-bold ${w.prizeStatus === "DELIVERED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+                      title="Cambiar estado"
+                    >
+                      {w.prizeStatus === "DELIVERED" ? "Entregado" : "Pendiente"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

@@ -20,6 +20,69 @@ const TOPUP_STATUS: Record<string, string> = {
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
+const usd = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
+
+// A prize claim code, hidden by default (click to reveal), with copy. Only the
+// owner ever sees this - it must only be shared with @shoko_cc on Discord.
+function ClaimCode({ code }: { code: string | null }) {
+  const [show, setShow] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (!code) return <span className="text-xs text-slate-400">Código no disponible</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <code className="rounded-lg bg-slate-900 px-3 py-1.5 font-mono text-sm font-bold tracking-wider text-emerald-300">
+        {show ? code : "QORI-****-****"}
+      </code>
+      <button onClick={() => setShow((s) => !s)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+        <Icon name={show ? "eye-off" : "eye"} className="h-4 w-4" /> {show ? "Ocultar" : "Mostrar"}
+      </button>
+      {show && (
+        <button onClick={() => { navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+          <Icon name={copied ? "check" : "copy"} className="h-4 w-4" /> {copied ? "Copiado" : "Copiar"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function WinsPanel({ wins }: { wins: any[] }) {
+  if (!wins.length)
+    return <p className="mt-6 rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-400">Aún no has ganado ningún premio. ¡Sigue participando!</p>;
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <strong>¿Cómo reclamo?</strong> Escríbeme por Discord a <strong>@shoko_cc</strong> y entrégame el código de canje de tu premio.
+        No compartas tu código con nadie más: cualquiera que lo tenga podría intentar reclamar tu premio.
+      </div>
+      {wins.map((w) => (
+        <div key={w.id} className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              {w.raffle?.image && <img src={w.raffle.image} className="h-12 w-12 shrink-0 rounded-lg object-cover" alt="" />}
+              <div className="min-w-0">
+                <a href={`/sorteos/${w.raffle?.slug}`} className="font-semibold text-slate-900 hover:underline">{w.raffle?.title}</a>
+                <div className="text-xs text-slate-500">
+                  Ticket #{w.ticketNumber}{w.raffle?.prizeValue > 0 ? ` · valor aprox. ${usd(w.raffle.prizeValue)}` : ""}
+                  {w.drawnAt ? ` · ${fmtDate(w.drawnAt)}` : ""}
+                </div>
+              </div>
+            </div>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${w.prizeStatus === "DELIVERED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+              {w.prizeStatus === "DELIVERED" ? "Entregado" : "Por reclamar"}
+            </span>
+          </div>
+          {w.prizeStatus !== "DELIVERED" && (
+            <div className="mt-3 border-t border-slate-100 pt-3">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Tu código de canje</div>
+              <ClaimCode code={w.claimCode} />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // One card per raffle with all its ticket numbers (instead of one row per ticket).
 function groupTickets(tickets: any[]) {
   const map = new Map<string, { slug: string; title: string; image: string | null; status: string; lastAt: string | null; hasWin: boolean; tickets: any[] }>();
@@ -44,7 +107,8 @@ function groupTickets(tickets: any[]) {
 
 export default function Account() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"tickets" | "recargas" | "wallet" | "referrals">("tickets");
+  const [tab, setTab] = useState<"tickets" | "premios" | "recargas" | "wallet" | "referrals">("tickets");
+  const [wins, setWins] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [topups, setTopups] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
@@ -103,7 +167,7 @@ export default function Account() {
         // broken endpoint never blanks the whole page.
         const j = (path: string) =>
           fetch(path, { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-        return Promise.all([j("/api/me/tickets"), j("/api/me/wallet"), j("/api/me/referrals"), j("/api/topups/mine")]);
+        return Promise.all([j("/api/me/tickets"), j("/api/me/wallet"), j("/api/me/referrals"), j("/api/topups/mine"), j("/api/me/wins")]);
       })
       .then((res) => {
         if (!res) return;
@@ -111,6 +175,7 @@ export default function Account() {
         setWallet(res[1] && Array.isArray(res[1].entries) ? res[1] : null);
         setRefs(res[2]?.code ? res[2] : null);
         setTopups(res[3]?.topups ?? []);
+        setWins(Array.isArray(res[4]?.wins) ? res[4].wins : []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -213,10 +278,12 @@ export default function Account() {
       )}
 
       <div className="mt-6 flex gap-1 overflow-x-auto border-b border-slate-200">
-        {([["tickets", "Mis tickets"], ["recargas", "Recargas"], ["wallet", "Movimientos"], ["referrals", "Referidos"]] as const).map(([k, label]) => (
+        {([["tickets", "Mis tickets"], ["premios", wins.length ? `Mis premios (${wins.length})` : "Mis premios"], ["recargas", "Recargas"], ["wallet", "Movimientos"], ["referrals", "Referidos"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{label}</button>
         ))}
       </div>
+
+      {tab === "premios" && <WinsPanel wins={wins} />}
 
       {tab === "tickets" && (
         <div className="mt-6">
