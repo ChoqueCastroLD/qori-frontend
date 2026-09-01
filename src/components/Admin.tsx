@@ -639,12 +639,57 @@ function RevealCode({ code }: { code: string | null }) {
 }
 
 function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; onStatus: (id: string, s: string) => void; onNotify: () => void }) {
+  const [q, setQ] = useState("");
   if (!winners) return <div className="mt-6 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>;
   const pending = winners.filter((w) => w.email && !w.notifiedAt && !w.raffle?.legacy).length;
+  const qn = q.trim().toUpperCase();
+  // Exact code match = the "redeem" flow (winner pastes their code on Discord).
+  const match = qn.startsWith("QORI-") ? winners.find((w) => (w.claimCode || "").toUpperCase() === qn) : null;
+  const shown = qn ? winners.filter((w) => [w.claimCode || "", w.raffle?.title || "", w.name || "", w.email || ""].some((s: string) => s.toUpperCase().includes(qn))) : winners;
   return (
     <div className="mt-6">
+      {/* Canjear por código: pega el código que te mandan por Discord */}
+      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+        <label className="text-sm font-semibold text-slate-800">Canjear premio por código</label>
+        <p className="mb-2 text-xs text-slate-500">Pega el código que te envía el ganador por Discord para ver su premio y marcarlo como entregado.</p>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="QORI-XXXX-XXXX"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-mono text-sm uppercase tracking-wider"
+        />
+        {qn.startsWith("QORI-") && !match && (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">No se encontró ningún ganador con ese código. Verifica que esté bien escrito.</p>
+        )}
+        {match && (
+          <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-lg font-bold text-slate-900">{match.raffle?.title}</div>
+                <div className="text-sm text-slate-600">
+                  {match.raffle?.prizeValue > 0 ? `Premio: valor aprox. ${usd(match.raffle.prizeValue)} · ` : ""}Ticket #{match.ticketNumber}
+                </div>
+                <div className="mt-1 text-sm text-slate-600">Ganador: <strong>{match.name ?? "sin cuenta"}</strong>{match.email ? ` · ${match.email}` : ""}{match.username ? ` · @${match.username}` : ""}</div>
+              </div>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${match.prizeStatus === "DELIVERED" ? "bg-emerald-200 text-emerald-800" : "bg-amber-100 text-amber-700"}`}>
+                {match.prizeStatus === "DELIVERED" ? "Entregado" : "Por entregar"}
+              </span>
+            </div>
+            <div className="mt-3">
+              {match.prizeStatus === "DELIVERED" ? (
+                <button onClick={() => onStatus(match.id, "PENDING")} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">Revertir a pendiente</button>
+              ) : (
+                <button onClick={() => onStatus(match.id, "DELIVERED")} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500">
+                  <Icon name="check" className="h-4 w-4" /> Marcar como entregado
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{winners.length} ganador(es){pending > 0 ? ` · ${pending} sin notificar` : ""}</p>
+        <p className="text-sm text-slate-500">{winners.length} ganador(es){pending > 0 ? ` · ${pending} sin notificar` : ""}{qn ? ` · ${shown.length} en la búsqueda` : ""}</p>
         <button onClick={onNotify} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700">
           <Icon name="bell" className="h-4 w-4" /> Notificar pendientes
         </button>
@@ -658,7 +703,7 @@ function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; 
               <tr><th className="p-3">Sorteo</th><th className="p-3">Ganador</th><th className="p-3">Ticket</th><th className="p-3">Valor</th><th className="p-3">Código</th><th className="p-3">Notificado</th><th className="p-3">Estado</th></tr>
             </thead>
             <tbody>
-              {winners.map((w) => (
+              {shown.map((w) => (
                 <tr key={w.id} className="border-t border-slate-100 align-middle">
                   <td className="p-3"><a href={`/sorteos/${w.raffle?.slug}`} className="font-semibold text-slate-800 hover:underline">{w.raffle?.title}</a></td>
                   <td className="p-3"><div className="font-medium text-slate-800">{w.name ?? "-"}</div><div className="text-xs text-slate-400">{w.email ?? (w.raffle?.legacy ? "histórico" : "sin cuenta")}</div></td>
