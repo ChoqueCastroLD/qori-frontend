@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 interface Msg { id: string; nickname: string; avatarUrl: string | null; text: string; createdAt: string; ticketNumbers?: number[]; }
 
+const fmtTime = (iso: string) =>
+  new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+
 // Ticket badge next to a chat message. On PAID raffles we never reveal HOW MANY
 // tickets someone holds, so it's just an icon (they bought). On FREE raffles it
 // shows the count: their total before the show, and alive/total (e.g. 2/3, red
@@ -118,6 +121,7 @@ export default function RaffleChat({ slug, compact, elimNumbers, paid }: { slug:
               <span className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-slate-700">{m.nickname}</span>
                 <TicketBadge nums={m.ticketNumbers} elim={elimNumbers} paid={paid} />
+                <time dateTime={m.createdAt} title={new Date(m.createdAt).toLocaleString("es-PE")} className="text-[10px] text-slate-400">{fmtTime(m.createdAt)}</time>
               </span>
               <p className={`break-words text-sm ${!paid && elimNumbers && m.ticketNumbers && m.ticketNumbers.length > 0 && m.ticketNumbers.every((n) => elimNumbers.has(n)) ? "text-red-500" : "text-slate-600"}`}>{m.text}</p>
             </div>
