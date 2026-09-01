@@ -171,7 +171,7 @@ const partTotal = partData.totalTickets ?? 0;
             in the right column instead. */}
         {!isDrawn && !r.blocked && !r.legacy && (
           <div class="mt-8">
-            <RaffleChat client:load slug={r.slug} compact />
+            <RaffleChat client:load slug={r.slug} compact paid={r.ticketPrice > 0} />
           </div>
         )}
 
@@ -222,7 +222,7 @@ const partTotal = partData.totalTickets ?? 0;
               ? <p class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">Sorteo histórico (hecho a mano antes de la plataforma).</p>
               : <a href={`/sorteos/${r.slug}/show`} class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"><Icon name="play" class="h-4 w-4" /> Ver el show</a>}
           </div>
-          {!r.legacy && <RaffleChat client:load slug={r.slug} compact />}
+          {!r.legacy && <RaffleChat client:load slug={r.slug} compact paid={r.ticketPrice > 0} />}
           </div>
         ) : (
           <div class="space-y-4">

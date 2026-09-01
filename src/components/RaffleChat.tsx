@@ -2,12 +2,18 @@ import { useEffect, useRef, useState } from "react";
 
 interface Msg { id: string; nickname: string; avatarUrl: string | null; text: string; createdAt: string; ticketNumbers?: number[]; }
 
-// A live/dead ticket badge for a chat message. Before the show (no elimNumbers)
-// it's just a ticket icon = "bought tickets". During/after the show it shows
-// alive/total (e.g. 2/3); when 0 are alive the whole message turns red.
-function TicketBadge({ nums, elim }: { nums?: number[]; elim?: Set<number> }) {
+// Ticket badge next to a chat message. On PAID raffles we never reveal HOW MANY
+// tickets someone holds, so it's just an icon (they bought). On FREE raffles it
+// shows the count: their total before the show, and alive/total (e.g. 2/3, red
+// at 0) once the show is eliminating tickets.
+function TicketBadge({ nums, elim, paid }: { nums?: number[]; elim?: Set<number>; paid?: boolean }) {
   if (!nums || nums.length === 0) return null;
-  if (!elim) return <img src="/ticket.png" className="h-3.5 w-3.5 opacity-80" alt="tiene tickets" title="Compró tickets" />;
+  if (paid) return <img src="/ticket.png" className="h-3.5 w-3.5 opacity-80" alt="tiene tickets" title="Compró tickets" />;
+  if (!elim) return (
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700" title={`${nums.length} ticket(s)`}>
+      <img src="/ticket.png" className="h-3 w-3" alt="" />{nums.length}
+    </span>
+  );
   const alive = nums.filter((n) => !elim.has(n)).length;
   const dead = alive === 0;
   return (
@@ -17,7 +23,7 @@ function TicketBadge({ nums, elim }: { nums?: number[]; elim?: Set<number> }) {
   );
 }
 
-export default function RaffleChat({ slug, compact, elimNumbers }: { slug: string; compact?: boolean; elimNumbers?: Set<number> }) {
+export default function RaffleChat({ slug, compact, elimNumbers, paid }: { slug: string; compact?: boolean; elimNumbers?: Set<number>; paid?: boolean }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [me, setMe] = useState<any>(null);
   const [text, setText] = useState("");
@@ -111,9 +117,9 @@ export default function RaffleChat({ slug, compact, elimNumbers }: { slug: strin
             <div className="min-w-0">
               <span className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-slate-700">{m.nickname}</span>
-                <TicketBadge nums={m.ticketNumbers} elim={elimNumbers} />
+                <TicketBadge nums={m.ticketNumbers} elim={elimNumbers} paid={paid} />
               </span>
-              <p className={`break-words text-sm ${elimNumbers && m.ticketNumbers && m.ticketNumbers.length > 0 && m.ticketNumbers.every((n) => elimNumbers.has(n)) ? "text-red-500" : "text-slate-600"}`}>{m.text}</p>
+              <p className={`break-words text-sm ${!paid && elimNumbers && m.ticketNumbers && m.ticketNumbers.length > 0 && m.ticketNumbers.every((n) => elimNumbers.has(n)) ? "text-red-500" : "text-slate-600"}`}>{m.text}</p>
             </div>
           </div>
         ))}

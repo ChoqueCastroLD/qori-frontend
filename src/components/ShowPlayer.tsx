@@ -444,7 +444,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
         </div>
 
         <div className="lg:sticky lg:top-[150px] lg:self-start">
-          <RaffleChat slug={slug} elimNumbers={elimNumbers} />
+          <RaffleChat slug={slug} elimNumbers={elimNumbers} paid={(data?.raffle?.ticketPrice ?? 0) > 0} />
         </div>
       </div>
     </div>
