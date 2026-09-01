@@ -227,6 +227,8 @@ export default function ShowPlayer({ slug }: { slug: string }) {
     return seq;
   }, [stageIdx, step, stages, stage]);
   const elimSet = useMemo(() => new Set(elimSeq), [elimSeq]);
+  // Eliminated ticket NUMBERS so far (for the live/dead badge in chat).
+  const elimNumbers = useMemo(() => new Set(elimSeq.map((i) => participants[i]?.number).filter((n): n is number => n != null)), [elimSeq, participants]);
 
   const stageElim: number[] = stage?.eliminated ?? [];
   const stageDone = step >= stageElim.length;
@@ -442,7 +444,7 @@ export default function ShowPlayer({ slug }: { slug: string }) {
         </div>
 
         <div className="lg:sticky lg:top-[150px] lg:self-start">
-          <RaffleChat slug={slug} />
+          <RaffleChat slug={slug} elimNumbers={elimNumbers} />
         </div>
       </div>
     </div>

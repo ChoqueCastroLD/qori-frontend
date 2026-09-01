@@ -157,13 +157,21 @@ const partTotal = partData.totalTickets ?? 0;
                     ? <img src={p.avatarUrl} class="h-7 w-7 rounded-full object-cover" alt="" />
                     : <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500">{(p.nickname || p.username || "?")[0].toUpperCase()}</span>}
                   <span class="max-w-[9rem] truncate text-sm font-medium text-slate-700">{p.nickname || (p.username ? `@${p.username}` : "Anónimo")}</span>
-                  <span class="flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700"><img src="/ticket.png" class="h-3 w-3" alt="" />{p.tickets}</span>
+                  <span class="flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700" title={p.tickets == null ? "Compró tickets" : `${p.tickets} ticket(s)`}><img src="/ticket.png" class="h-3 w-3" alt="" />{p.tickets != null ? p.tickets : ""}</span>
                 </a>
               ))}
               {participants.length > 40 && (
                 <span class="flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-500">+{participants.length - 40} más</span>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Live chat (before + during + after the show). Drawn raffles show it
+            in the right column instead. */}
+        {!isDrawn && !r.blocked && !r.legacy && (
+          <div class="mt-8">
+            <RaffleChat client:load slug={r.slug} compact />
           </div>
         )}
 

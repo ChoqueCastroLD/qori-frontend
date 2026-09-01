@@ -1,8 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 
-interface Msg { id: string; nickname: string; avatarUrl: string | null; text: string; createdAt: string; }
+interface Msg { id: string; nickname: string; avatarUrl: string | null; text: string; createdAt: string; ticketNumbers?: number[]; }
 
-export default function RaffleChat({ slug, compact }: { slug: string; compact?: boolean }) {
+// A live/dead ticket badge for a chat message. Before the show (no elimNumbers)
+// it's just a ticket icon = "bought tickets". During/after the show it shows
+// alive/total (e.g. 2/3); when 0 are alive the whole message turns red.
+function TicketBadge({ nums, elim }: { nums?: number[]; elim?: Set<number> }) {
+  if (!nums || nums.length === 0) return null;
+  if (!elim) return <img src="/ticket.png" className="h-3.5 w-3.5 opacity-80" alt="tiene tickets" title="Compró tickets" />;
+  const alive = nums.filter((n) => !elim.has(n)).length;
+  const dead = alive === 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${dead ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-700"}`} title={`${alive} vivo(s) de ${nums.length}`}>
+      <img src="/ticket.png" className="h-3 w-3" alt="" />{alive}/{nums.length}
+    </span>
+  );
+}
+
+export default function RaffleChat({ slug, compact, elimNumbers }: { slug: string; compact?: boolean; elimNumbers?: Set<number> }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [me, setMe] = useState<any>(null);
   const [text, setText] = useState("");
@@ -94,8 +109,11 @@ export default function RaffleChat({ slug, compact }: { slug: string; compact?: 
           <div key={m.id} className="flex gap-2">
             {m.avatarUrl ? <img src={m.avatarUrl} className="h-7 w-7 shrink-0 rounded-full" alt="" /> : <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500">{m.nickname[0]}</span>}
             <div className="min-w-0">
-              <span className="text-xs font-semibold text-slate-700">{m.nickname}</span>
-              <p className="break-words text-sm text-slate-600">{m.text}</p>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-700">{m.nickname}</span>
+                <TicketBadge nums={m.ticketNumbers} elim={elimNumbers} />
+              </span>
+              <p className={`break-words text-sm ${elimNumbers && m.ticketNumbers && m.ticketNumbers.length > 0 && m.ticketNumbers.every((n) => elimNumbers.has(n)) ? "text-red-500" : "text-slate-600"}`}>{m.text}</p>
             </div>
           </div>
         ))}
