@@ -41,8 +41,10 @@ export default function Recharge() {
     fetch("/api/fx").then((r) => r.json()).then((d) => setFx(d.rates ?? null)).catch(() => {});
     fetch("/api/raffles").then((r) => r.json()).then((d) => setRaffles(Array.isArray(d) ? d.filter((r) => r.status === "OPEN") : [])).catch(() => {});
     const q = new URLSearchParams(location.search);
-    const mp = q.get("mp"), pp = q.get("pp");
+    const mp = q.get("mp"), pp = q.get("pp"), cr = q.get("crypto");
     if (mp === "success" || pp === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
+    else if (cr === "success") setMpMsg({ tone: "ok", text: "¡Pago cripto recibido! Al confirmarse en la red acreditaremos tus lingotes automáticamente (suele tardar unos minutos)." });
+    else if (cr === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago con cripto. Puedes intentar de nuevo cuando quieras." });
     else if (mp === "pending") setMpMsg({ tone: "warn", text: "Tu pago quedó pendiente. Cuando lo aprueben, acreditaremos tus lingotes." });
     else if (mp === "failure" || pp === "failure") setMpMsg({ tone: "warn", text: "El pago no se completó. Puedes intentar de nuevo." });
     else if (pp === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago. Puedes intentar de nuevo cuando quieras." });
@@ -198,8 +200,8 @@ export default function Recharge() {
             <span className="text-[10px] text-slate-500">Tarjeta o PayPal</span>
           </button>
           <button type="button" aria-pressed={method === "CRYPTO"} onClick={() => setMethod("CRYPTO")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "CRYPTO" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
-            <img src="/pay/binance.svg" alt="Binance" className="h-6" />
-            <span className="text-[10px] text-slate-500">Binance · USDT</span>
+            <img src="/pay/binance.svg" alt="Cripto" className="h-6" />
+            <span className="text-[10px] text-slate-500">Cripto · USDT</span>
           </button>
         </div>
 
@@ -214,11 +216,11 @@ export default function Recharge() {
         ) : (
           <>
             <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
-              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con Binance (USDT)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
+              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
             </button>
             <p className="mt-2 text-center text-xs text-slate-400">
               {method === "CRYPTO"
-                ? "Te mostramos la dirección de Binance para enviar USDT. Acreditamos al confirmar tu comprobante."
+                ? "Paga con USDT, Bitcoin y más. Los lingotes se acreditan automáticamente al confirmarse en la red."
                 : "Pago seguro. Los lingotes se acreditan automáticamente al confirmarse."}
             </p>
           </>
