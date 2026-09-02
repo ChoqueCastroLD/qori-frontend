@@ -2,18 +2,7 @@ import Lingote from "./Lingote";
 import Icon from "./Icon";
 import { useEffect, useMemo, useState } from "react";
 
-// Fixed packages (USD cents -> base + bonus lingotes). Must match the backend.
-const PACKAGES = [
-  { usd: 500, base: 50, bonus: 0 },
-  { usd: 1000, base: 100, bonus: 10 },
-  { usd: 2000, base: 200, bonus: 20 },
-  { usd: 5000, base: 500, bonus: 30 },
-];
-const PREMIUM = [
-  { usd: 10000, base: 1000, bonus: 100 },
-  { usd: 50000, base: 5000, bonus: 500 },
-];
-const BONUS_ACTIVE = Date.now() < Date.parse("2026-09-16T04:59:59Z"); // hasta 15-set
+interface Pkg { amountUsd: number; base: number; bonus: number; total: number }
 
 const CUR: Record<string, { code: string; sym: string; locale: string }> = {
   PE: { code: "PEN", sym: "S/", locale: "es-PE" },
@@ -30,6 +19,9 @@ export default function Recharge() {
   const [loading, setLoading] = useState(false);
   const [fx, setFx] = useState<Record<string, number> | null>(null);
   const [raffles, setRaffles] = useState<any[]>([]);
+  const [pkgs, setPkgs] = useState<Pkg[]>([]);
+  const [promo, setPromo] = useState(false);
+  const [promoEnds, setPromoEnds] = useState<string | null>(null);
   const [mpMsg, setMpMsg] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
   const [payErr, setPayErr] = useState("");
 
@@ -38,6 +30,9 @@ export default function Recharge() {
       if (!d?.user) { window.location.href = "/entrar"; return; }
       setMe(d.user);
     });
+    fetch("/api/topups/packages").then((r) => r.json()).then((d) => {
+      if (Array.isArray(d?.packages)) { setPkgs(d.packages); setPromo(!!d.promo); setPromoEnds(d.promoEndsAt ?? null); }
+    }).catch(() => {});
     fetch("/api/fx").then((r) => r.json()).then((d) => setFx(d.rates ?? null)).catch(() => {});
     fetch("/api/raffles").then((r) => r.json()).then((d) => setRaffles(Array.isArray(d) ? d.filter((r) => r.status === "OPEN") : [])).catch(() => {});
     const q = new URLSearchParams(location.search);
@@ -48,8 +43,11 @@ export default function Recharge() {
     else if (pp === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago. Puedes intentar de nuevo cuando quieras." });
   }, []);
 
-  const pkg = useMemo(() => [...PACKAGES, ...PREMIUM].find((p) => p.usd === sel)!, [sel]);
-  const totalLingotes = pkg.base + (BONUS_ACTIVE ? pkg.bonus : 0);
+  const pkg = useMemo(() => pkgs.find((p) => p.amountUsd === sel), [pkgs, sel]);
+  const totalLingotes = pkg?.total ?? 0;
+  const regular = pkgs.filter((p) => p.amountUsd < 10000);
+  const premium = pkgs.filter((p) => p.amountUsd >= 10000);
+  const promoDate = promoEnds ? new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "long", timeZone: "America/Lima" }).format(new Date(promoEnds)) : "";
 
   function localRef(usdCents: number): string | null {
     const c = CUR[me?.country ?? "PE"] ?? CUR.PE;
@@ -82,22 +80,24 @@ export default function Recharge() {
 
   if (!me) return <p className="py-20 text-center text-slate-400">Cargando…</p>;
 
-  const Pkg = ({ p, premium }: { p: typeof PACKAGES[0]; premium?: boolean }) => {
-    const active = sel === p.usd;
-    const total = p.base + (BONUS_ACTIVE ? p.bonus : 0);
-    const ref = localRef(p.usd);
+  const PkgCard = ({ p, isPremium }: { p: Pkg; isPremium?: boolean }) => {
+    const active = sel === p.amountUsd;
+    const ref = localRef(p.amountUsd);
     return (
       <button
-        type="button" aria-pressed={active} onClick={() => setSel(p.usd)}
+        type="button" aria-pressed={active} onClick={() => setSel(p.amountUsd)}
         className={`relative flex flex-col rounded-xl border p-3 text-left transition ${active ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}
       >
-        {premium && <span className="absolute -top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-900">PREMIUM</span>}
-        <span className="text-lg font-bold text-slate-900">${p.usd / 100}</span>
+        {promo && p.bonus > 0 && <span className="absolute -top-2 left-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">x2</span>}
+        {isPremium && <span className="absolute -top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-900">PREMIUM</span>}
+        <span className="text-lg font-bold text-slate-900">${p.amountUsd / 100}</span>
         {ref && <span className="text-[11px] text-slate-400">{ref}</span>}
         <span className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-700">
-          {new Intl.NumberFormat("es-PE").format(total)} <Lingote />
+          {new Intl.NumberFormat("es-PE").format(p.total)} <Lingote />
         </span>
-        {BONUS_ACTIVE && p.bonus > 0 && <span className="text-xs font-bold text-emerald-700">incluye +{p.bonus} bono</span>}
+        {p.bonus > 0 && (
+          <span className="text-xs font-bold text-emerald-700">{promo ? "¡el doble de lingotes!" : `incluye +${p.bonus} bono`}</span>
+        )}
       </button>
     );
   };
@@ -108,21 +108,27 @@ export default function Recharge() {
       <p className="mt-1 text-sm text-slate-500">1 USD = 10 lingotes. Saldo actual: <strong>{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></strong></p>
       {mpMsg && <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${mpMsg.tone === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{mpMsg.text}</p>}
 
-      {BONUS_ACTIVE && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+      {promo && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
           <Icon name="gift" className="h-5 w-5 shrink-0" />
-          <span><strong>Bono por tiempo limitado:</strong> lingotes extra en los paquetes, solo hasta el <strong>15 de setiembre</strong>.</span>
+          <span><strong>Duplica tus tickets:</strong> recarga y recibe el <strong>DOBLE</strong> de lingotes{promoDate ? <> , solo hasta el <strong>{promoDate}</strong></> : null}.</span>
         </div>
       )}
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         <label className="mb-2 block text-sm font-medium text-slate-700">Elige un paquete</label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {PACKAGES.map((p) => <Pkg key={p.usd} p={p} />)}
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {PREMIUM.map((p) => <Pkg key={p.usd} p={p} premium />)}
-        </div>
+        {pkgs.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-400">Cargando paquetes…</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {regular.map((p) => <PkgCard key={p.amountUsd} p={p} />)}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {premium.map((p) => <PkgCard key={p.amountUsd} p={p} isPremium />)}
+            </div>
+          </>
+        )}
 
         {/* Real-time ticket calculator */}
         <div className="mt-5 rounded-xl bg-slate-50 p-4">
