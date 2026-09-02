@@ -4,6 +4,7 @@ import { ClientRouter } from "astro:transitions";
 import Nav from "../components/Nav.tsx";
 import BottomNav from "../components/BottomNav.tsx";
 import SoonBar from "../components/SoonBar.tsx";
+import RaffleRail from "../components/RaffleRail.tsx";
 
 interface Props {
   title?: string;
@@ -83,6 +84,8 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
         <Nav client:idle transition:persist />
       </nav>
     </header>
+
+    <RaffleRail client:idle transition:persist />
 
     <main id="contenido" class="flex-1">
       <slot />

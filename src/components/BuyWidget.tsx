@@ -2,7 +2,9 @@ import Lingote from "./Lingote";
 import TicketIcon from "./TicketIcon";
 import Icon from "./Icon";
 import Skeleton from "./Skeleton";
-import { useEffect, useState } from "react";
+import QuickTopup from "./QuickTopup";
+import { subscribeRaffles, openByClosing } from "../lib/rafflesStore";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   slug: string;
@@ -13,6 +15,16 @@ interface Props {
 }
 
 const nf = (n: number) => new Intl.NumberFormat("es-PE").format(n);
+
+function fmtLeft(closesAt: string | null, now: number): string {
+  if (!closesAt) return "";
+  const ms = new Date(closesAt).getTime() - now;
+  if (ms <= 0) return "en vivo";
+  const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
 export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: soldInitial }: Props) {
   const [me, setMe] = useState<{ balance: number } | null>(null);
@@ -27,6 +39,12 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
   const [myNumbers, setMyNumbers] = useState<number[]>([]);
   // Sold count kept in state so limits stay correct after our own purchases.
   const [sold, setSold] = useState(soldInitial);
+  // Resume flow: the user topped up mid-purchase and came back to finish.
+  const [resume, setResume] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // Next raffle to close (excluding this one) for the post-purchase upsell.
+  const [nextRaffle, setNextRaffle] = useState<{ slug: string; title: string; closesAt: string | null } | null>(null);
+  const [nowUp, setNowUp] = useState(() => Date.now());
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
@@ -34,6 +52,24 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
       .then((d) => setMe(d?.user ?? null))
       .catch(() => {})
       .finally(() => setLoaded(true));
+    // If we stashed a pending purchase before a top-up redirect, restore it.
+    try {
+      const raw = localStorage.getItem("qori_pending_buy");
+      const reanudar = new URLSearchParams(location.search).get("reanudar") === "1";
+      if (raw) {
+        const pb = JSON.parse(raw);
+        const fresh = pb && pb.ts && Date.now() - pb.ts < 45 * 60 * 1000;
+        if (fresh && pb.slug === slug) {
+          if (pb.qty) setQty(Math.max(1, pb.qty));
+          if (pb.comment) setComment(pb.comment);
+          setResume(true);
+        } else if (!fresh) {
+          localStorage.removeItem("qori_pending_buy");
+        }
+      } else if (reanudar) {
+        setResume(true);
+      }
+    } catch {}
     fetch("/api/me/tickets", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -53,7 +89,37 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
     return () => window.removeEventListener("qori:live", onLive);
   }, [slug]);
 
+  // Post-purchase upsell: soonest-closing OTHER open raffle.
+  useEffect(() => {
+    const unsub = subscribeRaffles((rs) => {
+      const other = openByClosing(rs).find((r) => r.slug !== slug);
+      setNextRaffle(other ? { slug: other.slug, title: other.title, closesAt: other.closesAt } : null);
+    });
+    const tick = setInterval(() => setNowUp(Date.now()), 1000);
+    return () => { unsub(); clearInterval(tick); };
+  }, [slug]);
+
   const cost = qty * ticketPrice;
+
+  // On resume, bring the widget into view and poll the balance for a bit: the
+  // top-up webhook may land a few seconds after the redirect returns.
+  useEffect(() => {
+    if (!resume || !me) return;
+    rootRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (me.balance >= cost) return;
+    let n = 0;
+    const iv = setInterval(async () => {
+      n++;
+      try {
+        const d = await fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null));
+        if (d?.user) { setMe({ balance: d.user.balance }); window.dispatchEvent(new CustomEvent("qori:refresh")); if (d.user.balance >= cost) clearInterval(iv); }
+      } catch {}
+      if (n >= 30) clearInterval(iv); // ~90s
+    }, 3000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resume, loaded]);
+
   // Cap at what's actually available; if the raffle has a per-user limit, also
   // subtract the tickets this user already holds.
   const remaining = Math.max(0, total - sold);
@@ -113,6 +179,8 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
       setSold((s) => s + qty);
       setStatus("ok");
       setComment("");
+      setResume(false);
+      try { localStorage.removeItem("qori_pending_buy"); } catch {}
       setMe((m) => (m ? { balance: m.balance - cost + (ticketPrice > 0 ? qty : 0) } : m));
       // Tell the nav (and any other island) to refresh the balance.
       window.dispatchEvent(new CustomEvent("qori:refresh"));
@@ -185,6 +253,15 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
           {soldOut && <p className="text-xs text-emerald-700">Se vendieron todos los tickets. ¡Suerte!</p>}
           <a href="/cuenta" className="text-sm font-semibold text-emerald-700 underline">Ver mis tickets</a>
         </div>
+        {nextRaffle && (
+          <a href={`/sorteos/${nextRaffle.slug}`} className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-emerald-300">
+            <span className="min-w-0">
+              <span className="block text-[11px] uppercase tracking-wide text-slate-400">Próximo en cerrar</span>
+              <span className="block truncate text-sm font-semibold text-slate-800">{nextRaffle.title}</span>
+            </span>
+            <span className="shrink-0 font-mono text-xs font-bold tabular-nums text-emerald-600">{fmtLeft(nextRaffle.closesAt, nowUp)}</span>
+          </a>
+        )}
       </div>
     );
   }
@@ -228,11 +305,21 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <div ref={rootRef} className={`rounded-2xl border bg-white p-6 ${resume ? "border-emerald-400 ring-2 ring-emerald-200" : "border-slate-200"}`}>
+      {resume && (
+        <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-800">
+          {cost <= me.balance ? "Tus lingotes llegaron. Confirma tu compra." : "Acreditando tu recarga..."}
+        </div>
+      )}
       <div className="mb-4 flex items-center justify-between text-sm">
         <span className="text-slate-500">Tus lingotes</span>
         <span className="font-semibold text-emerald-700">{nf(me.balance)} <Lingote /></span>
       </div>
+      {remaining <= Math.max(1, Math.round(total * 0.2)) && (
+        <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-700">
+          Quedan solo {nf(remaining)} de {nf(total)} tickets
+        </div>
+      )}
 
       {myNumbers.length > 0 && (
         <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
@@ -243,7 +330,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
 
       <label htmlFor="bw-qty" className="mb-1 block text-sm font-medium text-slate-700">Cantidad de tickets</label>
       <div className="flex items-center gap-2">
-        <button type="button" aria-label="Restar un ticket" onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 transition hover:bg-slate-50">−</button>
+        <button type="button" aria-label="Restar un ticket" onClick={() => setQty((q) => Math.max(1, q - 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"><Icon name="minus" className="h-4 w-4" /></button>
         <input
           id="bw-qty"
           type="number"
@@ -254,7 +341,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
           onChange={(e) => { const n = Math.floor(Number(e.target.value)); setQty(!n || n < 1 ? 1 : Math.min(max, n)); }}
           className="h-10 w-full rounded-lg border border-slate-200 text-center font-semibold"
         />
-        <button type="button" aria-label="Sumar un ticket" onClick={() => setQty((q) => Math.min(max, q + 1))} className="h-10 w-10 rounded-lg border border-slate-200 text-lg font-bold text-slate-600 transition hover:bg-slate-50">+</button>
+        <button type="button" aria-label="Sumar un ticket" onClick={() => setQty((q) => Math.min(max, q + 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"><Icon name="plus" className="h-4 w-4" /></button>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {quicks.map((n) => (
@@ -278,23 +365,16 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
 
       {msg && <p role="alert" className={`mb-3 text-sm ${status === "err" ? "text-red-600" : "text-slate-600"}`}>{msg}</p>}
       {cost > me.balance ? (
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
-          <p className="flex items-center justify-center gap-1 text-sm font-semibold text-amber-800">
-            <Lingote /> Te faltan {nf(cost - me.balance)} lingotes
-          </p>
-          <a href="/recargar" className="mt-2 inline-flex items-center justify-center gap-1 rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-amber-400">
-            Conseguir lingotes <Icon name="arrow-right" className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      ) : null}
-
-      <button
-        onClick={buy}
-        disabled={status === "loading" || cost > me.balance}
-        className="w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300"
-      >
-        {status === "loading" ? "Procesando…" : cost > me.balance ? "Lingotes insuficientes" : `Comprar ${qty} ticket${qty > 1 ? "s" : ""}`}
-      </button>
+        <QuickTopup slug={slug} qty={qty} comment={comment} need={cost - me.balance} />
+      ) : (
+        <button
+          onClick={buy}
+          disabled={status === "loading"}
+          className="w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {status === "loading" ? "Procesando…" : `Comprar ${qty} ticket${qty > 1 ? "s" : ""}`}
+        </button>
+      )}
       {ticketPrice > 0 && <p className="mt-2 text-center text-xs text-slate-400">Recibes +1 lingote de bono por cada ticket.</p>}
     </div>
   );

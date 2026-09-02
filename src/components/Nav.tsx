@@ -21,7 +21,12 @@ export default function Nav() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [promo, setPromo] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/topups/packages").then((r) => (r.ok ? r.json() : null)).then((d) => setPromo(!!d?.promo)).catch(() => {});
+  }, []);
 
   // Referral link built from the CURRENT page, so sharing from /sorteos yields
   // https://qori.cc/sorteos?ref=CODE (not a fixed /registro link).
@@ -82,9 +87,15 @@ export default function Nav() {
     <div className="flex items-center gap-2 text-sm sm:gap-2.5">
       <a
         href="/recargar"
-        className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-100"
-        title="Recargar lingotes"
+        className="relative inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-100"
+        title={promo ? "Promo 2x1 activa: recarga y recibe el doble" : "Recargar lingotes"}
       >
+        {promo && (
+          <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          </span>
+        )}
         {nf(me.balance)} <Lingote />
         <span className="hidden border-l border-emerald-200 pl-1.5 text-emerald-700 sm:inline">Recargar</span>
       </a>

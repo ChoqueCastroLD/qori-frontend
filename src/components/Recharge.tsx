@@ -29,6 +29,7 @@ export default function Recharge() {
   const [proof, setProof] = useState("");
   const [proofSent, setProofSent] = useState(false);
   const [copiedField, setCopiedField] = useState("");
+  const [resuming, setResuming] = useState<any>(null);
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
@@ -49,6 +50,38 @@ export default function Recharge() {
     else if (mp === "failure" || pp === "failure") setMpMsg({ tone: "warn", text: "El pago no se completó. Puedes intentar de nuevo." });
     else if (pp === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago. Puedes intentar de nuevo cuando quieras." });
   }, []);
+
+  // Came back from the gateway with a pending ticket purchase: wait for the
+  // balance to be credited, then send them straight back to finish the buy.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const success = q.get("mp") === "success" || q.get("pp") === "success" || q.get("crypto") === "success";
+    let pb: any = null;
+    try { const raw = localStorage.getItem("qori_pending_buy"); if (raw) pb = JSON.parse(raw); } catch {}
+    const fresh = pb && pb.ts && Date.now() - pb.ts < 45 * 60 * 1000;
+    if (!success || !fresh) return;
+    setResuming(pb);
+    let n = 0;
+    const iv = setInterval(async () => {
+      n++;
+      try {
+        const d = await fetch("/api/auth/me", { credentials: "include" }).then((r) => (r.ok ? r.json() : null));
+        if (d?.user && d.user.balance >= (pb.need ?? 0)) { clearInterval(iv); location.href = `/sorteos/${pb.slug}?reanudar=1`; }
+      } catch {}
+      if (n >= 40) clearInterval(iv);
+    }, 3000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Deep-linked from the buy widget with a deficit: preselect the smallest
+  // package that covers it.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const need = Number(q.get("need"));
+    if (!need || !pkgs.length) return;
+    const cover = pkgs.filter((p) => p.total >= need).sort((a, b) => a.total - b.total);
+    if (cover.length) setSel(cover[0].amountUsd);
+  }, [pkgs]);
 
   const pkg = useMemo(() => pkgs.find((p) => p.amountUsd === sel), [pkgs, sel]);
   const totalLingotes = pkg?.total ?? 0;
@@ -138,6 +171,17 @@ export default function Recharge() {
     <div className="mx-auto max-w-2xl px-5 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Recargar lingotes</h1>
       <p className="mt-1 text-sm text-slate-500">1 USD = 10 lingotes. Saldo actual: <strong>{new Intl.NumberFormat("es-PE").format(me.balance)} <Lingote /></strong></p>
+
+      {resuming && (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+          <p className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-800">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+            Pago recibido. Acreditando tus lingotes...
+          </p>
+          <p className="mt-1 text-xs text-emerald-700">Te llevaremos de vuelta a tu sorteo para completar la compra.</p>
+          <a href={`/sorteos/${resuming.slug}?reanudar=1`} className="mt-2 inline-block text-sm font-semibold text-emerald-700 underline">Volver a mi sorteo ahora</a>
+        </div>
+      )}
       {mpMsg && <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${mpMsg.tone === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{mpMsg.text}</p>}
 
       {promo && (
