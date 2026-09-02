@@ -38,9 +38,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function Admin() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"metrics" | "purchases" | "users" | "raffles" | "winners" | "create">("metrics");
+  const [tab, setTab] = useState<"metrics" | "growth" | "purchases" | "users" | "raffles" | "winners" | "create">("metrics");
   const [raffles, setRaffles] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [growth, setGrowth] = useState<any>(null);
   const [purchases, setPurchases] = useState<any>(null);
   const [users, setUsers] = useState<any[] | null>(null);
   const [winners, setWinners] = useState<any[] | null>(null);
@@ -49,6 +50,7 @@ export default function Admin() {
   function reload() {
     adminFetch("/admin/raffles").then((r) => r.ok && setRaffles(r.data));
     adminFetch("/admin/metrics").then((r) => r.ok && setMetrics(r.data));
+    adminFetch("/admin/growth").then((r) => r.ok && setGrowth(r.data));
     adminFetch("/admin/purchases").then((r) => r.ok && setPurchases(r.data));
     adminFetch("/admin/users").then((r) => r.ok && setUsers(r.data));
     adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
@@ -114,12 +116,14 @@ export default function Admin() {
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
       <div className="mt-5 flex gap-1 overflow-x-auto border-b border-slate-200">
-        {([["metrics", "Métricas"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["winners", "Ganadores"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
+        {([["metrics", "Métricas"], ["growth", "Crecimiento"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["winners", "Ganadores"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{l}</button>
         ))}
       </div>
 
       {tab === "metrics" && <Metrics m={metrics} />}
+
+      {tab === "growth" && <Growth g={growth} />}
 
       {tab === "purchases" && <Purchases p={purchases} />}
 
@@ -183,6 +187,59 @@ const money = (cur: string | null, minor: number | null) =>
 const pctFmt = (p: number | null) => (p == null ? "-" : (p * 100).toFixed(2) + "%");
 const METHOD: Record<string, string> = { MERCADOPAGO: "MercadoPago", PAYPAL: "PayPal", YAPE: "Yape", PLIN: "Plin", TRANSFER: "Transferencia", CRYPTO: "Cripto" };
 const PSTATUS: Record<string, string> = { PAID: "Pagado", PENDING: "Pendiente", FAILED: "Fallido", REFUNDED: "Reembolsado" };
+
+function Growth({ g }: { g: any }) {
+  if (!g) return <p className="mt-6 text-slate-400">Cargando crecimiento…</p>;
+  const pct = (n: number) => (n * 100).toFixed(n < 0.1 ? 1 : 0) + "%";
+  const days: { date: string; count: number }[] = g.newUsersByDay ?? [];
+  const max = Math.max(1, ...days.map((d) => d.count));
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card icon="users" label="Usuarios totales" value={nf(g.totalUsers)} sub={`+${nf(g.newLast30)} en 30 días`} />
+        <Card icon="ticket" label="Compraron ticket" value={nf(g.buyers)} sub={`${pct(g.totalUsers ? g.buyers / g.totalUsers : 0)} de los registrados`} />
+        <Card icon="cash" label="Recargaron (pagaron)" value={nf(g.rechargers)} sub={`${pct(g.conv.registeredToRecharged)} de conversión`} />
+        <Card icon="chart" label="Recargaron 2+ veces" value={nf(g.repeatRechargers)} sub={`${pct(g.conv.rechargedToRepeat)} de los que recargaron`} />
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="text-sm font-semibold text-slate-900">Usuarios nuevos por día (30 días)</h3>
+        <div className="mt-4 flex h-32 items-end gap-[3px]">
+          {days.map((d) => (
+            <div key={d.date} className="group relative flex-1" title={`${d.date}: ${d.count}`}>
+              <div className="w-full rounded-t bg-emerald-400 transition group-hover:bg-emerald-600" style={{ height: `${Math.max(2, (d.count / max) * 100)}%` }} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex justify-between text-[10px] text-slate-400">
+          <span>{days[0]?.date.slice(5)}</span>
+          <span>hoy</span>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="text-sm font-semibold text-slate-900">Embudo</h3>
+        <p className="mt-1 text-xs text-slate-500">Lo que hace rentable un sorteo gancho no es cuánta gente entra, sino cuántos vuelven a recargar.</p>
+        <div className="mt-4 space-y-2">
+          {[
+            { label: "Registrados", n: g.totalUsers, base: g.totalUsers, color: "bg-slate-300" },
+            { label: "Compraron al menos un ticket", n: g.buyers, base: g.totalUsers, color: "bg-emerald-300" },
+            { label: "Recargaron dinero real", n: g.rechargers, base: g.totalUsers, color: "bg-emerald-500" },
+            { label: "Recargaron 2 o más veces (recompra)", n: g.repeatRechargers, base: g.totalUsers, color: "bg-emerald-700" },
+          ].map((row) => (
+            <div key={row.label}>
+              <div className="flex justify-between text-xs"><span className="text-slate-600">{row.label}</span><span className="font-semibold text-slate-900">{nf(row.n)}</span></div>
+              <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full ${row.color}`} style={{ width: `${row.base ? Math.max(2, (row.n / row.base) * 100) : 0}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-slate-500">Ingresos por recargas (histórico): <strong className="text-slate-800">${nf(Math.round(g.revenueUsd))}</strong></p>
+      </div>
+    </div>
+  );
+}
 
 function Purchases({ p }: { p: any }) {
   if (!p) return <p className="mt-6 text-slate-400">Cargando compras…</p>;
