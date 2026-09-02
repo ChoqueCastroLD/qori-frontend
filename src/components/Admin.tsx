@@ -38,11 +38,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function Admin() {
   const [me, setMe] = useState<any>(null);
-  const [tab, setTab] = useState<"metrics" | "growth" | "purchases" | "users" | "raffles" | "winners" | "create">("metrics");
+  const [tab, setTab] = useState<"metrics" | "growth" | "purchases" | "recharges" | "users" | "raffles" | "winners" | "create">("metrics");
   const [raffles, setRaffles] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [growth, setGrowth] = useState<any>(null);
   const [purchases, setPurchases] = useState<any>(null);
+  const [pendingTopups, setPendingTopups] = useState<any[] | null>(null);
   const [users, setUsers] = useState<any[] | null>(null);
   const [winners, setWinners] = useState<any[] | null>(null);
   const [msg, setMsg] = useState("");
@@ -52,6 +53,7 @@ export default function Admin() {
     adminFetch("/admin/metrics").then((r) => r.ok && setMetrics(r.data));
     adminFetch("/admin/growth").then((r) => r.ok && setGrowth(r.data));
     adminFetch("/admin/purchases").then((r) => r.ok && setPurchases(r.data));
+    adminFetch("/admin/topups?status=PENDING").then((r) => r.ok && setPendingTopups(r.data));
     adminFetch("/admin/users").then((r) => r.ok && setUsers(r.data));
     adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
   }
@@ -70,6 +72,18 @@ export default function Admin() {
     const res = await adminFetch("/admin/winners/notify", { method: "POST" });
     setMsg(res.ok ? `Correos enviados: ${res.data.sent}` : `Error: ${res.data?.error ?? "no se pudo"}`);
     adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
+  }
+  async function confirmTopup(id: string) {
+    if (!confirm("¿Confirmar esta recarga? Se acreditarán los lingotes al usuario y se le enviará el correo de aprobación. Verifica primero que el pago llegó.")) return;
+    const res = await adminFetch(`/admin/topups/${id}/confirm`, { method: "POST" });
+    setMsg(res.ok ? (res.data.credited ? "Recarga confirmada y lingotes acreditados." : "Ya estaba acreditada.") : `Error: ${res.data?.error ?? "no se pudo"}`);
+    adminFetch("/admin/topups?status=PENDING").then((r) => r.ok && setPendingTopups(r.data));
+  }
+  async function rejectTopup(id: string) {
+    if (!confirm("¿Rechazar esta recarga? Quedará marcada como fallida.")) return;
+    const res = await adminFetch(`/admin/topups/${id}/reject`, { method: "POST" });
+    setMsg(res.ok ? "Recarga rechazada." : `Error: ${res.data?.error ?? "no se pudo"}`);
+    adminFetch("/admin/topups?status=PENDING").then((r) => r.ok && setPendingTopups(r.data));
   }
   async function toggleUserFlag(id: string, patch: any) {
     const res = await adminFetch(`/admin/users/${id}/flags`, { method: "POST", body: JSON.stringify(patch) });
@@ -116,7 +130,7 @@ export default function Admin() {
       {msg && <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">{msg}</p>}
 
       <div className="mt-5 flex gap-1 overflow-x-auto border-b border-slate-200">
-        {([["metrics", "Métricas"], ["growth", "Crecimiento"], ["purchases", "Compras"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["winners", "Ganadores"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
+        {([["metrics", "Métricas"], ["growth", "Crecimiento"], ["purchases", "Compras"], ["recharges", pendingTopups && pendingTopups.length ? `Recargas (${pendingTopups.length})` : "Recargas"], ["users", "Usuarios"], ["raffles", "Sorteos"], ["winners", "Ganadores"], ["create", "Crear sorteo"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-b-2 border-emerald-500 text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>{l}</button>
         ))}
       </div>
@@ -124,6 +138,8 @@ export default function Admin() {
       {tab === "metrics" && <Metrics m={metrics} />}
 
       {tab === "growth" && <Growth g={growth} />}
+
+      {tab === "recharges" && <Recharges topups={pendingTopups} onConfirm={confirmTopup} onReject={rejectTopup} />}
 
       {tab === "purchases" && <Purchases p={purchases} />}
 
@@ -237,6 +253,71 @@ function Growth({ g }: { g: any }) {
         </div>
         <p className="mt-4 text-xs text-slate-500">Ingresos por recargas (histórico): <strong className="text-slate-800">${nf(Math.round(g.revenueUsd))}</strong></p>
       </div>
+    </div>
+  );
+}
+
+function Recharges({ topups, onConfirm, onReject }: { topups: any[] | null; onConfirm: (id: string) => void; onReject: (id: string) => void }) {
+  if (!topups) return <p className="mt-6 text-slate-400">Cargando recargas…</p>;
+  const MANUAL = ["CRYPTO", "YAPE", "PLIN", "TRANSFER"];
+  const manual = topups.filter((t) => MANUAL.includes(t.method));
+  const auto = topups.filter((t) => !MANUAL.includes(t.method));
+  const label = (m: string) => (m === "CRYPTO" ? "Binance / USDT" : (METHOD[m] ?? m));
+  const isLink = (s: string) => /^https?:\/\//i.test(s);
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="text-sm font-semibold text-slate-900">Recargas manuales por confirmar</h3>
+        <p className="mt-1 text-xs text-slate-500">Verifica que el pago llegó a tu cuenta antes de confirmar. Al confirmar se acreditan los lingotes y se envía el correo de aprobación.</p>
+        {manual.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">No hay recargas manuales pendientes.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {manual.map((t) => (
+              <li key={t.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{label(t.method)}</span>
+                    <span className="ml-2 text-sm font-bold text-slate-900">${(t.amountUsd / 100).toFixed(2)}</span>
+                    <span className="ml-1 text-sm text-slate-500">→ {nf(t.lingotes)} lingotes</span>
+                  </div>
+                  <span className="text-xs text-slate-400">{new Date(t.createdAt).toLocaleString("es-PE")}</span>
+                </div>
+                <div className="mt-1 text-xs text-slate-500">{t.user?.nickname || "Usuario"} · {t.user?.email}</div>
+                <div className="mt-2 text-xs">
+                  <span className="text-slate-400">Comprobante: </span>
+                  {t.proofUrl
+                    ? (isLink(t.proofUrl)
+                        ? <a href={t.proofUrl} target="_blank" rel="noreferrer" className="font-medium text-emerald-700 hover:underline">ver comprobante</a>
+                        : <span className="break-all font-mono text-slate-700">{t.proofUrl}</span>)
+                    : <span className="text-red-500">sin comprobante aún</span>}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => onConfirm(t.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+                    <Icon name="check" className="h-4 w-4" /> Confirmar y acreditar
+                  </button>
+                  <button onClick={() => onReject(t.id)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Rechazar</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {auto.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-900">Pendientes automáticas (MercadoPago / PayPal)</h3>
+          <p className="mt-1 text-xs text-slate-500">Estas se acreditan solas al confirmarse el pago. Si quedan pendientes suele ser un pago abandonado; no se confirman a mano.</p>
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {auto.map((t) => (
+              <li key={t.id} className="flex justify-between py-2">
+                <span className="text-slate-600">{label(t.method)} · {t.user?.email}</span>
+                <span className="text-slate-400">${(t.amountUsd / 100).toFixed(2)} · {new Date(t.createdAt).toLocaleDateString("es-PE")}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
