@@ -248,23 +248,28 @@ function CryptoPanel({ info, amountUsd, proof, setProof, proofSent, onSend, load
       </button>
     </div>
   );
+  const payIdMode = info.payId && !info.address;
   return (
     <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-5">
       <h3 className="text-sm font-bold text-slate-900">Paga con Binance (USDT)</h3>
       <p className="mt-1 text-xs text-slate-500">
-        Envía exactamente <strong className="text-slate-800">{info.amountUsdt} USDT</strong> (equivale a ${amountUsd}) por la red indicada. Luego pega el hash de la transacción (TxID) o el enlace de tu comprobante y confírmanos.
+        {payIdMode
+          ? <>Desde tu app de Binance, entra a <strong>Pay</strong>, elige <strong>Enviar</strong> y transfiere exactamente <strong className="text-slate-800">{info.amountUsdt} USDT</strong> (equivale a ${amountUsd}) al Pay ID de abajo. Luego pega el ID de la transacción o el enlace de tu comprobante y confírmanos.</>
+          : <>Envía exactamente <strong className="text-slate-800">{info.amountUsdt} USDT</strong> (equivale a ${amountUsd}) por la red indicada. Luego pega el hash de la transacción (TxID) o el enlace de tu comprobante y confírmanos.</>}
       </p>
       <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3">
         <Row label="Monto a enviar" value={`${info.amountUsdt} USDT`} k="amt" />
-        <Row label="Red" value={info.network} k="net" />
-        {info.address && <Row label="Dirección (billetera)" value={info.address} k="addr" />}
         {info.payId && <Row label="Binance Pay ID" value={String(info.payId)} k="pay" />}
+        {!payIdMode && <Row label="Red" value={info.network} k="net" />}
+        {info.address && <Row label="Dirección (billetera)" value={info.address} k="addr" />}
       </div>
-      <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-600">
-        Envía solo <strong>USDT</strong> por la red <strong>{info.network}</strong>. Enviar otra moneda o red equivocada puede hacer que pierdas tus fondos.
-      </p>
-      <label className="mt-4 block text-xs font-medium text-slate-700">Hash de la transacción (TxID) o enlace del comprobante</label>
-      <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="Ej: 0x3ab... o link de la captura" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      {!payIdMode && (
+        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-600">
+          Envía solo <strong>USDT</strong> por la red <strong>{info.network}</strong>. Enviar otra moneda o red equivocada puede hacer que pierdas tus fondos.
+        </p>
+      )}
+      <label className="mt-4 block text-xs font-medium text-slate-700">{payIdMode ? "ID de la transacción (Order ID) o enlace del comprobante" : "Hash de la transacción (TxID) o enlace del comprobante"}</label>
+      <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="Ej: 1234567890 o link de la captura" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
       <button onClick={onSend} disabled={loading || !proof.trim()} className="mt-3 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
         {loading ? "Enviando…" : "Ya pagué, enviar comprobante"}
       </button>
