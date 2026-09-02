@@ -11,6 +11,7 @@ interface Me {
   ticketCount: number;
   role: string;
   avatarUrl: string | null;
+  referralCode?: string | null;
 }
 
 const nf = (n: number) => new Intl.NumberFormat("es-PE").format(n ?? 0);
@@ -19,7 +20,18 @@ export default function Nav() {
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Referral link built from the CURRENT page, so sharing from /sorteos yields
+  // https://qori.cc/sorteos?ref=CODE (not a fixed /registro link).
+  function copyRefLink() {
+    if (!me?.referralCode) return;
+    const link = `${location.origin}${location.pathname}?ref=${me.referralCode}`;
+    navigator.clipboard?.writeText(link).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
 
   useEffect(() => {
     const loadMe = () =>
@@ -120,6 +132,17 @@ export default function Nav() {
               <a href="/admin" role="menuitem" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                 <Icon name="chart" className="h-4 w-4 text-slate-400" /> Admin
               </a>
+            )}
+            {me.referralCode && (
+              <div className="border-t border-slate-100 px-4 py-3">
+                <p className="text-[11px] leading-snug text-slate-500">Comparte tu enlace. Ganas <strong className="text-slate-700">+10 lingotes</strong> cuando un referido hace su primera compra.</p>
+                <button
+                  onClick={copyRefLink}
+                  className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${copied ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+                >
+                  <Icon name={copied ? "check" : "copy"} className="h-4 w-4" /> {copied ? "¡Enlace copiado!" : "Copiar mi link de referidos"}
+                </button>
+              </div>
             )}
             <button onClick={logout} role="menuitem" className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50">
               <Icon name="logout" className="h-4 w-4" /> Cerrar sesión

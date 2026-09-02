@@ -91,6 +91,22 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
     <BottomNav client:idle transition:persist />
 
     <script>
+      // Referral capture: if the visitor lands on ANY page with ?ref=CODE, keep
+      // it so it's still applied when they later reach /registro or sign in with
+      // Google. Stored in localStorage (30-day expiry) and a readable cookie.
+      function qoriCaptureRef() {
+        try {
+          var code = (new URLSearchParams(location.search).get("ref") || "").trim().toUpperCase();
+          if (!/^[A-Z0-9]{4,32}$/.test(code)) return;
+          localStorage.setItem("qori_ref", JSON.stringify({ code: code, ts: Date.now() }));
+          document.cookie = "qori_ref=" + code + ";path=/;max-age=2592000;samesite=lax";
+        } catch (e) {}
+      }
+      qoriCaptureRef();
+      document.addEventListener("astro:page-load", qoriCaptureRef);
+    </script>
+
+    <script>
       // Live countdown for [data-closes-at]. Re-runs after each View Transition
       // via astro:page-load; a single interval keeps ticking across navigations.
       function qoriTick() {

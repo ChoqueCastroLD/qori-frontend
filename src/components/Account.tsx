@@ -391,6 +391,29 @@ export default function Account() {
               <div><span className="text-2xl font-bold text-emerald-700">{refs.lingotesEarned} <Lingote /></span><span className="ml-1 text-slate-500">ganados</span></div>
             </div>
           </div>
+
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6">
+            <h3 className="text-sm font-semibold text-slate-900">Tus referidos</h3>
+            {(!refs.referred || refs.referred.length === 0) ? (
+              <p className="mt-3 text-sm text-slate-400">Aún no tienes referidos. Comparte tu enlace para empezar a ganar lingotes.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {refs.referred.map((r: any, i: number) => (
+                  <li key={i} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-800">{r.nickname || "Usuario"}</p>
+                      <p className="text-xs text-slate-400">Se unió el {new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(r.createdAt))}</p>
+                    </div>
+                    {r.referralRewarded ? (
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Compró · +10 <Lingote /></span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">Sin compra aún</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </div>
