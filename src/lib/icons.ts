@@ -7,6 +7,7 @@ export const ICONS: Record<string, string> = {
   trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
   ticket: '<path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/><path d="M15 4v2m0 4v2m0 4v2"/>',
   lock: '<path d="M8 11V7a4 4 0 1 1 8 0v4"/><path d="M6 11h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"/>',
+  "lock-open": '<path d="M8 11V7a4 4 0 0 1 7.9-1"/><path d="M6 11h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"/>',
   gift: '<path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/><path d="M3 7h18v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/><path d="M12 7v14"/><path d="M12 7H8a2 2 0 1 1 0-4c2.5 0 4 4 4 4Zm0 0h4a2 2 0 1 0 0-4c-2.5 0-4 4-4 4Z"/>',
   "check-circle": '<path d="m8 12 3 3 5-5"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>',
   "x-circle": '<path d="m9 9 6 6m0-6-6 6"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>',

@@ -221,6 +221,12 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
   if (me === null) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        {paidOnly && (
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <span><strong>Sorteo exclusivo.</strong> Para participar debes haber recargado con dinero real al menos una vez (desde $1).</span>
+          </div>
+        )}
         <p className="text-sm text-slate-600">Inicia sesión para participar en este sorteo.</p>
         <a href="/entrar" className="mt-4 inline-block w-full rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-700">
           Entrar para participar
@@ -332,6 +338,12 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
 
   return (
     <div ref={rootRef} className={`rounded-2xl border bg-white p-6 ${resume ? "border-emerald-400 ring-2 ring-emerald-200" : "border-slate-200"}`}>
+      {paidOnly && hasPaid && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          <Icon name="lock-open" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <span><strong>Ya puedes participar.</strong> Gracias a que compraste con dinero real, estás habilitado para este sorteo exclusivo.</span>
+        </div>
+      )}
       {resume && (
         <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-800">
           {cost <= me.balance ? "Tus lingotes llegaron. Confirma tu compra." : "Acreditando tu recarga..."}
