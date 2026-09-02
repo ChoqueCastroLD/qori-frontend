@@ -92,11 +92,12 @@ export default function Recharge() {
         {isPremium && <span className="absolute -top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-900">PREMIUM</span>}
         <span className="text-lg font-bold text-slate-900">${p.amountUsd / 100}</span>
         {ref && <span className="text-[11px] text-slate-400">{ref}</span>}
-        <span className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-700">
-          {new Intl.NumberFormat("es-PE").format(p.total)} <Lingote />
+        <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-semibold">
+          {promo && p.bonus > 0 && <s className="text-xs font-normal text-slate-400">{new Intl.NumberFormat("es-PE").format(p.base)}</s>}
+          <span className="flex items-center gap-1 text-emerald-700">{new Intl.NumberFormat("es-PE").format(p.total)} <Lingote /></span>
         </span>
         {p.bonus > 0 && (
-          <span className="text-xs font-bold text-emerald-700">{promo ? "¡el doble de lingotes!" : `incluye +${p.bonus} bono`}</span>
+          <span className="text-xs font-bold text-emerald-700">{promo ? "recibes el doble" : `incluye +${p.bonus} bono`}</span>
         )}
       </button>
     );
@@ -133,8 +134,11 @@ export default function Recharge() {
         {/* Real-time ticket calculator */}
         <div className="mt-5 rounded-xl bg-slate-50 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Recibes</span>
-            <span className="flex items-center gap-1 text-lg font-bold text-emerald-700">{new Intl.NumberFormat("es-PE").format(totalLingotes)} <Lingote /></span>
+            <span className="text-sm text-slate-500">Recibes {promo && pkg && pkg.bonus > 0 ? <span className="font-semibold text-emerald-700">(x2)</span> : null}</span>
+            <span className="flex items-center gap-1.5">
+              {promo && pkg && pkg.bonus > 0 && <s className="text-sm font-normal text-slate-400">{new Intl.NumberFormat("es-PE").format(pkg.base)}</s>}
+              <span className="flex items-center gap-1 text-lg font-bold text-emerald-700">{new Intl.NumberFormat("es-PE").format(totalLingotes)} <Lingote /></span>
+            </span>
           </div>
           <p className="mt-2 text-xs font-semibold text-slate-500">Con eso puedes comprar aprox:</p>
           {raffles.length === 0 ? (
