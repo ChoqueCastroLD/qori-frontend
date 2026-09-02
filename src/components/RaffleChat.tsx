@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-interface Msg { id: string; nickname: string; avatarUrl: string | null; text: string; createdAt: string; ticketNumbers?: number[]; }
+interface Msg { id: string; nickname: string; avatarUrl: string | null; text: string; createdAt: string; ticketNumbers?: number[]; suertudo?: boolean; }
 
 const fmtTime = (iso: string) =>
   new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
@@ -116,7 +116,9 @@ export default function RaffleChat({ slug, compact, elimNumbers, paid }: { slug:
           <p className="text-center text-sm text-slate-400">Sé el primero en escribir…</p>
         ) : msgs.map((m) => (
           <div key={m.id} className="flex gap-2">
-            {m.avatarUrl ? <img src={m.avatarUrl} className="h-7 w-7 shrink-0 rounded-full" alt="" /> : <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500">{m.nickname[0]}</span>}
+            {m.avatarUrl
+              ? <img src={m.avatarUrl} className={`h-7 w-7 shrink-0 rounded-full ${m.suertudo ? "ring-2 ring-amber-400" : ""}`} alt="" title={m.suertudo ? "Suertudo" : undefined} />
+              : <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500 ${m.suertudo ? "ring-2 ring-amber-400" : ""}`} title={m.suertudo ? "Suertudo" : undefined}>{m.nickname[0]}</span>}
             <div className="min-w-0">
               <span className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-slate-700">{m.nickname}</span>

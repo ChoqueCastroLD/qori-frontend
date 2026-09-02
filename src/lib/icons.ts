@@ -14,6 +14,7 @@ export const ICONS: Record<string, string> = {
   check: '<path d="m5 12 4 4L19 7"/>',
   x: '<path d="M6 6l12 12M6 18 18 6"/>',
   bolt: '<path fill="currentColor" stroke="none" d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/>',
+  star: '<path fill="currentColor" stroke="none" d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2Z"/>',
   hash: '<path d="M9 4 7 20M17 4l-2 16M5 9h15M4 15h15"/>',
   fire: '<path d="M12 22a7 7 0 0 0 7-7c0-3-2-5-3-7-1 1-2 1-2.5 0-1 2-4 3-4 7 0 1-.6 1-1 .3-.4-.6-.4-1.3-.4-1.8C6 14 5 15.5 5 17a7 7 0 0 0 7 5Z"/>',
   stop: '<path d="M9 9h6v6H9z"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>',

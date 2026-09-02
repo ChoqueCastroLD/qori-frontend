@@ -6,6 +6,7 @@ import { ssrGet, type Raffle } from "../lib/api";
 import { lingotes, usd } from "../lib/format";
 
 const raffles = await ssrGet<Raffle[]>("/raffles", []);
+const suertudos = (await ssrGet<{ suertudos: any[] }>("/suertudos/top", { suertudos: [] })).suertudos ?? [];
 const active = raffles.filter((r) => r.status === "OPEN" || r.status === "CLOSED").slice(0, 3);
 // Finished raffles: most recent first (by draw date), latest 20.
 const past = raffles
@@ -163,6 +164,37 @@ const orgJsonLd = {
       </div>
     )}
   </section>
+
+  <!-- Top Suertudos -->
+  {suertudos.length > 0 && (
+    <section class="mx-auto max-w-4xl px-5 py-10">
+      <div class="mb-6 text-center">
+        <h2 class="flex items-center justify-center gap-2 text-2xl font-bold text-slate-900">
+          <Icon name="star" class="h-6 w-6 text-amber-400" /> Top Suertudos
+        </h2>
+        <p class="mt-1 text-sm text-slate-500">Los Suertudos con más lingotes. Compra lingotes con dinero real y entra al club de sorteos exclusivos.</p>
+      </div>
+      <div class="grid gap-2.5 sm:grid-cols-2">
+        {suertudos.map((s) => {
+          const medal = s.rank === 1 ? "from-amber-400 to-yellow-500 text-white" : s.rank === 2 ? "from-slate-300 to-slate-400 text-white" : s.rank === 3 ? "from-orange-400 to-amber-700 text-white" : "bg-slate-100 text-slate-500";
+          const grad = s.rank <= 3;
+          return (
+            <a href={s.username ? `/u/${s.username}` : "#"} class={`flex items-center gap-3 rounded-xl border bg-white p-3 transition hover:-translate-y-0.5 hover:shadow-md ${s.rank === 1 ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"} ${s.username ? "" : "pointer-events-none"}`}>
+              <span class={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${grad ? `bg-gradient-to-br ${medal}` : "bg-slate-100 text-slate-500"}`}>{s.rank}</span>
+              {s.avatarUrl
+                ? <img src={s.avatarUrl} class="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-400" alt="" loading="lazy" />
+                : <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-500 ring-2 ring-amber-400">{(s.nickname || s.username || "?")[0].toUpperCase()}</span>}
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-semibold text-slate-900">{s.nickname || (s.username ? `@${s.username}` : "Suertudo")}</div>
+                {s.username && <div class="truncate text-xs text-slate-400">@{s.username}</div>}
+              </div>
+              <span class="flex shrink-0 items-center gap-1 text-sm font-bold text-amber-600">{lingotes(s.lingotes)} <img src="/lingote.png" alt="lingotes" class="h-4 w-4" /></span>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  )}
 
   <!-- How it works -->
   <section class="border-y border-slate-100 bg-slate-50">

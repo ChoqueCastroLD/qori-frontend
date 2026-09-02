@@ -588,7 +588,7 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                       <div className="col-span-2 sm:col-span-3"><label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label><input type="datetime-local" value={form.closesAt} onChange={(e) => set("closesAt", e.target.value)} className={inpS} /></div>
                       <label className="col-span-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:col-span-3">
                         <input type="checkbox" checked={!!form.paidOnly} onChange={(e) => set("paidOnly", e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" />
-                        <span className="flex items-center gap-1.5 text-xs text-slate-700"><Icon name="lock" className="h-3.5 w-3.5 text-slate-400" /> Solo para quienes recargaron con dinero real</span>
+                        <span className="flex items-center gap-1.5 text-xs text-slate-700"><Icon name="star" className="h-3.5 w-3.5 text-amber-400" /> Solo para Suertudos (compraron un lingote con dinero real)</span>
                       </label>
                     </div>
                   )}
@@ -767,8 +767,8 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       <label className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <input type="checkbox" checked={!!f.paidOnly} onChange={(e) => setF({ ...f, paidOnly: e.target.checked })} className="mt-0.5 h-4 w-4 accent-emerald-600" />
         <span className="flex items-center gap-1.5 text-sm text-slate-700">
-          <Icon name="lock" className="h-4 w-4 text-slate-400" />
-          <span><strong>Solo para quienes recargaron con dinero real.</strong> Para participar el usuario debe haber recargado lingotes al menos una vez (deja fuera cuentas de tickets gratis).</span>
+          <Icon name="star" className="h-4 w-4 text-amber-400" />
+          <span><strong>Solo para Suertudos.</strong> Solo pueden participar quienes compraron al menos un lingote con dinero real (deja fuera cuentas de tickets gratis).</span>
         </span>
       </label>
       {err && <p className="text-sm text-red-600">{err}</p>}

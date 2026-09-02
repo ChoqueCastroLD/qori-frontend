@@ -36,10 +36,20 @@ export default function PublicProfile({ username }: { username: string }) {
     <div className="mx-auto max-w-3xl px-5 py-10">
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left">
         {p.avatarUrl
-          ? <img src={p.avatarUrl} className="h-20 w-20 rounded-full object-cover" alt="" />
-          : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-200 text-2xl font-bold text-slate-500">{(p.nickname || p.username)[0].toUpperCase()}</div>}
+          ? <img src={p.avatarUrl} className={`h-20 w-20 rounded-full object-cover ${p.suertudo ? "ring-4 ring-amber-400 ring-offset-2" : ""}`} alt="" />
+          : <div className={`flex h-20 w-20 items-center justify-center rounded-full bg-slate-200 text-2xl font-bold text-slate-500 ${p.suertudo ? "ring-4 ring-amber-400 ring-offset-2" : ""}`}>{(p.nickname || p.username)[0].toUpperCase()}</div>}
         <div className="min-w-0 flex-1">
-          {p.nickname && <h1 className="text-xl font-bold text-slate-900">{p.nickname}</h1>}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            {p.nickname && <h1 className="text-xl font-bold text-slate-900">{p.nickname}</h1>}
+            {p.suertudo && (
+              <span className="group relative inline-flex cursor-help items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2.5 py-0.5 text-xs font-black uppercase tracking-wide text-white shadow-sm">
+                <Icon name="star" className="h-3.5 w-3.5" /> Suertudo
+                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1.5 w-56 -translate-x-1/2 rounded-lg bg-slate-900 px-3 py-2 text-center text-[11px] font-normal normal-case tracking-normal text-white opacity-0 shadow-lg transition group-hover:opacity-100">
+                  Es un Suertudo por haber comprado lingotes con dinero real. Los Suertudos participan en sorteos exclusivos.
+                </span>
+              </span>
+            )}
+          </div>
           <div className="text-sm font-medium text-emerald-700">@{p.username}</div>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500 sm:justify-start">
             <span>Miembro desde {fmtDay(p.createdAt)}</span>

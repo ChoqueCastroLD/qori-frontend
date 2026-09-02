@@ -224,7 +224,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
         {paidOnly && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-            <span><strong>Sorteo exclusivo.</strong> Para participar debes haber recargado con dinero real al menos una vez (desde $1).</span>
+            <span><strong>Solo para Suertudos.</strong> Para participar debes ser Suertudo: comprar al menos un lingote con dinero real (desde $1).</span>
           </div>
         )}
         <p className="text-sm text-slate-600">Inicia sesión para participar en este sorteo.</p>
@@ -317,21 +317,21 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
     );
   }
 
-  // Exclusive raffle and this user has never spent real money: locked.
+  // Exclusive raffle and this user is not a Suertudo yet: locked.
   if (paidOnly && !hasPaid) {
     return (
-      <div ref={rootRef} className="rounded-2xl border border-amber-200 bg-white p-6 text-center">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-          <Icon name="lock" className="h-6 w-6 text-amber-600" />
+      <div ref={rootRef} className="rounded-2xl border border-amber-300 bg-white p-6 text-center">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500">
+          <Icon name="lock" className="h-6 w-6 text-white" />
         </span>
-        <h3 className="mt-3 font-bold text-slate-900">Sorteo exclusivo</h3>
+        <h3 className="mt-3 font-bold text-slate-900">Solo para Suertudos</h3>
         <p className="mt-1 text-sm text-slate-600">
-          Para participar necesitas haber recargado lingotes con dinero real al menos una vez. Es rapido y desde $1.
+          Este sorteo es solo para <strong>Suertudos</strong>: usuarios que compraron al menos un lingote con dinero real. Recarga desde $1 y te vuelves Suertudo al instante.
         </p>
         <a href="/recargar" className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500">
-          <Icon name="lock" className="h-4 w-4" /> Recargar para desbloquear
+          <Icon name="star" className="h-4 w-4" /> Recargar y volverme Suertudo
         </a>
-        <p className="mt-2 text-center text-xs text-slate-400">Con una sola recarga quedas habilitado para este y otros sorteos exclusivos.</p>
+        <p className="mt-2 text-center text-xs text-slate-400">Con una sola recarga quedas habilitado para este y todos los sorteos de Suertudos.</p>
       </div>
     );
   }
@@ -339,9 +339,9 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
   return (
     <div ref={rootRef} className={`rounded-2xl border bg-white p-6 ${resume ? "border-emerald-400 ring-2 ring-emerald-200" : "border-slate-200"}`}>
       {paidOnly && hasPaid && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-          <Icon name="lock-open" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-          <span><strong>Ya puedes participar.</strong> Gracias a que compraste con dinero real, estás habilitado para este sorteo exclusivo.</span>
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <Icon name="star" className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span><strong>Eres Suertudo.</strong> Gracias a que compraste lingotes con dinero real, puedes participar en este sorteo exclusivo.</span>
         </div>
       )}
       {resume && (

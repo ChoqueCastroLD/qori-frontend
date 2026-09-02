@@ -14,9 +14,14 @@ const winner = r.winners?.[0];
 const image = r.images?.[0] ?? "/og.png";
 const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled ? "Ver detalle" : isLive ? "Ver el sorteo" : "Participar";
 ---
-<a href={`/sorteos/${r.slug}`} class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
+<a href={`/sorteos/${r.slug}`} class={`group flex flex-col overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${r.paidOnly ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"}`}>
   <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
     <img src={image} alt={r.title} class="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+    {r.paidOnly && (
+      <span class="absolute right-3 top-3 inline-flex cursor-help items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2.5 py-1 text-xs font-bold text-white shadow" title="Solo para Suertudos: participan quienes compraron al menos un lingote con dinero real">
+        <Icon name="lock" class="h-3.5 w-3.5" /> Suertudos
+      </span>
+    )}
     <div class="absolute left-3 top-3 flex gap-2">
       {r.blocked ? (
         <span class="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white">No disponible</span>

@@ -47,6 +47,7 @@ export interface Raffle {
   minTickets: number;
   maxTicketsPerUser: number | null;
   winnersCount: number;
+  paidOnly?: boolean;
   games: string[];
   finale: string | null;
   status: "OPEN" | "CLOSED" | "DRAWING" | "DRAWN" | "CANCELLED";
