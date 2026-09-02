@@ -12,6 +12,7 @@ interface Props {
   maxPerUser: number | null;
   total: number;
   sold: number;
+  paidOnly?: boolean;
 }
 
 const nf = (n: number) => new Intl.NumberFormat("es-PE").format(n);
@@ -26,8 +27,9 @@ function fmtLeft(closesAt: string | null, now: number): string {
   return `${m}m`;
 }
 
-export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: soldInitial }: Props) {
+export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: soldInitial, paidOnly }: Props) {
   const [me, setMe] = useState<{ balance: number } | null>(null);
+  const [hasPaid, setHasPaid] = useState(true); // assume true until we know, to avoid a flash
   const [loaded, setLoaded] = useState(false);
   const [qty, setQty] = useState(1);
   const [comment, setComment] = useState("");
@@ -75,6 +77,7 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
       .then((d) => {
         const nums = (d?.tickets ?? []).filter((t: any) => t.raffle?.slug === slug).map((t: any) => t.number);
         if (nums.length) setMyNumbers(nums.sort((a: number, b: number) => a - b));
+        if (d && typeof d.hasPaid === "boolean") setHasPaid(d.hasPaid);
       })
       .catch(() => {});
   }, [slug]);
@@ -162,6 +165,10 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
         } else if (d.error === "per_user_limit") {
           setStatus("err");
           setMsg("Superas el máximo de tickets por persona.");
+        } else if (d.error === "requires_paid_user") {
+          setStatus("err");
+          setHasPaid(false);
+          setMsg("Este sorteo es solo para quienes han recargado con dinero real. Recarga para participar.");
         } else if (d.error === "buy_disabled") {
           setStatus("err");
           setMsg("Tu cuenta no puede comprar tickets por ahora. Escríbenos a support@qori.cc si crees que es un error.");
@@ -300,6 +307,25 @@ export default function BuyWidget({ slug, ticketPrice, maxPerUser, total, sold: 
           ))}
         </div>
         <a href="/cuenta" className="mt-4 inline-block text-sm font-semibold text-emerald-700 underline">Ver mis tickets</a>
+      </div>
+    );
+  }
+
+  // Exclusive raffle and this user has never spent real money: locked.
+  if (paidOnly && !hasPaid) {
+    return (
+      <div ref={rootRef} className="rounded-2xl border border-amber-200 bg-white p-6 text-center">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+          <Icon name="lock" className="h-6 w-6 text-amber-600" />
+        </span>
+        <h3 className="mt-3 font-bold text-slate-900">Sorteo exclusivo</h3>
+        <p className="mt-1 text-sm text-slate-600">
+          Para participar necesitas haber recargado lingotes con dinero real al menos una vez. Es rapido y desde $1.
+        </p>
+        <a href="/recargar" className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500">
+          <Icon name="lock" className="h-4 w-4" /> Recargar para desbloquear
+        </a>
+        <p className="mt-2 text-center text-xs text-slate-400">Con una sola recarga quedas habilitado para este y otros sorteos exclusivos.</p>
       </div>
     );
   }

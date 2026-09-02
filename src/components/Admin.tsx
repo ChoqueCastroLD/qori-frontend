@@ -473,6 +473,7 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
     minTickets: r.minTickets ?? 1,
     maxPerUser: r.maxTicketsPerUser ?? "",
     winnersCount: r.winnersCount ?? 1,
+    paidOnly: !!r.paidOnly,
     closesAt: toLocalInput(r.closesAt),
   });
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
@@ -514,6 +515,7 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
       totalTickets: Number(form.totalTickets),
       minTickets: Number(form.minTickets),
       winnersCount: Number(form.winnersCount),
+      paidOnly: !!form.paidOnly,
       closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
     };
     if (form.maxPerUser !== "" && Number(form.maxPerUser) > 0) body.maxTicketsPerUser = Number(form.maxPerUser);
@@ -584,6 +586,10 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                       <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" value={form.minTickets} onChange={(e) => set("minTickets", e.target.value)} className={inpS} /></div>
                       <div><label className="text-xs text-slate-500">Máx. por persona</label><input type="number" value={form.maxPerUser} onChange={(e) => set("maxPerUser", e.target.value)} placeholder="sin límite" className={inpS} /></div>
                       <div className="col-span-2 sm:col-span-3"><label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label><input type="datetime-local" value={form.closesAt} onChange={(e) => set("closesAt", e.target.value)} className={inpS} /></div>
+                      <label className="col-span-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:col-span-3">
+                        <input type="checkbox" checked={!!form.paidOnly} onChange={(e) => set("paidOnly", e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" />
+                        <span className="flex items-center gap-1.5 text-xs text-slate-700"><Icon name="lock" className="h-3.5 w-3.5 text-slate-400" /> Solo para quienes recargaron con dinero real</span>
+                      </label>
                     </div>
                   )}
                   <button onClick={saveEdit} disabled={saving} className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400">{saving ? "Guardando…" : "Guardar cambios"}</button>
@@ -691,7 +697,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   // Default draw time: 48h from now, in local time for the datetime picker.
   const [f, setF] = useState<any>({
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
-    minTickets: 50, winnersCount: 1, maxPerUser: "", games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
+    minTickets: 50, winnersCount: 1, maxPerUser: "", paidOnly: false, games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
     image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
   const [err, setErr] = useState("");
@@ -713,6 +719,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       prizeValue: Math.round(f.prizeUsd * 100), ticketPrice: Number(f.ticketPrice),
       totalTickets: Number(f.totalTickets), minTickets: Number(f.minTickets),
       winnersCount: Number(f.winnersCount), games: f.games, finale: f.finale,
+      paidOnly: !!f.paidOnly,
       closesAt: new Date(f.closesAt).toISOString(),
       ...(f.maxPerUser !== "" && Number(f.maxPerUser) > 0 ? { maxTicketsPerUser: Number(f.maxPerUser) } : {}),
     };
@@ -757,6 +764,13 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       <div><label className="text-xs text-slate-500">Juego final</label>
         <select className={inp} value={f.finale} onChange={(e) => setF({ ...f, finale: e.target.value })}>{f.games.map((g: string) => <option key={g} value={g}>{g}</option>)}</select>
       </div>
+      <label className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <input type="checkbox" checked={!!f.paidOnly} onChange={(e) => setF({ ...f, paidOnly: e.target.checked })} className="mt-0.5 h-4 w-4 accent-emerald-600" />
+        <span className="flex items-center gap-1.5 text-sm text-slate-700">
+          <Icon name="lock" className="h-4 w-4 text-slate-400" />
+          <span><strong>Solo para quienes recargaron con dinero real.</strong> Para participar el usuario debe haber recargado lingotes al menos una vez (deja fuera cuentas de tickets gratis).</span>
+        </span>
+      </label>
       {err && <p className="text-sm text-red-600">{err}</p>}
       <button className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white">Crear sorteo</button>
     </form>

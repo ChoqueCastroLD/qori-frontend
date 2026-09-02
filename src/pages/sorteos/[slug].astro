@@ -262,7 +262,15 @@ const partTotal = partData.totalTickets ?? 0;
               </div>
             )}
 
-            {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} total={r.totalTickets} sold={sold} />}
+            {r.paidOnly && (
+              <div class="mb-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V7a4 4 0 1 1 8 0v4"/><path d="M6 11h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"/></svg>
+                <div class="text-sm text-amber-800">
+                  <strong>Sorteo exclusivo.</strong> Para participar necesitas haber recargado lingotes con dinero real al menos una vez (desde $1). Asi mantenemos el sorteo justo, solo para jugadores reales.
+                </div>
+              </div>
+            )}
+            {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} total={r.totalTickets} sold={sold} paidOnly={r.paidOnly} />}
           </div>
         )}
       </div>
