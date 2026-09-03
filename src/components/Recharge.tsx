@@ -42,8 +42,8 @@ export default function Recharge() {
     fetch("/api/fx").then((r) => r.json()).then((d) => setFx(d.rates ?? null)).catch(() => {});
     fetch("/api/raffles").then((r) => r.json()).then((d) => setRaffles(Array.isArray(d) ? d.filter((r) => r.status === "OPEN") : [])).catch(() => {});
     const q = new URLSearchParams(location.search);
-    const mp = q.get("mp"), pp = q.get("pp"), cr = q.get("crypto");
-    if (mp === "success" || pp === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
+    const mp = q.get("mp"), pp = q.get("pp"), cr = q.get("crypto"), fl = q.get("flow");
+    if (mp === "success" || pp === "success" || fl === "success") setMpMsg({ tone: "ok", text: "¡Pago recibido! Estamos acreditando tus lingotes; tu saldo se actualizará en unos segundos." });
     else if (cr === "success") setMpMsg({ tone: "ok", text: "¡Pago cripto recibido! Al confirmarse en la red acreditaremos tus lingotes automáticamente (suele tardar unos minutos)." });
     else if (cr === "cancel") setMpMsg({ tone: "warn", text: "Cancelaste el pago con cripto. Puedes intentar de nuevo cuando quieras." });
     else if (mp === "pending") setMpMsg({ tone: "warn", text: "Tu pago quedó pendiente. Cuando lo aprueben, acreditaremos tus lingotes." });
@@ -234,10 +234,14 @@ export default function Recharge() {
 
         {/* Payment method */}
         <label className="mb-2 mt-5 block text-sm font-medium text-slate-700">Método de pago</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <button type="button" aria-pressed={method === "MERCADOPAGO"} onClick={() => setMethod("MERCADOPAGO")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "MERCADOPAGO" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/mercadopago.svg" alt="MercadoPago" className="h-6" />
             <span className="text-[10px] text-slate-500">Yape · Plin · Tarjeta</span>
+          </button>
+          <button type="button" aria-pressed={method === "FLOW"} onClick={() => setMethod("FLOW")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "FLOW" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
+            <img src="/pay/flow.svg" alt="Flow" className="h-6" />
+            <span className="text-[10px] text-slate-500">Yape · Tarjeta</span>
           </button>
           <button type="button" aria-pressed={method === "PAYPAL"} onClick={() => setMethod("PAYPAL")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "PAYPAL" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/paypal.svg" alt="PayPal" className="h-6" />
@@ -260,7 +264,7 @@ export default function Recharge() {
         ) : (
           <>
             <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
-              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
+              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : method === "FLOW" ? `Pagar $${sel / 100} con Flow (Yape)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
             </button>
             <p className="mt-2 text-center text-xs text-slate-400">
               {method === "CRYPTO"
