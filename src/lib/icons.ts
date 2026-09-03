@@ -26,6 +26,7 @@ export const ICONS: Record<string, string> = {
   eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
   "eye-off": '<path d="M9.9 5.1A9.8 9.8 0 0 1 12 5c6.5 0 10 7 10 7a15.8 15.8 0 0 1-3.2 3.9M6.5 6.6A15.9 15.9 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 3.6-.7M3 3l18 18M9.5 9.5a3 3 0 0 0 4.2 4.2"/>',
   copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>',
   play: '<path fill="currentColor" stroke="none" d="M7 4.5v15l13-7.5-13-7.5Z"/>',
   pause: '<path fill="currentColor" stroke="none" d="M8 5h3v14H8zm5 0h3v14h-3z"/>',

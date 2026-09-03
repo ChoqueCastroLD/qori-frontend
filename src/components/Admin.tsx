@@ -392,6 +392,7 @@ function AffiliateRow({ a, origin, usd, onPatch, onPay }: any) {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-900">{a.name}</span>
             <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-xs font-bold text-amber-700">{a.code}</span>
+            <button onClick={() => { const c = window.prompt("Nuevo código (minúsculas, números, guiones):", a.code); if (c && c.trim().toLowerCase() !== a.code) onPatch(a.id, { code: c.trim().toLowerCase() }); }} title="Editar código" className="text-slate-400 hover:text-slate-700"><Icon name="edit" className="h-3.5 w-3.5" /></button>
             {!a.active && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-500">inactivo</span>}
           </div>
           <button
