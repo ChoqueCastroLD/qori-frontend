@@ -3,6 +3,7 @@ import Lingote from "./Lingote";
 import Icon from "./Icon";
 import ImageUpload from "./ImageUpload";
 import Skeleton from "./Skeleton";
+import Modal from "./Modal";
 
 const GAMES = ["ROCKETS", "BOMBS", "ROULETTE"];
 
@@ -380,6 +381,8 @@ function AffiliateRow({ a, origin, usd, onPatch, onPay }: any) {
   const [detail, setDetail] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [pay, setPay] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [newCode, setNewCode] = useState(a.code);
   const link = `${origin}/?ref=${a.code}`;
   async function toggle() {
     const n = !open; setOpen(n);
@@ -392,7 +395,7 @@ function AffiliateRow({ a, origin, usd, onPatch, onPay }: any) {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-900">{a.name}</span>
             <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-xs font-bold text-amber-700">{a.code}</span>
-            <button onClick={() => { const c = window.prompt("Nuevo código (minúsculas, números, guiones):", a.code); if (c && c.trim().toLowerCase() !== a.code) onPatch(a.id, { code: c.trim().toLowerCase() }); }} title="Editar código" className="text-slate-400 hover:text-slate-700"><Icon name="edit" className="h-3.5 w-3.5" /></button>
+            <button onClick={() => { setNewCode(a.code); setEditOpen(true); }} title="Editar código" className="text-slate-400 hover:text-slate-700"><Icon name="edit" className="h-3.5 w-3.5" /></button>
             {!a.active && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-500">inactivo</span>}
           </div>
           <button
@@ -443,6 +446,20 @@ function AffiliateRow({ a, origin, usd, onPatch, onPay }: any) {
           )}
         </div>
       )}
+
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar código del afiliado">
+        <label className="text-xs text-slate-500">Nuevo código (minúsculas, números, guiones)</label>
+        <input value={newCode} onChange={(e) => setNewCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" autoFocus />
+        <p className="mt-2 text-xs text-slate-400">El link pasará a ser <span className="font-mono">{origin}/?ref={newCode || "..."}</span></p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={() => setEditOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+          <button
+            onClick={() => { const c = newCode.trim(); if (c && c !== a.code) onPatch(a.id, { code: c }); setEditOpen(false); }}
+            disabled={!newCode.trim() || newCode.trim() === a.code}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400"
+          >Guardar</button>
+        </div>
+      </Modal>
     </div>
   );
 }
