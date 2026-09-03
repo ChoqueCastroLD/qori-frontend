@@ -103,6 +103,12 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
           if (!/^[A-Z0-9]{4,32}$/.test(code)) return;
           localStorage.setItem("qori_ref", JSON.stringify({ code: code, ts: Date.now() }));
           document.cookie = "qori_ref=" + code + ";path=/;max-age=2592000;samesite=lax";
+          // Count a unique visit for this code (once per browser per code).
+          var vkey = "qref_v_" + code.toLowerCase();
+          if (!localStorage.getItem(vkey)) {
+            localStorage.setItem(vkey, "1");
+            fetch("/api/public/ref-visit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: code }) }).catch(function () {});
+          }
         } catch (e) {}
       }
       qoriCaptureRef();

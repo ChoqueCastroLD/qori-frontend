@@ -46,6 +46,7 @@ export default function Admin() {
   const [purchases, setPurchases] = useState<any>(null);
   const [pendingTopups, setPendingTopups] = useState<any[] | null>(null);
   const [affiliates, setAffiliates] = useState<any[] | null>(null);
+  const [refStats, setRefStats] = useState<any>(null);
   const [users, setUsers] = useState<any[] | null>(null);
   const [winners, setWinners] = useState<any[] | null>(null);
   const [msg, setMsg] = useState("");
@@ -59,8 +60,9 @@ export default function Admin() {
     adminFetch("/admin/users").then((r) => r.ok && setUsers(r.data));
     adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
     adminFetch("/admin/affiliates").then((r) => r.ok && setAffiliates(r.data));
+    adminFetch("/admin/referral-stats").then((r) => r.ok && setRefStats(r.data));
   }
-  function reloadAffiliates() { adminFetch("/admin/affiliates").then((r) => r.ok && setAffiliates(r.data)); }
+  function reloadAffiliates() { adminFetch("/admin/affiliates").then((r) => r.ok && setAffiliates(r.data)); adminFetch("/admin/referral-stats").then((r) => r.ok && setRefStats(r.data)); }
   async function createAffiliate(code: string, name: string, note: string) {
     const res = await adminFetch("/admin/affiliates", { method: "POST", body: JSON.stringify({ code, name, note: note || undefined }) });
     if (res.ok) { setMsg(`Afiliado creado: ${res.data.code}`); reloadAffiliates(); }
@@ -159,7 +161,7 @@ export default function Admin() {
 
       {tab === "recharges" && <Recharges topups={pendingTopups} onConfirm={confirmTopup} onReject={rejectTopup} />}
 
-      {tab === "affiliates" && <Affiliates affiliates={affiliates} onCreate={createAffiliate} onPatch={patchAffiliate} onPay={payAffiliate} />}
+      {tab === "affiliates" && <Affiliates affiliates={affiliates} stats={refStats} onCreate={createAffiliate} onPatch={patchAffiliate} onPay={payAffiliate} />}
 
       {tab === "purchases" && <Purchases p={purchases} />}
 
@@ -342,7 +344,7 @@ function Recharges({ topups, onConfirm, onReject }: { topups: any[] | null; onCo
   );
 }
 
-function Affiliates({ affiliates, onCreate, onPatch, onPay }: { affiliates: any[] | null; onCreate: (c: string, n: string, note: string) => Promise<boolean>; onPatch: (id: string, patch: any) => void; onPay: (id: string, usd: number) => void }) {
+function Affiliates({ affiliates, stats, onCreate, onPatch, onPay }: { affiliates: any[] | null; stats: any; onCreate: (c: string, n: string, note: string) => Promise<boolean>; onPatch: (id: string, patch: any) => void; onPay: (id: string, usd: number) => void }) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
@@ -353,6 +355,38 @@ function Affiliates({ affiliates, onCreate, onPatch, onPay }: { affiliates: any[
   const inp = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
   return (
     <div className="mt-6 space-y-6">
+      {stats && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <Card icon="eye" label="Visitas (clicks)" value={nf(stats.totalVisits ?? 0)} sub="entraron por un link" />
+            <Card icon="users" label="Registros con código" value={nf(stats.withCode)} sub={`de ${nf(stats.totalUsers)} usuarios`} />
+            <Card icon="star" label="Vía marca/afiliado" value={nf(stats.viaAffiliate)} />
+            <Card icon="user" label="Vía usuario" value={nf(stats.viaUser)} />
+            <Card icon="info" label="Códigos no registrados" value={nf(stats.unknownTotal)} sub={`${stats.unknown?.length ?? 0} códigos distintos`} />
+          </div>
+          {stats.unknown && stats.unknown.length > 0 && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-slate-900"><Icon name="info" className="h-4 w-4 text-amber-500" /> Códigos usados que no tenemos registrados</h3>
+              <p className="mt-1 text-xs text-slate-500">Alguien se registró con estos códigos pero no corresponden a ningún usuario ni afiliado. Útil para detectar códigos mal compartidos o tráfico por investigar.</p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs text-slate-400"><tr><th className="py-1.5 pr-3">Código</th><th className="py-1.5 pr-3">Visitas</th><th className="py-1.5 pr-3">Registros</th><th className="py-1.5">Compraron</th></tr></thead>
+                  <tbody>
+                    {stats.unknown.map((u: any) => (
+                      <tr key={u.code} className="border-t border-amber-100">
+                        <td className="py-2 pr-3"><span className="font-mono text-slate-800">{u.code}</span> <span className="ml-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-500">no registrado</span></td>
+                        <td className="py-2 pr-3 text-slate-600">{u.visits ?? 0}</td>
+                        <td className="py-2 pr-3 font-semibold text-slate-800">{u.count}</td>
+                        <td className="py-2 text-emerald-700">{u.bought}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <h3 className="text-sm font-semibold text-slate-900">Nuevo afiliado (scan / marca)</h3>
         <p className="mt-1 text-xs text-slate-500">Cada afiliado tiene su propio código. Su link para difundir es <span className="font-mono">{origin}/?ref=codigo</span>. Ganan <strong>$0.50 por cada referido que compra con dinero real</strong> ($5 por cada 10).</p>
@@ -410,11 +444,11 @@ function AffiliateRow({ a, origin, usd, onPatch, onPay }: any) {
         <button onClick={() => onPatch(a.id, { active: !a.active })} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">{a.active ? "Desactivar" : "Activar"}</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-px border-t border-slate-100 bg-slate-100 sm:grid-cols-5">
-        {[["Registros", String(a.signups)], ["Válidos (pagaron)", String(a.validRefs)], ["Generado", usd(a.earnedUsdCents)], ["Pagado", usd(a.paidUsdCents)], ["Por pagar", usd(a.owedUsdCents)]].map(([l, v], i) => (
-          <div key={l} className={`bg-white p-3 ${i === 4 ? "font-bold" : ""}`}>
+      <div className="grid grid-cols-3 gap-px border-t border-slate-100 bg-slate-100 sm:grid-cols-6">
+        {[["Visitas", String(a.visits ?? 0)], ["Registros", String(a.signups)], ["Válidos (pagaron)", String(a.validRefs)], ["Generado", usd(a.earnedUsdCents)], ["Pagado", usd(a.paidUsdCents)], ["Por pagar", usd(a.owedUsdCents)]].map(([l, v], i) => (
+          <div key={l} className={`bg-white p-3 ${i === 5 ? "font-bold" : ""}`}>
             <div className="text-[11px] text-slate-400">{l}</div>
-            <div className={`text-sm font-semibold ${i === 4 && a.owedUsdCents > 0 ? "text-emerald-700" : "text-slate-900"}`}>{v}</div>
+            <div className={`text-sm font-semibold ${i === 5 && a.owedUsdCents > 0 ? "text-emerald-700" : "text-slate-900"}`}>{v}</div>
           </div>
         ))}
       </div>
