@@ -234,14 +234,10 @@ export default function Recharge() {
 
         {/* Payment method */}
         <label className="mb-2 mt-5 block text-sm font-medium text-slate-700">Método de pago</label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-3 gap-2">
           <button type="button" aria-pressed={method === "MERCADOPAGO"} onClick={() => setMethod("MERCADOPAGO")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "MERCADOPAGO" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/mercadopago.svg" alt="MercadoPago" className="h-6" />
             <span className="text-[10px] text-slate-500">Yape · Plin · Tarjeta</span>
-          </button>
-          <button type="button" aria-pressed={method === "FLOW"} onClick={() => setMethod("FLOW")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "FLOW" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
-            <img src="/pay/flow.svg" alt="Flow" className="h-6" />
-            <span className="text-[10px] text-slate-500">Yape · Tarjeta</span>
           </button>
           <button type="button" aria-pressed={method === "PAYPAL"} onClick={() => setMethod("PAYPAL")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "PAYPAL" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/paypal.svg" alt="PayPal" className="h-6" />
@@ -252,6 +248,16 @@ export default function Recharge() {
             <span className="text-[10px] text-slate-500">Cripto · USDT</span>
           </button>
         </div>
+
+        {/* Flow: one option (single checkout) that accepts Yape, billeteras and PagoEfectivo */}
+        <button type="button" aria-pressed={method === "FLOW"} onClick={() => setMethod("FLOW")} className={`mt-2 flex w-full items-stretch overflow-hidden rounded-lg border transition ${method === "FLOW" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
+          {[["/pay/yape.png", "Yape"], ["/pay/billeteras.png", "Billeteras"], ["/pay/pagoefectivo.png", "PagoEfectivo"]].map(([src, label], i) => (
+            <span key={label} className={`flex flex-1 flex-col items-center justify-center gap-1 px-2 py-3 ${i < 2 ? "border-r border-slate-200" : ""}`}>
+              <img src={src} alt={label} className="h-6 object-contain" />
+              <span className="text-[10px] text-slate-500">{label}</span>
+            </span>
+          ))}
+        </button>
 
         {payErr && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{payErr}</p>}
 
@@ -264,7 +270,7 @@ export default function Recharge() {
         ) : (
           <>
             <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
-              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : method === "FLOW" ? `Pagar $${sel / 100} con Flow (Yape)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
+              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : method === "FLOW" ? `Pagar $${sel / 100} con Flow` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
             </button>
             <p className="mt-2 text-center text-xs text-slate-400">
               {method === "CRYPTO"
