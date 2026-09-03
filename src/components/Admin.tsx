@@ -364,6 +364,32 @@ function Affiliates({ affiliates, stats, onCreate, onPatch, onPay }: { affiliate
             <Card icon="user" label="Vía usuario" value={nf(stats.viaUser)} />
             <Card icon="info" label="Códigos no registrados" value={nf(stats.unknownTotal)} sub={`${stats.unknown?.length ?? 0} códigos distintos`} />
           </div>
+          {stats.topVisits && stats.topVisits.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="text-sm font-semibold text-slate-900">Todos los códigos por visitas</h3>
+              <p className="mt-1 text-xs text-slate-500">Cuánta gente entró por cada link (visitas únicas) y cuántas de esas se registraron. Sirve para ver clicks que no convierten.</p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs text-slate-400"><tr><th className="py-1.5 pr-3">Código</th><th className="py-1.5 pr-3">Tipo</th><th className="py-1.5 pr-3">Visitas</th><th className="py-1.5 pr-3">Registros</th><th className="py-1.5">Conversión</th></tr></thead>
+                  <tbody>
+                    {stats.topVisits.map((v: any) => {
+                      const conv = v.visits > 0 ? Math.round((v.registrations / v.visits) * 100) : 0;
+                      const tag = v.type === "affiliate" ? ["marca", "bg-amber-100 text-amber-700"] : v.type === "user" ? ["usuario", "bg-emerald-100 text-emerald-700"] : ["no registrado", "bg-slate-200 text-slate-500"];
+                      return (
+                        <tr key={v.code} className="border-t border-slate-100">
+                          <td className="py-2 pr-3 font-mono text-slate-800">{v.code}</td>
+                          <td className="py-2 pr-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tag[1]}`}>{tag[0]}</span></td>
+                          <td className="py-2 pr-3 font-semibold text-slate-800">{v.visits}</td>
+                          <td className="py-2 pr-3 text-slate-600">{v.registrations}</td>
+                          <td className="py-2 text-slate-500">{conv}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           {stats.unknown && stats.unknown.length > 0 && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold text-slate-900"><Icon name="info" className="h-4 w-4 text-amber-500" /> Códigos usados que no tenemos registrados</h3>
