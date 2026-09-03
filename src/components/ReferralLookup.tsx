@@ -97,9 +97,10 @@ export default function ReferralLookup() {
               </div>
               <div className="font-mono text-xs text-slate-400">{res.owner.code}</div>
             </div>
-            <div className="flex gap-4 text-right">
-              <div><div className="text-2xl font-bold text-emerald-700">{nf(res.boughtCount)}</div><div className="text-xs text-slate-500">compraron</div></div>
-              <div><div className="text-2xl font-bold text-slate-900">{nf(res.count)}</div><div className="text-xs text-slate-500">referidos</div></div>
+            <div className="flex gap-4 text-center">
+              <div><div className="text-xl font-bold text-slate-500">{nf(res.visits ?? 0)}</div><div className="text-xs text-slate-400">visitas</div></div>
+              <div><div className="text-xl font-bold text-slate-900">{nf(res.count)}</div><div className="text-xs text-slate-400">registros</div></div>
+              <div><div className="text-xl font-bold text-emerald-700">{nf(res.boughtCount)}</div><div className="text-xs text-slate-500">referidos</div></div>
             </div>
           </div>
 
@@ -107,7 +108,7 @@ export default function ReferralLookup() {
 
           <div>
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Se registraron y compraron ({res.boughtCount})
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Referidos: se registraron y compraron ({res.boughtCount})
             </div>
             {res.bought.length === 0 ? <p className="text-xs text-slate-400">Nadie ha comprado todavía con este código.</p> : <PersonList people={res.bought} ring />}
           </div>

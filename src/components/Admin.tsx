@@ -370,18 +370,19 @@ function Affiliates({ affiliates, stats, onCreate, onPatch, onPay }: { affiliate
               <p className="mt-1 text-xs text-slate-500">Cuánta gente entró por cada link (visitas únicas) y cuántas de esas se registraron. Sirve para ver clicks que no convierten.</p>
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="text-xs text-slate-400"><tr><th className="py-1.5 pr-3">Código</th><th className="py-1.5 pr-3">Tipo</th><th className="py-1.5 pr-3">Visitas</th><th className="py-1.5 pr-3">Registros</th><th className="py-1.5">Conversión</th></tr></thead>
+                  <thead className="text-xs text-slate-400"><tr><th className="py-1.5 pr-3">Código</th><th className="py-1.5 pr-3">Tipo</th><th className="py-1.5 pr-3">Visitas</th><th className="py-1.5 pr-3">Registros</th><th className="py-1.5">Referidos</th></tr></thead>
                   <tbody>
                     {stats.topVisits.map((v: any) => {
-                      const conv = v.visits > 0 ? Math.round((v.registrations / v.visits) * 100) : 0;
+                      const pReg = v.visits > 0 ? Math.round((v.registrations / v.visits) * 100) : null;
+                      const pRef = v.registrations > 0 ? Math.round((v.referidos / v.registrations) * 100) : null;
                       const tag = v.type === "affiliate" ? ["marca", "bg-amber-100 text-amber-700"] : v.type === "user" ? ["usuario", "bg-emerald-100 text-emerald-700"] : ["no registrado", "bg-slate-200 text-slate-500"];
                       return (
                         <tr key={v.code} className="border-t border-slate-100">
                           <td className="py-2 pr-3 font-mono text-slate-800">{v.code}</td>
                           <td className="py-2 pr-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tag[1]}`}>{tag[0]}</span></td>
                           <td className="py-2 pr-3 font-semibold text-slate-800">{v.visits}</td>
-                          <td className="py-2 pr-3 text-slate-600">{v.registrations}</td>
-                          <td className="py-2 text-slate-500">{conv}%</td>
+                          <td className="py-2 pr-3 text-slate-600">{v.registrations} {pReg !== null && <span className="text-[10px] text-slate-400">({pReg}%)</span>}</td>
+                          <td className="py-2 font-semibold text-emerald-700">{v.referidos} {pRef !== null && <span className="text-[10px] text-slate-400">({pRef}%)</span>}</td>
                         </tr>
                       );
                     })}
@@ -471,7 +472,7 @@ function AffiliateRow({ a, origin, usd, onPatch, onPay }: any) {
       </div>
 
       <div className="grid grid-cols-3 gap-px border-t border-slate-100 bg-slate-100 sm:grid-cols-6">
-        {[["Visitas", String(a.visits ?? 0)], ["Registros", String(a.signups)], ["Válidos (pagaron)", String(a.validRefs)], ["Generado", usd(a.earnedUsdCents)], ["Pagado", usd(a.paidUsdCents)], ["Por pagar", usd(a.owedUsdCents)]].map(([l, v], i) => (
+        {[["Visitas", String(a.visits ?? 0)], ["Registros", String(a.signups)], ["Referidos", String(a.validRefs)], ["Generado", usd(a.earnedUsdCents)], ["Pagado", usd(a.paidUsdCents)], ["Por pagar", usd(a.owedUsdCents)]].map(([l, v], i) => (
           <div key={l} className={`bg-white p-3 ${i === 5 ? "font-bold" : ""}`}>
             <div className="text-[11px] text-slate-400">{l}</div>
             <div className={`text-sm font-semibold ${i === 5 && a.owedUsdCents > 0 ? "text-emerald-700" : "text-slate-900"}`}>{v}</div>
