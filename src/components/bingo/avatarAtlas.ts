@@ -97,6 +97,7 @@ export class AvatarAtlas {
     ctx.textBaseline = "middle";
     if (!compact) {
       const chipW = 17, chipH = 15, gap = 3;
+      const chipY = 20; // sits just above the avatar head (closer than before)
       const rowW = chipW * 5 + gap * 4;
       let cx = (TILE - rowW) / 2;
       ctx.font = "bold 11px system-ui, sans-serif";
@@ -104,15 +105,15 @@ export class AvatarAtlas {
         const done = p.bestLetters.includes(L);
         if (done) {
           // Completed column: colored letter chip.
-          roundRect(ctx, cx, 6, chipW, chipH, 4);
+          roundRect(ctx, cx, chipY, chipW, chipH, 4);
           ctx.fillStyle = LETTER_COLORS[L];
           ctx.fill();
           ctx.fillStyle = "#ffffff";
-          ctx.fillText(L, cx + chipW / 2, 6 + chipH / 2 + 0.5);
+          ctx.fillText(L, cx + chipW / 2, chipY + chipH / 2 + 0.5);
         } else {
           // Pending: quiet dot, no letter - keeps the grandstand calm.
           ctx.beginPath();
-          ctx.arc(cx + chipW / 2, 6 + chipH / 2, 2.5, 0, Math.PI * 2);
+          ctx.arc(cx + chipW / 2, chipY + chipH / 2, 2.5, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(255,255,255,0.5)";
           ctx.fill();
         }

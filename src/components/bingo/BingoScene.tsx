@@ -14,7 +14,7 @@ import { CalledStrip, CountdownRing } from "./hud/CalledBalls";
 import ActiveCard from "./hud/ActiveCard";
 import CardStack from "./hud/CardStack";
 import ChatPanel from "./hud/ChatPanel";
-import ParticipantsPanel, { LetterTotals } from "./hud/ParticipantsPanel";
+import ParticipantsPanel, { LetterTotals, PlayerCard } from "./hud/ParticipantsPanel";
 import WinnersOverlay from "./hud/WinnersOverlay";
 import { cardColumns, remainingToFill, type BingoCard } from "./types";
 import { playSfx, setVolume as setAudioVolume } from "./audio";
@@ -62,7 +62,14 @@ function BingoSceneView({ api }: { api: MockApi }) {
   const [minimizedIdx, setMinimizedIdx] = useState<number[]>([]);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [highlightUser, setHighlightUser] = useState<string | null>(null);
+  const [sceneHover, setSceneHover] = useState<{ userId: string; x: number; y: number } | null>(null);
+  const [avatarReactions, setAvatarReactions] = useState<{ id: number; emoji: string; x: number; y: number }[]>([]);
+  const seenReactions = useRef<Set<number>>(new Set());
   const dragAreaRef = useRef<HTMLDivElement>(null);
+  const participantsById = useMemo(
+    () => new Map(state.participants.map((p) => [p.userId, p])),
+    [state.participants]
+  );
 
   // Settings (config window): toggle chat / reactions, master volume.
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -189,6 +196,11 @@ function BingoSceneView({ api }: { api: MockApi }) {
         sceneRef.current = scene;
         const st = apiRef.current.state;
         scene.setParticipants(st.participants, st.me.userId);
+        // Hovering a scene avatar -> spotlight + floating player card.
+        scene.setHoverCallback((userId, x, y) => {
+          setHighlightUser(userId);
+          setSceneHover(userId ? { userId, x, y } : null);
+        });
       } catch {
         setWebgl(false);
       }
@@ -220,6 +232,22 @@ function BingoSceneView({ api }: { api: MockApi }) {
   useEffect(() => {
     sceneRef.current?.setHighlight?.(highlightUser);
   }, [highlightUser]);
+
+  // Float each new reaction up over the reacting player's own avatar too.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene || !showReactions) return;
+    for (const r of reactions) {
+      if (!r.userId || seenReactions.current.has(r.id)) continue;
+      seenReactions.current.add(r.id);
+      const pos = scene.worldToScreen?.(r.userId);
+      if (!pos) continue;
+      const rid = r.id;
+      setAvatarReactions((prev) => [...prev.slice(-24), { id: rid, emoji: r.emoji, x: pos.x, y: pos.y }]);
+      window.setTimeout(() => setAvatarReactions((prev) => prev.filter((a) => a.id !== rid)), 1700);
+    }
+    if (seenReactions.current.size > 400) seenReactions.current.clear();
+  }, [reactions, showReactions]);
 
   const countdownActive = revealPhase === null && state.status === "drawing";
 
@@ -268,6 +296,25 @@ function BingoSceneView({ api }: { api: MockApi }) {
               style={{ left: `${r.x}%` }}
             >
               {r.emoji}
+            </motion.span>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* ------- reactions rising over each reacting avatar ------- */}
+      <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+        <AnimatePresence>
+          {showReactions && avatarReactions.map((a) => (
+            <motion.span
+              key={`av-${a.id}`}
+              initial={{ opacity: 0, y: 0, scale: 0.5 }}
+              animate={{ opacity: [0, 1, 1, 0], y: -74, scale: [0.5, 1.15, 1] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.7, ease: "easeOut" }}
+              className="absolute -translate-x-1/2 text-2xl drop-shadow"
+              style={{ left: a.x, top: a.y }}
+            >
+              {a.emoji}
             </motion.span>
           ))}
         </AnimatePresence>
@@ -553,6 +600,16 @@ function BingoSceneView({ api }: { api: MockApi }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ------- scene avatar hover: floating player card ------- */}
+      {sceneHover && participantsById.get(sceneHover.userId) && (
+        <div
+          className="pointer-events-none absolute z-40 -translate-x-1/2 -translate-y-full"
+          style={{ left: sceneHover.x, top: sceneHover.y - 14 }}
+        >
+          <PlayerCard p={participantsById.get(sceneHover.userId)!} meId={state.me.userId} />
+        </div>
+      )}
 
       {/* ------- how to play (first visit + reopen) ------- */}
       <AnimatePresence>

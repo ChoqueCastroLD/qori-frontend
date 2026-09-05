@@ -85,6 +85,12 @@ export class BingoScene3D {
   private crowdSlots: CrowdSlot[] = [];
   private tierGroup: THREE.Group | null = null;
   private meId = "";
+  // Hover picking + spotlight: each avatar's world center + its per-mesh id.
+  private crowdPositions: { userId: string; pos: THREE.Vector3 }[] = [];
+  private idOf = new Map<string, { far: boolean; id: number }>();
+  private hoverCb: ((userId: string | null, x: number, y: number) => void) | null = null;
+  private lastHoverId: string | null = null;
+  private pointerPx = new THREE.Vector2(-9999, -9999);
 
   // machine
   private innerBalls!: THREE.InstancedMesh;
@@ -747,10 +753,13 @@ export class BingoScene3D {
     }));
     near.forEach((p, i) => this.atlas.draw(p, p.userId === meId, seats[i].row > 2));
 
+    this.crowdPositions = [];
+    this.idOf.clear();
     const nOff = new Float32Array(near.length * 3);
     const nScale = new Float32Array(near.length);
     const nTile = new Float32Array(near.length * 2);
     const nPhase = new Float32Array(near.length);
+    const nId = new Float32Array(near.length);
     for (let i = 0; i < near.length; i++) {
       const s = seats[i];
       const compact = s.row > 2;
@@ -762,6 +771,9 @@ export class BingoScene3D {
       nTile[i * 2] = t.u;
       nTile[i * 2 + 1] = t.v;
       nPhase[i] = (hash32(near[i].userId) % 628) / 100;
+      nId[i] = i;
+      this.idOf.set(near[i].userId, { far: false, id: i });
+      this.crowdPositions.push({ userId: near[i].userId, pos: new THREE.Vector3(nOff[i * 3], nOff[i * 3 + 1], nOff[i * 3 + 2]) });
     }
 
     if (this.crowdMesh) {
@@ -778,6 +790,7 @@ export class BingoScene3D {
     geo.setAttribute("iScale", new THREE.InstancedBufferAttribute(nScale, 1));
     geo.setAttribute("iTile", new THREE.InstancedBufferAttribute(nTile, 2));
     geo.setAttribute("iPhase", new THREE.InstancedBufferAttribute(nPhase, 1));
+    geo.setAttribute("iId", new THREE.InstancedBufferAttribute(nId, 1));
 
     if (!this.crowdMat) {
       this.crowdMat = new THREE.ShaderMaterial({
@@ -786,6 +799,8 @@ export class BingoScene3D {
           uTime: { value: 0 },
           uTiles: { value: 16 },
           uFogColor: { value: new THREE.Color(PAL.fog) },
+          uHiId: { value: -1 },
+          uHiActive: { value: 0 },
         },
         vertexShader: CROWD_VERT,
         fragmentShader: CROWD_FRAG,
@@ -807,6 +822,7 @@ export class BingoScene3D {
       const fScale = new Float32Array(far.length);
       const fCol = new Float32Array(far.length * 3);
       const fPhase = new Float32Array(far.length);
+      const fId = new Float32Array(far.length);
       const col = new THREE.Color();
       for (let i = 0; i < far.length; i++) {
         const s = seats[near.length + i];
@@ -817,6 +833,9 @@ export class BingoScene3D {
         col.setHex(FAR_TINTS[hash32(far[i].userId) % FAR_TINTS.length]);
         fCol[i * 3] = col.r; fCol[i * 3 + 1] = col.g; fCol[i * 3 + 2] = col.b;
         fPhase[i] = (hash32(far[i].userId) % 628) / 100;
+        fId[i] = i;
+        this.idOf.set(far[i].userId, { far: true, id: i });
+        this.crowdPositions.push({ userId: far[i].userId, pos: new THREE.Vector3(fOff[i * 3], fOff[i * 3 + 1], fOff[i * 3 + 2]) });
       }
       const fGeo = new THREE.InstancedBufferGeometry();
       fGeo.index = plane.index;
@@ -827,6 +846,7 @@ export class BingoScene3D {
       fGeo.setAttribute("iScale", new THREE.InstancedBufferAttribute(fScale, 1));
       fGeo.setAttribute("iColor", new THREE.InstancedBufferAttribute(fCol, 3));
       fGeo.setAttribute("iPhase", new THREE.InstancedBufferAttribute(fPhase, 1));
+      fGeo.setAttribute("iId", new THREE.InstancedBufferAttribute(fId, 1));
 
       if (!this.farMat) {
         this.farMat = new THREE.ShaderMaterial({
@@ -834,6 +854,8 @@ export class BingoScene3D {
             uMap: { value: makeHeadChipTexture() },
             uTime: { value: 0 },
             uFogColor: { value: new THREE.Color(PAL.fog) },
+            uHiId: { value: -1 },
+            uHiActive: { value: 0 },
           },
           vertexShader: FAR_VERT,
           fragmentShader: FAR_FRAG,
@@ -858,6 +880,63 @@ export class BingoScene3D {
       if (sig !== slot.sig) {
         slot.sig = sig;
         this.atlas.draw(p, p.userId === this.meId, slot.compact);
+      }
+    }
+  }
+
+  // -------------------------------------------------------- hover + spotlight
+  /** Dim every avatar except the highlighted one (spotlight). null clears it. */
+  setHighlight(userId: string | null): void {
+    const info = userId ? this.idOf.get(userId) : undefined;
+    const active = userId ? 1 : 0;
+    if (this.crowdMat) {
+      this.crowdMat.uniforms.uHiActive.value = active;
+      this.crowdMat.uniforms.uHiId.value = info && !info.far ? info.id : -1;
+    }
+    if (this.farMat) {
+      this.farMat.uniforms.uHiActive.value = active;
+      this.farMat.uniforms.uHiId.value = info && info.far ? info.id : -1;
+    }
+  }
+
+  /** React callback for scene-avatar hover: (userId|null, clientX, clientY). */
+  setHoverCallback(fn: (userId: string | null, x: number, y: number) => void): void {
+    this.hoverCb = fn;
+  }
+
+  /** Project an avatar's world position to client pixels (null if behind cam). */
+  worldToScreen(userId: string): { x: number; y: number } | null {
+    const e = this.crowdPositions.find((c) => c.userId === userId);
+    if (!e) return null;
+    const v = e.pos.clone().project(this.camera);
+    if (v.z > 1) return null;
+    const rect = this.canvas.getBoundingClientRect();
+    return { x: (v.x * 0.5 + 0.5) * rect.width + rect.left, y: (-v.y * 0.5 + 0.5) * rect.height + rect.top };
+  }
+
+  /** Nearest avatar to the pointer (screen space); notifies on change. */
+  private pickHover(): void {
+    if (!this.hoverCb) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const px = this.pointerPx.x, py = this.pointerPx.y;
+    let bestId: string | null = null;
+    let bestD = 28; // px threshold
+    const v = new THREE.Vector3();
+    for (const c of this.crowdPositions) {
+      v.copy(c.pos).project(this.camera);
+      if (v.z > 1) continue;
+      const sx = (v.x * 0.5 + 0.5) * rect.width + rect.left;
+      const sy = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
+      const d = Math.hypot(sx - px, sy - py);
+      if (d < bestD) { bestD = d; bestId = c.userId; }
+    }
+    if (bestId !== this.lastHoverId) {
+      this.lastHoverId = bestId;
+      if (bestId) {
+        const s = this.worldToScreen(bestId);
+        this.hoverCb(bestId, s?.x ?? px, s?.y ?? py);
+      } else {
+        this.hoverCb(null, 0, 0);
       }
     }
   }
@@ -941,6 +1020,15 @@ export class BingoScene3D {
 
   private onPointer = (e: PointerEvent) => {
     this.pointer.set((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
+    // Only pick avatars when the pointer is over the canvas itself (not a HUD
+    // panel on top), so hovering the chat/cards doesn't trip a scene hover.
+    if (e.target === this.canvas) {
+      this.pointerPx.set(e.clientX, e.clientY);
+      this.pickHover();
+    } else if (this.lastHoverId !== null) {
+      this.lastHoverId = null;
+      this.hoverCb?.(null, 0, 0);
+    }
   };
 
   private frame = () => {
@@ -1061,12 +1149,17 @@ const CROWD_VERT = /* glsl */ `
   attribute float iScale;
   attribute vec2 iTile;
   attribute float iPhase;
+  attribute float iId;
   uniform float uTime;
   uniform float uTiles;
+  uniform float uHiId;
+  uniform float uHiActive;
   varying vec2 vUv;
   varying float vDepth;
+  varying float vHi;
   void main() {
     vUv = uv / uTiles + iTile;
+    vHi = (uHiActive < 0.5 || abs(iId - uHiId) < 0.5) ? 1.0 : 0.0;
     float bob = sin(uTime * 1.7 + iPhase) * 0.028;
     vec4 mv = modelViewMatrix * vec4(iOffset + vec3(0.0, bob, 0.0), 1.0);
     mv.xy += position.xy * iScale;
@@ -1079,11 +1172,15 @@ const CROWD_FRAG = /* glsl */ `
   uniform vec3 uFogColor;
   varying vec2 vUv;
   varying float vDepth;
+  varying float vHi;
   void main() {
     vec4 c = texture2D(uMap, vUv);
     if (c.a < 0.12) discard;
     float fogF = smoothstep(13.0, 34.0, vDepth) * 0.55;
-    gl_FragColor = vec4(mix(c.rgb, uFogColor, fogF), c.a);
+    vec3 rgb = mix(c.rgb, uFogColor, fogF);
+    float dim = (1.0 - vHi) * 0.66;         // fade the non-highlighted into the hall
+    rgb = mix(rgb, uFogColor, dim);
+    gl_FragColor = vec4(rgb, c.a * (1.0 - (1.0 - vHi) * 0.5));
   }
 `;
 const FAR_VERT = /* glsl */ `
@@ -1091,13 +1188,18 @@ const FAR_VERT = /* glsl */ `
   attribute float iScale;
   attribute vec3 iColor;
   attribute float iPhase;
+  attribute float iId;
   uniform float uTime;
+  uniform float uHiId;
+  uniform float uHiActive;
   varying vec2 vUv;
   varying vec3 vColor;
   varying float vDepth;
+  varying float vHi;
   void main() {
     vUv = uv;
     vColor = iColor;
+    vHi = (uHiActive < 0.5 || abs(iId - uHiId) < 0.5) ? 1.0 : 0.0;
     float bob = sin(uTime * 1.7 + iPhase) * 0.02;
     vec4 mv = modelViewMatrix * vec4(iOffset + vec3(0.0, bob, 0.0), 1.0);
     mv.xy += position.xy * iScale;
@@ -1111,11 +1213,15 @@ const FAR_FRAG = /* glsl */ `
   varying vec2 vUv;
   varying vec3 vColor;
   varying float vDepth;
+  varying float vHi;
   void main() {
     vec4 c = texture2D(uMap, vUv);
     if (c.a < 0.12) discard;
     float fogF = smoothstep(13.0, 34.0, vDepth) * 0.6;
-    gl_FragColor = vec4(mix(c.rgb * vColor, uFogColor, fogF), c.a);
+    vec3 rgb = mix(c.rgb * vColor, uFogColor, fogF);
+    float dim = (1.0 - vHi) * 0.66;
+    rgb = mix(rgb, uFogColor, dim);
+    gl_FragColor = vec4(rgb, c.a * (1.0 - (1.0 - vHi) * 0.5));
   }
 `;
 

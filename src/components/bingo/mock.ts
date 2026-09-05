@@ -29,7 +29,7 @@ export const MY_CARDS_COUNT = 14;
 
 export type RevealPhase = null | "flight" | "letter" | "number" | "call";
 
-export type FloatingReaction = { id: number; emoji: string; x: number };
+export type FloatingReaction = { id: number; emoji: string; x: number; userId?: string };
 
 type Listener = (ev: SceneEvent) => void;
 export type SceneEvent =
@@ -271,9 +271,9 @@ export function useMockBingo(participantCount = 348): MockApi {
     return out;
   }
 
-  const pushReaction = (emoji: string) => {
+  const pushReaction = (emoji: string, userId?: string) => {
     const id = uid++;
-    setReactions((r) => [...r.slice(-14), { id, emoji, x: 12 + Math.random() * 76 }]);
+    setReactions((r) => [...r.slice(-14), { id, emoji, x: 12 + Math.random() * 76, userId }]);
     const t = window.setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 2600);
     timers.current.push(t);
   };
@@ -416,7 +416,8 @@ export function useMockBingo(participantCount = 348): MockApi {
         return chat === s.chat && viewers === s.viewers ? s : { ...s, chat, viewers };
       });
       if (Math.random() < 0.45) {
-        pushReaction(REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)]);
+        const rp = stateRef.current.participants[Math.floor(Math.random() * stateRef.current.participants.length)];
+        pushReaction(REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)], rp?.userId);
       }
     }, 5200);
     timers.current.push(chatTimer as unknown as number);
@@ -441,7 +442,7 @@ export function useMockBingo(participantCount = 348): MockApi {
       if (!t) return;
       setState((s) => ({ ...s, chat: [...s.chat.slice(-399), mkMsg(s.me.nickname, s.me.suertudo, t)] }));
     },
-    sendReaction: (emoji) => pushReaction(emoji),
+    sendReaction: (emoji) => pushReaction(emoji, world.meId),
     subscribe: (fn) => {
       listeners.current.add(fn);
       return () => listeners.current.delete(fn);
