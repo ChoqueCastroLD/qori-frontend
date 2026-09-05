@@ -504,7 +504,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
 
       {/* ------- MOBILE: collapsible panels + bottom bar ------- */}
       <div className="absolute inset-x-0 bottom-0 z-20 md:hidden">
-        <AnimatePresence mode="wait">
+        <>
           {panel === "card" && (
             <motion.div
               key="p-card"
@@ -543,34 +543,39 @@ function BingoSceneView({ api }: { api: MockApi }) {
                   </button>
                 )}
                 <motion.div
-                  key={state.me.activeCardIndex}
                   drag={state.me.cards.length > 1 ? "x" : false}
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.25}
                   dragMomentum={false}
+                  dragSnapToOrigin
                   onDragEnd={(_e, info) => {
                     const n = state.me.cards.length;
                     if (n < 2) return;
                     if (info.offset.x < -55 || info.velocity.x < -450) api.setActiveCard((state.me.activeCardIndex + 1) % n);
                     else if (info.offset.x > 55 || info.velocity.x > 450) api.setActiveCard((state.me.activeCardIndex - 1 + n) % n);
                   }}
-                  initial={{ opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
                   className="touch-pan-y"
                 >
-                  <ActiveCard
-                    card={activeCard}
-                    drawn={drawn}
-                    currentNumber={lastNumber}
-                    index={state.me.activeCardIndex}
-                    compact
-                    daubs={daubs}
-                    circles={circles}
-                    onCell={onCell(state.me.activeCardIndex)}
-                    drawnOrder={state.drawnBalls}
-                    cardsPerNumber={state.cardsPerNumber}
-                    totalCards={state.totalCards}
-                  />
+                  <motion.div
+                    key={state.me.activeCardIndex}
+                    initial={{ opacity: 0.5, x: 14 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <ActiveCard
+                      card={activeCard}
+                      drawn={drawn}
+                      currentNumber={lastNumber}
+                      index={state.me.activeCardIndex}
+                      compact
+                      daubs={daubs}
+                      circles={circles}
+                      onCell={onCell(state.me.activeCardIndex)}
+                      drawnOrder={state.drawnBalls}
+                      cardsPerNumber={state.cardsPerNumber}
+                      totalCards={state.totalCards}
+                    />
+                  </motion.div>
                 </motion.div>
                 {state.me.cards.length > 1 && (
                   <button
@@ -609,7 +614,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
               <ParticipantsPanel participants={state.participants} meId={state.me.userId} className="h-64 w-full" />
             </motion.div>
           )}
-        </AnimatePresence>
+        </>
 
         <div className="flex items-center justify-center gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1">
           <MobileTab
