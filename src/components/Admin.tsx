@@ -201,7 +201,8 @@ function Metrics({ m }: { m: any }) {
     <div className="mt-6 space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Card icon="cash" label="Ingresos (recargas pagadas)" value={usd(m.money.revenueUsdCents)} sub={`${m.money.topups} recargas`} />
-        <Card icon="trophy" label="Premios entregados" value={usd(m.money.prizeAwardedUsdCents)} sub={`${m.raffles.drawn} sorteos realizados`} />
+        <Card icon="gift" label="Premios ofrecidos" value={usd(m.money.prizeOfferedUsdCents ?? 0)} sub={`${nf(m.raffles.offered ?? 0)} sorteos publicados`} />
+        <Card icon="trophy" label="Premios entregados" value={usd(m.money.prizeAwardedUsdCents)} sub={`${m.raffles.drawn} sorteos · ${nf(m.winners?.total ?? 0)} ganadores`} />
         <Card icon="chart" label="Margen bruto" value={usd(m.money.grossMarginUsdCents)} sub="ingresos - premios entregados" />
         <Card icon="users" label="Usuarios" value={nf(m.users.total)} sub={`${m.users.verified} verificados · +${m.users.new7d} esta semana`} />
         <Card icon="ticket" label="Tickets vendidos" value={nf(m.tickets.sold)} sub={`${m.money.orders} órdenes`} />
@@ -244,8 +245,8 @@ function Growth({ g }: { g: any }) {
         <h3 className="text-sm font-semibold text-slate-900">Usuarios nuevos por día (30 días)</h3>
         <div className="mt-4 flex h-32 items-end gap-[3px]">
           {days.map((d) => (
-            <div key={d.date} className="group relative flex-1" title={`${d.date}: ${d.count}`}>
-              <div className="w-full rounded-t bg-emerald-400 transition group-hover:bg-emerald-600" style={{ height: `${Math.max(2, (d.count / max) * 100)}%` }} />
+            <div key={d.date} className="group relative flex h-full flex-1 items-end" title={`${d.date}: ${d.count}`}>
+              <div className="w-full rounded-t bg-emerald-400 transition group-hover:bg-emerald-600" style={{ height: `${d.count === 0 ? 2 : Math.max(6, (d.count / max) * 100)}%` }} />
             </div>
           ))}
         </div>
@@ -677,12 +678,25 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
     maxPerUser: r.maxTicketsPerUser ?? "",
     winnersCount: r.winnersCount ?? 1,
     paidOnly: !!r.paidOnly,
+    intervalSec: r.bingoIntervalSec ?? 8,
     closesAt: toLocalInput(r.closesAt),
   });
+  const [publishing, setPublishing] = useState(false);
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const inpS = "mt-0.5 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm";
   const locked = r.status === "DRAWN" || r.status === "CANCELLED";
+  const isBingo = r.kind === "BINGO";
+  const unit = isBingo ? "tarjetas" : "tickets";
   const blockHistory: any[] = Array.isArray(r.blockHistory) ? r.blockHistory : [];
+
+  async function publish() {
+    if (!confirm(`¿Publicar "${r.title}"? Pasará a Abierto y la gente podrá ${isBingo ? "comprar tarjetas" : "comprar tickets"} de inmediato.`)) return;
+    setPublishing(true);
+    const res = await adminFetch(`/admin/raffles/${r.id}`, { method: "PATCH", body: JSON.stringify({ status: "OPEN" }) });
+    setPublishing(false);
+    setMsg(res.ok ? "Sorteo publicado (Abierto)." : `Error: ${res.data?.error ?? "no se pudo"}`);
+    if (res.ok) onChanged();
+  }
 
   async function toggleBlock(block: boolean) {
     if (block && !blockReason.trim()) { setMsg("Escribe una razón para bloquear el sorteo."); return; }
@@ -722,6 +736,7 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
       closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
     };
     if (form.maxPerUser !== "" && Number(form.maxPerUser) > 0) body.maxTicketsPerUser = Number(form.maxPerUser);
+    if (isBingo) body.intervalSec = Math.min(60, Math.max(6, Number(form.intervalSec) || 18));
     const res = await adminFetch(`/admin/raffles/${r.id}`, { method: "PATCH", body: JSON.stringify(body) });
     setSaving(false);
     setMsg(res.ok ? "Sorteo actualizado" : `Error: ${res.data?.error ?? "no se pudo"}`);
@@ -736,15 +751,17 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
             {r.legacy && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">histórico</span>}
             {r.blocked && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"><Icon name="lock" className="h-3 w-3" /> bloqueado</span>}
           </div>
-          <div className="text-xs text-slate-500">{STATUS_LABEL[r.status] ?? r.status} · {r._count?.tickets ?? 0}/{r.totalTickets} tickets · mín {r.minTickets} · sorteo {fmt(r.closesAt)}</div>
+          <div className="text-xs text-slate-500">{STATUS_LABEL[r.status] ?? r.status}{isBingo && <span className="ml-1 rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">Bingo</span>} · {(isBingo ? r._count?.bingoCards : r._count?.tickets) ?? 0}/{r.totalTickets} {unit} · mín {r.minTickets} · sorteo {fmt(r.closesAt)}</div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={toggle} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
             <Icon name="chart" className="h-4 w-4" /> {open ? "Ocultar" : "Detalle"}
           </button>
-          {!locked && <button onClick={() => onDraw(r.id)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">Sortear</button>}
+          {r.status === "DRAFT" && <button onClick={publish} disabled={publishing} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"><Icon name="check-circle" className="h-4 w-4" /> {publishing ? "Publicando…" : "Publicar"}</button>}
+          {!locked && r.status !== "DRAFT" && <button onClick={() => onDraw(r.id)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">Sortear</button>}
           {!locked && <button onClick={() => onCancel(r.id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>}
-          {r.status === "DRAWN" && <a href={`/sorteos/${r.slug}/show`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Ver show</a>}
+          {r.status === "DRAWN" && !isBingo && <a href={`/sorteos/${r.slug}/show`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Ver show</a>}
+          {r.status === "DRAWN" && isBingo && <a href={`/bingo/${r.slug}`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Ver bingo</a>}
         </div>
       </div>
 
@@ -784,9 +801,10 @@ function RaffleRow({ r, onDraw, onCancel, onChanged, setMsg }: any) {
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" value={form.prizeUsd} onChange={(e) => set("prizeUsd", e.target.value)} className={inpS} /></div>
                       <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" value={form.ticketPrice} onChange={(e) => set("ticketPrice", e.target.value)} className={inpS} /></div>
-                      <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" value={form.winnersCount} onChange={(e) => set("winnersCount", e.target.value)} className={inpS} /></div>
-                      <div><label className="text-xs text-slate-500">Total tickets</label><input type="number" value={form.totalTickets} onChange={(e) => set("totalTickets", e.target.value)} className={inpS} /></div>
-                      <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" value={form.minTickets} onChange={(e) => set("minTickets", e.target.value)} className={inpS} /></div>
+                      {!isBingo && <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" value={form.winnersCount} onChange={(e) => set("winnersCount", e.target.value)} className={inpS} /></div>}
+                      {isBingo && <div><label className="text-xs text-slate-500">Segundos por bola</label><input type="number" min={6} max={60} value={form.intervalSec} onChange={(e) => set("intervalSec", e.target.value)} className={inpS} /></div>}
+                      <div><label className="text-xs text-slate-500">{isBingo ? "Total tarjetas" : "Total tickets"}</label><input type="number" value={form.totalTickets} onChange={(e) => set("totalTickets", e.target.value)} className={inpS} /></div>
+                      <div><label className="text-xs text-slate-500">{isBingo ? "Mín. tarjetas" : "Mín. tickets"}</label><input type="number" value={form.minTickets} onChange={(e) => set("minTickets", e.target.value)} className={inpS} /></div>
                       <div><label className="text-xs text-slate-500">Máx. por persona</label><input type="number" value={form.maxPerUser} onChange={(e) => set("maxPerUser", e.target.value)} placeholder="sin límite" className={inpS} /></div>
                       <div className="col-span-2 sm:col-span-3"><label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label><input type="datetime-local" value={form.closesAt} onChange={(e) => set("closesAt", e.target.value)} className={inpS} /></div>
                       <label className="col-span-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:col-span-3">
