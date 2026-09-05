@@ -3,7 +3,7 @@
 // unchanged. The server is authoritative for the draw; this hook derives the
 // local reveal beats + a smooth countdown between polls.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Ball, BingoCard, BingoLetter, BingoState, ChatMsg, Participant,
 } from "./types";
@@ -50,7 +50,8 @@ export function useLiveBingo(slug: string): LiveApi {
 
   const listeners = useRef<Set<(ev: SceneEvent) => void>>(new Set());
   const activeIdx = useRef(0);
-  const localChat = useRef<ChatMsg[]>([]);
+  const chatRef = useRef<ChatMsg[]>([]);
+  const chatAfterRef = useRef<string | null>(null);
   const lastBall = useRef<number | null>(null);
   const lastStatus = useRef<BingoState["status"]>("waiting");
   const timers = useRef<number[]>([]);
@@ -87,7 +88,7 @@ export function useLiveBingo(slug: string): LiveApi {
           totalCards: d.totalCards ?? 0,
           cardsPerNumber: d.cardsPerNumber ?? {},
           participants: (d.participants ?? []) as Participant[],
-          chat: localChat.current,
+          chat: chatRef.current,
           me: d.me
             ? { userId: d.me.userId, nickname: d.me.nickname, avatarUrl: d.me.avatarUrl, suertudo: d.me.suertudo, cards: meCards, activeCardIndex: Math.min(activeIdx.current, Math.max(0, meCards.length - 1)) }
             : emptyState().me,
@@ -140,6 +141,33 @@ export function useLiveBingo(slug: string): LiveApi {
 
   useEffect(() => () => { timers.current.forEach((t) => window.clearTimeout(t)); }, []);
 
+  // ---- real per-raffle chat (shared endpoint) ------------------------------
+  const pollChat = useCallback(async () => {
+    try {
+      const after = chatAfterRef.current;
+      const url = `/api/raffles/${slug}/chat` + (after ? `?after=${encodeURIComponent(after)}` : "");
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return;
+      const d = await res.json();
+      const incoming: ChatMsg[] = (d.messages ?? []).map((m: any) => ({
+        id: m.id, nickname: m.nickname, avatarUrl: m.avatarUrl ?? null, suertudo: !!m.suertudo, text: m.text, at: m.createdAt,
+      }));
+      if (incoming.length === 0) return;
+      const seen = new Set(chatRef.current.map((m) => m.id));
+      const fresh = incoming.filter((m) => !seen.has(m.id));
+      if (fresh.length === 0) return;
+      chatRef.current = [...chatRef.current, ...fresh].slice(-200);
+      chatAfterRef.current = incoming[incoming.length - 1].at;
+      setState((s) => ({ ...s, chat: chatRef.current }));
+    } catch { /* keep polling */ }
+  }, [slug]);
+
+  useEffect(() => {
+    pollChat();
+    const iv = window.setInterval(pollChat, 3000);
+    return () => window.clearInterval(iv);
+  }, [pollChat]);
+
   const pushReaction = (emoji: string, userId?: string) => {
     const id = ridSeq++;
     setReactions((r) => [...r.slice(-14), { id, emoji, x: 12 + Math.random() * 76, userId }]);
@@ -165,10 +193,15 @@ export function useLiveBingo(slug: string): LiveApi {
     sendChat: (text) => {
       const t = text.trim();
       if (!t) return;
-      // Local echo (real cross-user chat wiring comes with the chat service).
-      const msg: ChatMsg = { id: `l${ridSeq++}`, nickname: state.me.nickname, avatarUrl: state.me.avatarUrl, suertudo: state.me.suertudo, text: t, at: new Date().toISOString() };
-      localChat.current = [...localChat.current.slice(-199), msg];
-      setState((s) => ({ ...s, chat: localChat.current }));
+      void (async () => {
+        try {
+          const res = await fetch(`/api/raffles/${slug}/chat`, {
+            method: "POST", credentials: "include", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text: t.slice(0, 300) }),
+          });
+          if (res.ok) pollChat();
+        } catch { /* ignore */ }
+      })();
     },
     sendReaction: (emoji) => pushReaction(emoji, state.me.userId || undefined),
     subscribe: (fn) => { listeners.current.add(fn); return () => listeners.current.delete(fn); },
