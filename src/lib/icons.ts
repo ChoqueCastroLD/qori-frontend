@@ -15,6 +15,9 @@ export const ICONS: Record<string, string> = {
   x: '<path d="M6 6l12 12M6 18 18 6"/>',
   bolt: '<path fill="currentColor" stroke="none" d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/>',
   star: '<path fill="currentColor" stroke="none" d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2Z"/>',
+  // qori brand mark: four-leaf clover (recolorable, matches /logo.png).
+  clover:
+    '<g fill="currentColor" stroke="none"><g transform="rotate(45 12 12)"><path d="M12 12C10.9 10.3 8.1 9.6 8.1 6.9A2.75 2.75 0 0 1 12 4.6a2.75 2.75 0 0 1 3.9 2.3c0 2.7-2.8 3.4-3.9 5.1Z"/><path transform="rotate(90 12 12)" d="M12 12C10.9 10.3 8.1 9.6 8.1 6.9A2.75 2.75 0 0 1 12 4.6a2.75 2.75 0 0 1 3.9 2.3c0 2.7-2.8 3.4-3.9 5.1Z"/><path transform="rotate(180 12 12)" d="M12 12C10.9 10.3 8.1 9.6 8.1 6.9A2.75 2.75 0 0 1 12 4.6a2.75 2.75 0 0 1 3.9 2.3c0 2.7-2.8 3.4-3.9 5.1Z"/><path transform="rotate(270 12 12)" d="M12 12C10.9 10.3 8.1 9.6 8.1 6.9A2.75 2.75 0 0 1 12 4.6a2.75 2.75 0 0 1 3.9 2.3c0 2.7-2.8 3.4-3.9 5.1Z"/></g><path d="M12.6 13.4c1.9 2 2.6 4.4 2.1 7.1l-1.8-.4c.4-2.1-.1-3.9-1.6-5.5Z"/></g>',
   hash: '<path d="M9 4 7 20M17 4l-2 16M5 9h15M4 15h15"/>',
   fire: '<path d="M12 22a7 7 0 0 0 7-7c0-3-2-5-3-7-1 1-2 1-2.5 0-1 2-4 3-4 7 0 1-.6 1-1 .3-.4-.6-.4-1.3-.4-1.8C6 14 5 15.5 5 17a7 7 0 0 0 7 5Z"/>',
   stop: '<path d="M9 9h6v6H9z"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>',
@@ -50,6 +53,10 @@ export const ICONS: Record<string, string> = {
   user: '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M5 20a7 7 0 0 1 14 0"/>',
   logout: '<path d="M16 12H4m12 0-4 4m4-4-4-4m3-4h2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-2"/>',
   live: '<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
+  chat: '<path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-5l-4 4v-4H6a2 2 0 0 1-2-2V6Z"/><path d="M8.5 9.5h7M8.5 12.5h4"/>',
+  send: '<path d="m4 4 16 8-16 8 3-8-3-8Z"/><path d="M7 12h13"/>',
+  smile: '<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8.5 14.5a4.5 4.5 0 0 0 7 0"/>',
+  shield: '<path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
   volume: '<path d="M11 5 6.5 9H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5L11 19V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.2 6a9 9 0 0 1 0 12"/>',
   "volume-off": '<path d="M11 5 6.5 9H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5L11 19V5Z"/><path d="m15.5 9.5 5 5m0-5-5 5"/>',
 };

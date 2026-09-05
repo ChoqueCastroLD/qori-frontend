@@ -1,0 +1,120 @@
+---
+// Demo standalone del bingo en vivo (datos simulados).
+// Pagina autonoma (sin el Layout con nav) para que la escena 3D ocupe toda
+// la pantalla; debajo va la seccion informativa del sorteo.
+import "../styles/global.css";
+import Icon from "../components/Icon.astro";
+import BingoScene from "../components/bingo/BingoScene.tsx";
+
+const title = "Bingo en vivo (demo) · qori";
+const description =
+  "Demo del bingo en vivo de qori: sala 3D, bolas cantadas en tiempo real, tarjetas que se marcan solas y resultado verificable.";
+---
+
+<!doctype html>
+<html lang="es" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0b3b30" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+  </head>
+  <body class="min-h-full bg-white text-slate-900 antialiased">
+    <!-- Escena a pantalla completa: todo a la vista -->
+    <BingoScene client:load />
+
+    <!-- Debajo del pliegue: informacion tecnica del sorteo -->
+    <main id="info" class="mx-auto max-w-3xl px-5 py-12">
+      <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-600">
+        <Icon name="live" class="h-3 w-3" />
+        Bingo en vivo - demo con datos simulados
+      </div>
+      <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">Bingo en vivo - Consola de videojuegos</h1>
+      <p class="mt-3 text-lg text-slate-500">
+        Llena toda tu tarjeta (carton lleno) antes que nadie y llevate el premio. Si dos o mas jugadores
+        cantan bingo en la misma bola, el premio se reparte en partes iguales.
+      </p>
+
+      <div class="mt-6 inline-flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4">
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500 text-white">
+          <Icon name="gift" class="h-6 w-6" />
+        </span>
+        <div>
+          <div class="text-sm font-semibold text-emerald-800">Valor aproximado del premio</div>
+          <div class="text-2xl font-black text-emerald-600">USD 550</div>
+        </div>
+      </div>
+
+      <section class="mt-10">
+        <h2 class="flex items-center gap-2 text-xl font-bold text-slate-900">
+          <Icon name="shield" class="h-5 w-5 text-emerald-600" />
+          Transparencia (provably-fair)
+        </h2>
+        <p class="mt-2 text-slate-600">
+          El orden de las 75 bolas se fija <strong>antes</strong> de vender la primera tarjeta y no lo controla nadie,
+          ni siquiera qori. Publicamos un compromiso irreversible <code class="rounded bg-slate-100 px-1 text-sm">sha256(semilla)</code>
+          y el azar final viene de <strong>drand</strong>, un faro publico de aleatoriedad. Al terminar revelamos la
+          semilla y cualquiera puede reproducir la partida completa y confirmar cada bola cantada.
+        </p>
+        <div class="mt-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-600">
+          <div><span class="font-semibold text-slate-500">compromiso:</span> 6b0c7f4b0e6d3a1c9f2e8b5a7d4c1f0e3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d</div>
+          <div><span class="font-semibold text-slate-500">ronda drand:</span> 14203677 (fijada al cierre de ventas)</div>
+          <div><span class="font-semibold text-slate-500">orden de bolas:</span> permutacion(HMAC(semilla, drand + raiz_de_tarjetas))</div>
+        </div>
+        <p class="mt-3 text-sm text-slate-500">
+          La semilla y el digest final apareceran aqui al terminar la partida, junto al enlace del verificador.
+        </p>
+      </section>
+
+      <section class="mt-10">
+        <h2 class="flex items-center gap-2 text-xl font-bold text-slate-900">
+          <Icon name="document" class="h-5 w-5 text-emerald-600" />
+          Reglas
+        </h2>
+        <ul class="mt-3 space-y-3">
+          <li class="flex gap-3">
+            <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <span class="text-slate-600">Cada tarjeta tiene 24 numeros mas la casilla central <strong>LIBRE</strong>, que ya cuenta como marcada.</span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <span class="text-slate-600">Sale una bola cada <strong>18 segundos</strong> (en esta demo, cada 9 para que se aprecie el ritmo). Primero se canta la letra y despues el numero.</span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <span class="text-slate-600">Tus tarjetas se marcan <strong>solas</strong>: no puedes perder una bola por distraerte.</span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <span class="text-slate-600">Gana quien <strong>llene primero una tarjeta completa</strong> (los 24 numeros, el centro es LIBRE) en cualquiera de sus tarjetas.</span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <span class="text-slate-600">Si varios jugadores cantan bingo con la misma bola, el valor del premio se <strong>reparte en partes iguales</strong>.</span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <span class="text-slate-600">El anillo <strong class="text-emerald-600">verde</strong> marca tu avatar en la sala; el anillo <strong class="text-amber-500">dorado</strong> marca a los Suertudos. Pueden combinarse.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <h2 class="text-base font-bold text-slate-900">Sobre esta demo</h2>
+        <p class="mt-2 text-sm text-slate-600">
+          Todo lo que ves arriba corre con <strong>datos simulados</strong>: jugadores, chat, reacciones y bolas.
+          La version real se conecta al sorteo en vivo por WebSocket con el mismo formato de datos, cadencia de
+          18 segundos por bola y locucion de audio pregrabada para cada jugada.
+        </p>
+      </section>
+
+      <div class="mt-10 flex gap-3">
+        <a href="/sorteos" class="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Ver sorteos</a>
+        <a href="/como-funciona" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Como funciona</a>
+      </div>
+    </main>
+  </body>
+</html>
