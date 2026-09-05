@@ -53,7 +53,7 @@ export type BingoState = {
     suertudo: boolean;
     cards: BingoCard[];
     activeCardIndex: number;
-    win?: { shareUsd: number; claimCode: string | null; prizeStatus: string } | null;
+    win?: { shareUsd: number; claimCode: string | null; claimCodes?: string[]; prizeStatus: string; cards?: number } | null;
   };
   participants: Participant[];
   /** Global count of tarjetas (across all players) that completed each column. */

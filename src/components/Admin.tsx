@@ -901,7 +901,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   const [f, setF] = useState<any>({
     kind: "SHOW",
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
-    minTickets: 50, winnersCount: 1, maxPerUser: "", paidOnly: false, games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
+    minTickets: 50, winnersCount: 1, maxPerUser: "", paidOnly: false, intervalSec: 8, games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
     image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
   const isBingo = f.kind === "BINGO";
@@ -931,7 +931,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
     // on ties). They are born DRAFT so they never touch live raffles by accident.
     const endpoint = isBingo ? "/admin/bingo" : "/admin/raffles";
     const body = isBingo
-      ? common
+      ? { ...common, intervalSec: Math.min(60, Math.max(6, Number(f.intervalSec) || 18)) }
       : { ...common, winnersCount: Number(f.winnersCount), games: f.games, finale: f.finale };
     const r = await adminFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
     if (r.ok) { onCreated(); return; }
@@ -978,6 +978,13 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
         <div><label className="text-xs text-slate-500">{isBingo ? "Total tarjetas" : "Total tickets"}</label><input type="number" className={inp} value={f.totalTickets} onChange={(e) => setF({ ...f, totalTickets: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">{isBingo ? "Mín. tarjetas" : "Mín. tickets"}</label><input type="number" className={inp} value={f.minTickets} onChange={(e) => setF({ ...f, minTickets: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">{isBingo ? "Máx. tarjetas por persona" : "Máx. tickets por persona"}</label><input type="number" className={inp} value={f.maxPerUser} placeholder="sin límite" onChange={(e) => setF({ ...f, maxPerUser: e.target.value })} /></div>
+        {isBingo && (
+          <div>
+            <label className="text-xs text-slate-500">Segundos por bola</label>
+            <input type="number" min={6} max={60} className={inp} value={f.intervalSec} onChange={(e) => setF({ ...f, intervalSec: e.target.value })} />
+            <p className="mt-0.5 text-[11px] text-slate-400">Ritmo del sorteo (6–60s). 8s ≈ rápido, 18s ≈ pausado.</p>
+          </div>
+        )}
         <div>
           <label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label>
           <input type="datetime-local" required className={inp} value={f.closesAt} onChange={(e) => setF({ ...f, closesAt: e.target.value })} />

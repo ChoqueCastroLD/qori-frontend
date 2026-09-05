@@ -17,7 +17,7 @@ export default function WinnersOverlay({
   winners: NonNullable<BingoState["winners"]>;
   meNickname: string;
   topCards?: Participant[];
-  myWin?: { shareUsd: number; claimCode: string | null; prizeStatus: string } | null;
+  myWin?: { shareUsd: number; claimCode: string | null; claimCodes?: string[]; prizeStatus: string; cards?: number } | null;
   demo?: boolean;
   onClose?: () => void;
 }) {
@@ -65,12 +65,25 @@ export default function WinnersOverlay({
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left">
             <div className="text-[11px] font-black uppercase tracking-wider text-amber-700">Tu premio</div>
             <div className="text-2xl font-black text-emerald-600">USD {myWin.shareUsd.toFixed(2)}</div>
-            {myWin.claimCode && (
-              <>
-                <div className="mt-2 text-xs text-slate-600">Tu código para reclamar (compártelo solo con <strong>@shoko_cc</strong> por Discord):</div>
-                <div className="mt-1.5 select-all rounded-lg bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-wider text-slate-900 ring-1 ring-amber-200">{myWin.claimCode}</div>
-              </>
+            {myWin.cards && myWin.cards > 1 && (
+              <div className="mt-0.5 text-[11px] font-semibold text-amber-700">Ganaste con {myWin.cards} tarjetas</div>
             )}
+            {(() => {
+              const codes = myWin.claimCodes && myWin.claimCodes.length ? myWin.claimCodes : myWin.claimCode ? [myWin.claimCode] : [];
+              if (!codes.length) return null;
+              return (
+                <>
+                  <div className="mt-2 text-xs text-slate-600">
+                    {codes.length > 1 ? "Tus códigos para reclamar" : "Tu código para reclamar"} (compártelo solo con <strong>@shoko_cc</strong> por Discord):
+                  </div>
+                  <div className="mt-1.5 space-y-1.5">
+                    {codes.map((c) => (
+                      <div key={c} className="select-all rounded-lg bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-wider text-slate-900 ring-1 ring-amber-200">{c}</div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
             <div className="mt-1.5 text-[11px] font-semibold text-amber-700">Estado: {myWin.prizeStatus === "DELIVERED" ? "Entregado" : "Por reclamar"}</div>
           </div>
         )}

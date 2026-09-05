@@ -70,5 +70,7 @@ export interface Raffle {
     ticketsRoot: string | null;
     drawDigest: string | null;
   };
-  winners?: { position: number; ticketNumber: number; nickname: string | null; avatarUrl: string | null }[];
+  kind?: "SHOW" | "BINGO";
+  bingoIntervalSec?: number | null;
+  winners?: { position: number; ticketNumber: number | null; nickname: string | null; avatarUrl: string | null; shareUsd?: number; cards?: number }[];
 }

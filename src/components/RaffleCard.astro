@@ -54,7 +54,11 @@ const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled 
         {winner.avatarUrl && <img src={winner.avatarUrl} class="h-8 w-8 rounded-full object-cover" alt="" loading="lazy" />}
         <div class="text-sm">
           <div class="flex items-center gap-1.5 font-semibold text-slate-900"><Icon name="trophy" class="h-4 w-4 text-amber-500" /> {winner.nickname ?? "Ganador"}</div>
-          <div class="text-xs text-slate-500">Ticket #{winner.ticketNumber}</div>
+          <div class="text-xs text-slate-500">
+            {isBingo
+              ? (r.winners && r.winners.length > 1 ? `Empate · ${r.winners.length} ganadores` : (winner.cards && winner.cards > 1 ? `Bingo · ${winner.cards} tarjetas` : "Bingo · cartilla llena"))
+              : `Ticket #${winner.ticketNumber}`}
+          </div>
         </div>
       </div>
     ) : isDrawn || isCancelled ? (
@@ -64,7 +68,7 @@ const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled 
     ) : (
       <div class="mt-4">
         <div class="mb-1.5 flex justify-between text-xs text-slate-500">
-          <span data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} tickets</span>
+          <span data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} {isBingo ? "tarjetas" : "tickets"}</span>
           <span class="inline-flex items-center gap-1 font-medium text-slate-700"><Icon name="clock" class="h-3.5 w-3.5" /> <span data-closes-at={r.closesAt}>{timeLeft(r.closesAt)}</span></span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -76,7 +80,7 @@ const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled 
     <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
       <span class="text-sm font-semibold text-slate-900">
       {r.ticketPrice === 0 ? "Gratis" : (<>{lingotes(r.ticketPrice)} <img src="/lingote.png" alt="lingotes" class="inline-block h-[0.95em] w-[0.95em] align-[-0.12em]" /></>)}
-      <span class="text-xs font-normal text-slate-500"> /ticket</span>
+      <span class="text-xs font-normal text-slate-500"> /{isBingo ? "tarjeta" : "ticket"}</span>
     </span>
       <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:underline">{cta} <Icon name="arrow-right" class="h-4 w-4" /></span>
     </div>
