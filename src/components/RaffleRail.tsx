@@ -43,7 +43,7 @@ export default function RaffleRail() {
             <span className="hidden whitespace-nowrap text-xs font-bold text-slate-700 group-hover:inline">Sorteos activos</span>
           </div>
           {raffles.map((r) => (
-            <a key={r.slug} href={(r as any).kind === "BINGO" ? `/bingo/${r.slug}` : `/sorteos/${r.slug}`} title={r.title}
+            <a key={r.slug} href={`/sorteos/${r.slug}`} title={r.title}
               className={`flex items-center gap-2 rounded-xl p-1 transition ${isActive(r.slug) ? "bg-emerald-50 ring-1 ring-emerald-300" : "hover:bg-slate-50"}`}>
               <span className="relative shrink-0">
                 {r.images?.[0]
@@ -64,7 +64,7 @@ export default function RaffleRail() {
       <div className="border-b border-slate-100 bg-white xl:hidden">
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {raffles.map((r) => (
-            <a key={r.slug} href={(r as any).kind === "BINGO" ? `/bingo/${r.slug}` : `/sorteos/${r.slug}`}
+            <a key={r.slug} href={`/sorteos/${r.slug}`}
               className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-xs transition ${isActive(r.slug) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
               {r.images?.[0]
                 ? <img src={r.images[0]} alt="" className="h-5 w-5 rounded-full object-cover" />

@@ -2,6 +2,8 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../components/Icon.astro";
 import BuyWidget from "../../components/BuyWidget.tsx";
+import BingoParticipate from "../../components/BingoParticipate.tsx";
+import BingoGate from "../../components/BingoGate.tsx";
 import DrawCountdown from "../../components/DrawCountdown.tsx";
 import ShowPlayer from "../../components/ShowPlayer.tsx";
 import RaffleChat from "../../components/RaffleChat.tsx";
@@ -23,10 +25,14 @@ const GAME_DESC: Record<string, string> = {
 const { slug } = Astro.params;
 const r = await ssrGet<Raffle | null>(`/raffles/${slug}`, null);
 if (!r) return Astro.redirect("/sorteos");
-// Bingo raffles have their own live room.
-if ((r as any).kind === "BINGO") return Astro.redirect(`/bingo/${slug}`);
+const isBingo = (r as any).kind === "BINGO";
+// A bingo sells here (buy + pick tarjetas), then hands off to the 3D live room
+// the moment the draw starts.
+if (isBingo && (r.status === "DRAWING" || r.status === "DRAWN")) return Astro.redirect(`/bingo/${slug}`);
+const bingoMeta = isBingo ? await ssrGet<any>(`/raffles/${slug}/bingo`, null) : null;
 
-const sold = r.ticketsSold ?? 0;
+const sold = isBingo ? (bingoMeta?.meta?.soldCards ?? 0) : (r.ticketsSold ?? 0);
+const unit = isBingo ? "tarjeta" : "ticket";
 const isDrawn = r.status === "DRAWN";
 const isOpen = r.status === "OPEN";
 // The live show is still playing (route people into it instead of spoiling).
@@ -89,6 +95,7 @@ const partTotal = partData.totalTickets ?? 0;
         )}
         <p class="mt-4 whitespace-pre-line text-slate-600">{r.description}</p>
 
+        {!isBingo && (
         <!-- Games -->
         <div class="mt-6">
           <h3 class="text-sm font-semibold text-slate-900">Juegos del show</h3>
@@ -103,6 +110,13 @@ const partTotal = partData.totalTickets ?? 0;
             ))}
           </div>
         </div>
+        )}
+        {isBingo && (
+        <div class="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
+          <h3 class="flex items-center gap-2 text-sm font-semibold text-emerald-900"><Icon name="clover" class="h-4 w-4 text-emerald-600" /> Bingo en vivo (75 bolas)</h3>
+          <p class="mt-2 text-sm text-emerald-800">Compra tus tarjetas aquí, elige tus números o regenéralas (hasta 5 min antes). Cuando empiece, esta página se convierte en la <strong>sala 3D en vivo</strong>: se cantan las bolas y gana quien complete primero una tarjeta (cartón lleno). Si hay empate, el premio se reparte.</p>
+        </div>
+        )}
 
         {r.legacy && (
           <div class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
@@ -234,13 +248,13 @@ const partTotal = partData.totalTickets ?? 0;
             {r.closesAt && <DrawCountdown client:load closesAt={r.closesAt} slug={r.slug} />}
             <div class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-1.5 flex justify-between text-sm text-slate-500">
-                <span id="rf-sold" data-sold={sold} data-total={r.totalTickets} data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} tickets</span>
+                <span id="rf-sold" data-sold={sold} data-total={r.totalTickets} data-live-sold={isBingo ? undefined : r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} {isBingo ? "tarjetas" : "tickets"}</span>
                 <span class="flex items-center gap-1 font-medium text-slate-700"><Icon name="clock" class="h-4 w-4" /> <span data-closes-at={r.closesAt}>{timeLeft(r.closesAt)}</span></span>
               </div>
               <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div id="rf-fill" class="h-full rounded-full bg-emerald-500 transition-all" data-live-fill={r.slug} data-live-total={r.totalTickets} style={`width:${pct(sold, r.totalTickets)}%`}></div>
               </div>
-              <p class="mt-2 text-xs text-slate-400">{r.minTickets > 0 ? `Mínimo ${r.minTickets} tickets para sortear. Si no se alcanza, se reembolsa.` : "Se sortea en la fecha programada, sin mínimo de tickets."}</p>
+              <p class="mt-2 text-xs text-slate-400">{r.minTickets > 0 ? `Mínimo ${r.minTickets} ${isBingo ? "tarjetas" : "tickets"} para sortear. Si no se alcanza, se reembolsa.` : `Se sortea en la fecha programada, sin mínimo de ${isBingo ? "tarjetas" : "tickets"}.`}</p>
               {(r.extensionCount ?? 0) > 0 && r.minTickets > 0 && sold < r.minTickets && (
                 <p class="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                   <Icon name="refresh" class="mt-0.5 h-4 w-4" />
@@ -267,7 +281,10 @@ const partTotal = partData.totalTickets ?? 0;
               </div>
             )}
 
-            {isOpen && <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} total={r.totalTickets} sold={sold} paidOnly={r.paidOnly} />}
+            {isBingo && <BingoGate client:load slug={r.slug} />}
+            {isOpen && (isBingo
+              ? <BingoParticipate client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} total={r.totalTickets} sold={sold} paidOnly={r.paidOnly} closesAt={r.closesAt} />
+              : <BuyWidget client:load slug={r.slug} ticketPrice={r.ticketPrice} maxPerUser={r.maxTicketsPerUser} total={r.totalTickets} sold={sold} paidOnly={r.paidOnly} />)}
           </div>
         )}
       </div>

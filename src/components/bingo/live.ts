@@ -34,6 +34,7 @@ function emptyState(): BingoState {
 export type LiveApi = MockApi & {
   meta: { ticketPrice: number; totalCards: number; soldCards: number; maxPerUser: number | null; paidOnly: boolean; playersCount: number; closesAt: string | null; startsAt: string | null; intervalSec: number } | null;
   loggedIn: boolean;
+  loaded: boolean;
   refresh: () => void;
 };
 
@@ -46,6 +47,7 @@ export function useLiveBingo(slug: string): LiveApi {
   const [intervalSec, setIntervalSec] = useState(18);
   const [meta, setMeta] = useState<LiveApi["meta"]>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [poke, setPoke] = useState(0);
 
   const listeners = useRef<Set<(ev: SceneEvent) => void>>(new Set());
@@ -68,6 +70,7 @@ export function useLiveBingo(slug: string): LiveApi {
         if (!res.ok || !alive) return;
         const d = await res.json();
         if (!alive) return;
+        setLoaded(true);
         setLoggedIn(!!d.me);
         setIntervalSec(d.meta?.intervalSec ?? 18);
         setMeta(d.meta ?? null);
@@ -188,6 +191,7 @@ export function useLiveBingo(slug: string): LiveApi {
     myBingo,
     meta,
     loggedIn,
+    loaded,
     refresh: () => setPoke((p) => p + 1),
     setActiveCard: (i) => { activeIdx.current = i; setState((s) => ({ ...s, me: { ...s.me, activeCardIndex: i } })); },
     sendChat: (text) => {

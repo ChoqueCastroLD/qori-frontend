@@ -1,13 +1,17 @@
 // Real (data-driven) bingo: wires the live API hook into the shared scene and
 // provides the "buy tarjetas" panel shown while you don't have any yet.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BingoSceneView } from "./BingoScene";
 import { useLiveBingo, type LiveApi } from "./live";
 import Icon from "../Icon";
 
 export default function LiveBingoScene({ slug }: { slug: string }) {
   const api = useLiveBingo(slug);
+  // Before the draw starts, the raffle sells on the normal /sorteos page.
+  useEffect(() => {
+    if (api.loaded && api.state.status === "waiting") window.location.href = `/sorteos/${slug}`;
+  }, [api.loaded, api.state.status, slug]);
   return <BingoSceneView api={api} buySlot={<BuyCards slug={slug} api={api} />} />;
 }
 
