@@ -385,8 +385,16 @@ function BingoSceneView({ api }: { api: MockApi }) {
           </div>
         </div>
 
-        <CalledStrip drawn={state.drawnBalls} />
+        {/* mobile: recent balls on their own row below the top bar */}
+        <div className="flex w-full justify-center md:hidden">
+          <CalledStrip drawn={state.drawnBalls} />
+        </div>
         <BallReveal ball={state.currentBall} phase={revealPhase} />
+
+        {/* desktop: recent balls pinned at the top-center of the whole screen */}
+        <div className="pointer-events-none absolute left-1/2 top-2 z-10 hidden -translate-x-1/2 md:flex">
+          <CalledStrip drawn={state.drawnBalls} />
+        </div>
       </div>
 
       {/* ------- settings / config window ------- */}

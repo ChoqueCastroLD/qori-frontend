@@ -21,6 +21,9 @@ import { LETTER_COLORS, type BingoLetter, type Participant } from "./types";
 // Front tier: full-detail avatar chips (atlas). Everyone else still gets a
 // seat as a simplified head chip so the grandstand feels genuinely full.
 const NEAR_COUNT = 96;
+// Rest the mouse on a scene avatar this long before the hover card + spotlight
+// kick in (so casual mouse movement across the crowd doesn't trigger it).
+const HOVER_DWELL_MS = 3000;
 
 // --- ball machine variant (design exploration) ----------------------------
 // 0 = original (standard PBR dome machine, committed look)
@@ -91,6 +94,10 @@ export class BingoScene3D {
   private hoverCb: ((userId: string | null, x: number, y: number) => void) | null = null;
   private lastHoverId: string | null = null;
   private pointerPx = new THREE.Vector2(-9999, -9999);
+  private hiMix = 0; // eased 0..1 spotlight strength (smooth fade, no flash)
+  // Dwell: only commit a scene-avatar hover after resting on it a moment.
+  private dwellCandidate: string | null = null;
+  private dwellTimer: number | null = null;
 
   // machine
   private innerBalls!: THREE.InstancedMesh;
@@ -801,6 +808,7 @@ export class BingoScene3D {
           uFogColor: { value: new THREE.Color(PAL.fog) },
           uHiId: { value: -1 },
           uHiActive: { value: 0 },
+          uHiMix: { value: 0 },
         },
         vertexShader: CROWD_VERT,
         fragmentShader: CROWD_FRAG,
@@ -856,6 +864,7 @@ export class BingoScene3D {
             uFogColor: { value: new THREE.Color(PAL.fog) },
             uHiId: { value: -1 },
             uHiActive: { value: 0 },
+            uHiMix: { value: 0 },
           },
           vertexShader: FAR_VERT,
           fragmentShader: FAR_FRAG,
@@ -930,14 +939,24 @@ export class BingoScene3D {
       const d = Math.hypot(sx - px, sy - py);
       if (d < bestD) { bestD = d; bestId = c.userId; }
     }
-    if (bestId !== this.lastHoverId) {
-      this.lastHoverId = bestId;
-      if (bestId) {
-        const s = this.worldToScreen(bestId);
-        this.hoverCb(bestId, s?.x ?? px, s?.y ?? py);
-      } else {
-        this.hoverCb(null, 0, 0);
-      }
+    if (bestId === this.dwellCandidate) return; // same target: keep timer/state
+    this.dwellCandidate = bestId;
+    if (this.dwellTimer != null) { clearTimeout(this.dwellTimer); this.dwellTimer = null; }
+    // Moving off (or onto a different avatar) drops any active hover immediately.
+    if (this.lastHoverId !== null && this.lastHoverId !== bestId) {
+      this.lastHoverId = null;
+      this.hoverCb(null, 0, 0);
+    }
+    // Commit only after resting on the same avatar for HOVER_DWELL_MS.
+    if (bestId) {
+      this.dwellTimer = window.setTimeout(() => {
+        this.dwellTimer = null;
+        if (this.dwellCandidate === bestId && this.hoverCb) {
+          this.lastHoverId = bestId;
+          const s = this.worldToScreen(bestId);
+          this.hoverCb(bestId, s?.x ?? this.pointerPx.x, s?.y ?? this.pointerPx.y);
+        }
+      }, HOVER_DWELL_MS);
     }
   }
 
@@ -1026,9 +1045,11 @@ export class BingoScene3D {
     if (e.pointerType === "mouse" && e.target === this.canvas) {
       this.pointerPx.set(e.clientX, e.clientY);
       this.pickHover();
-    } else if (this.lastHoverId !== null) {
-      this.lastHoverId = null;
-      this.hoverCb?.(null, 0, 0);
+    } else {
+      // Over a HUD panel (or non-mouse): cancel any pending/active scene hover.
+      if (this.dwellTimer != null) { clearTimeout(this.dwellTimer); this.dwellTimer = null; }
+      this.dwellCandidate = null;
+      if (this.lastHoverId !== null) { this.lastHoverId = null; this.hoverCb?.(null, 0, 0); }
     }
   };
 
@@ -1119,8 +1140,11 @@ export class BingoScene3D {
       }
     }
 
-    if (this.crowdMat) this.crowdMat.uniforms.uTime.value = t;
-    if (this.farMat) this.farMat.uniforms.uTime.value = t;
+    // Ease the spotlight strength so the crowd fades in/out gently (no flash).
+    const hiTarget = this.crowdMat && this.crowdMat.uniforms.uHiActive.value ? 1 : 0;
+    this.hiMix += (hiTarget - this.hiMix) * (1 - Math.exp(-dt * 3.0));
+    if (this.crowdMat) { this.crowdMat.uniforms.uTime.value = t; this.crowdMat.uniforms.uHiMix.value = this.hiMix; }
+    if (this.farMat) { this.farMat.uniforms.uTime.value = t; this.farMat.uniforms.uHiMix.value = this.hiMix; }
     if (MACHINE_VARIANT === 0 && this.dome) this.dome.rotation.y = t * 0.15;
     if (this.cageSpin) this.cageSpin.rotation.x -= dt * (0.6 + this.agitate * 2.6);
 
@@ -1171,6 +1195,7 @@ const CROWD_VERT = /* glsl */ `
 const CROWD_FRAG = /* glsl */ `
   uniform sampler2D uMap;
   uniform vec3 uFogColor;
+  uniform float uHiMix;
   varying vec2 vUv;
   varying float vDepth;
   varying float vHi;
@@ -1211,6 +1236,7 @@ const FAR_VERT = /* glsl */ `
 const FAR_FRAG = /* glsl */ `
   uniform sampler2D uMap;
   uniform vec3 uFogColor;
+  uniform float uHiMix;
   varying vec2 vUv;
   varying vec3 vColor;
   varying float vDepth;
@@ -1220,9 +1246,9 @@ const FAR_FRAG = /* glsl */ `
     if (c.a < 0.12) discard;
     float fogF = smoothstep(13.0, 34.0, vDepth) * 0.6;
     vec3 rgb = mix(c.rgb * vColor, uFogColor, fogF);
-    float dim = (1.0 - vHi) * 0.66;
+    float dim = (1.0 - vHi) * 0.66 * uHiMix;
     rgb = mix(rgb, uFogColor, dim);
-    gl_FragColor = vec4(rgb, c.a * (1.0 - (1.0 - vHi) * 0.5));
+    gl_FragColor = vec4(rgb, c.a * (1.0 - (1.0 - vHi) * 0.5 * uHiMix));
   }
 `;
 
