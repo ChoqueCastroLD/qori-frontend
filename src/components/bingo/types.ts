@@ -20,6 +20,7 @@ export type Participant = {
   suertudo: boolean;
   bestLetters: BingoLetter[]; // columns fully marked on their best card
   marks: number; // marked cells on their best card
+  cards: number; // how many tarjetas this player holds
 };
 
 export type ChatMsg = {
@@ -56,6 +57,9 @@ export type BingoState = {
   participants: Participant[];
   /** Global count of tarjetas (across all players) that completed each column. */
   lettersDone: Record<BingoLetter, number>;
+  /** Total tarjetas in play (all players) and how many contain each number 1..75. */
+  totalCards: number;
+  cardsPerNumber: Record<number, number>;
   chat: ChatMsg[];
   winners?: { nickname: string; avatarUrl: string | null; shareUsd: number }[];
 };

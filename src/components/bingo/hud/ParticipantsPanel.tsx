@@ -59,6 +59,37 @@ export function ProgressChips({ letters, size = "sm" }: { letters: Participant["
   );
 }
 
+/** Floating player card: avatar, name, tarjeta count and best BINGO progress.
+ *  Shown on hover over a chat name or a scene avatar. */
+export function PlayerCard({ p, meId }: { p: Participant; meId: string }) {
+  return (
+    <div className="w-max min-w-[190px] max-w-[240px] rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
+      <div className="flex items-center gap-2.5">
+        <AvatarBubble p={p} isMe={p.userId === meId} size={44} />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate text-sm font-black text-slate-900">{p.nickname}</span>
+            {p.userId === meId && <span className="text-[10px] font-black uppercase text-emerald-600">(tu)</span>}
+            {p.suertudo && (
+              <span className="rounded bg-amber-100 px-1 py-px text-[9px] font-black uppercase tracking-wide text-amber-600">
+                Suertudo
+              </span>
+            )}
+          </div>
+          <div className="text-[11px] font-semibold text-slate-500">
+            {p.cards} tarjeta{p.cards === 1 ? "" : "s"}
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
+        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Mejor</span>
+        <ProgressChips letters={p.bestLetters} size="md" />
+        <span className="ml-auto text-[11px] font-bold tabular-nums text-slate-500">{p.marks}/25</span>
+      </div>
+    </div>
+  );
+}
+
 /** Global B-I-N-G-O counters: how many tarjetas (all players) completed each column. */
 export function LetterTotals({ counts }: { counts: Record<(typeof LETTERS)[number], number> }) {
   return (

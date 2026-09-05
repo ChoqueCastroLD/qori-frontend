@@ -1,32 +1,89 @@
-// AUDIO HOOKS (stubs) ---------------------------------------------------------
-// The real product will play pre-generated voice clips ("B...", "doce",
-// "B doce") hosted as static assets. This module is the single integration
-// point: the scene calls these at the exact reveal beats, so wiring audio
-// later means implementing the bodies here and nothing else.
+// AUDIO ------------------------------------------------------------------------
+// Voice calls ("B", "doce", "B doce") stay stubbed until the pre-generated
+// ElevenLabs clips land. SFX are synthesized on the fly with the Web Audio API
+// (no assets, tiny, satisfying) so daubs/marks/hits already feel good. The
+// AudioContext is created lazily and resumes on the first user gesture (browsers
+// block autoplay until then), so click-driven sounds always work.
 
 import type { BingoLetter } from "./types";
 
-/** Beat 1 - the letter is revealed alone. Play e.g. /audio/bingo/letter-B.mp3 */
+let ctx: AudioContext | null = null;
+let muted = false;
+
+function ac(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!ctx) {
+    try {
+      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      ctx = new AC();
+    } catch {
+      return null;
+    }
+  }
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  return ctx;
+}
+
+/** Play a short envelope of tones (an arpeggio when more than one freq). */
+function blip(freqs: number[], dur = 0.12, type: OscillatorType = "sine", gain = 0.06): void {
+  const c = ac();
+  if (!c || muted) return;
+  const t0 = c.currentTime;
+  freqs.forEach((f, i) => {
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type;
+    o.frequency.value = f;
+    const start = t0 + i * 0.05;
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(gain, start + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(g);
+    g.connect(c.destination);
+    o.start(start);
+    o.stop(start + dur + 0.03);
+  });
+}
+
+export function setMuted(m: boolean): void {
+  muted = m;
+}
+export function isMuted(): boolean {
+  return muted;
+}
+
+/** Beat 1 - the letter is revealed alone. */
 export function playLetter(letter: BingoLetter): void {
-  // TODO(audio): new Audio(`/audio/bingo/letter-${letter}.mp3`).play()
-  void letter;
+  void letter; // TODO(audio): /audio/bingo/letter-${letter}.mp3
 }
 
-/** Beat 2 - the number joins the letter. Play e.g. /audio/bingo/num-12.mp3 */
+/** Beat 2 - the number joins the letter. */
 export function playNumber(number: number): void {
-  // TODO(audio): new Audio(`/audio/bingo/num-${number}.mp3`).play()
-  void number;
+  void number; // TODO(audio): /audio/bingo/num-${number}.mp3
 }
 
-/** Beat 3 - the full call is repeated ("B, doce"). Play the combined clip. */
+/** Beat 3 - the full call ("B, doce"). */
 export function playCall(letter: BingoLetter, number: number): void {
-  // TODO(audio): new Audio(`/audio/bingo/call-${letter}-${number}.mp3`).play()
   void letter;
-  void number;
+  void number; // TODO(audio): /audio/bingo/call-${letter}-${number}.mp3
 }
 
-/** Ambience / SFX hook points (machine rumble, ball pop, mark tick, bingo). */
-export function playSfx(name: "pop" | "mark" | "whoosh" | "bingo" | "tick"): void {
-  // TODO(audio): map to short pre-generated SFX clips.
-  void name;
+export type Sfx =
+  | "pop" | "mark" | "whoosh" | "bingo" | "tick"
+  | "click" | "daub" | "undaub" | "circle" | "hit";
+
+/** Short synthesized SFX. `hit` is the little dopamine arpeggio for "salio tu numero". */
+export function playSfx(name: Sfx): void {
+  switch (name) {
+    case "pop": blip([440], 0.08, "triangle", 0.05); break;
+    case "mark": blip([660], 0.07, "sine", 0.05); break;
+    case "tick": blip([880], 0.03, "square", 0.03); break;
+    case "whoosh": blip([260], 0.1, "sawtooth", 0.03); break;
+    case "click": blip([520], 0.045, "square", 0.035); break;
+    case "daub": blip([700, 950], 0.09, "sine", 0.05); break;
+    case "undaub": blip([460, 320], 0.08, "sine", 0.04); break;
+    case "circle": blip([600, 480], 0.07, "triangle", 0.04); break;
+    case "hit": blip([660, 880, 1320], 0.16, "sine", 0.06); break; // dopamine
+    case "bingo": blip([523, 659, 784, 1046], 0.22, "triangle", 0.07); break;
+  }
 }

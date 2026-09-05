@@ -1,33 +1,71 @@
-// Running list of called balls (latest first) + the countdown ring
-// for the next ball.
+// Running timeline of called balls (chronological, newest on the RIGHT) + the
+// countdown ring. Drag left/right to pan through the history; when a new ball is
+// called the whole strip auto-scrolls right so everything shifts left.
 
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { LETTER_COLORS, letterForNumber } from "../types";
 
 export function CalledStrip({ drawn }: { drawn: number[] }) {
-  const latest = [...drawn].reverse();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ down: boolean; startX: number; startScroll: number; moved: boolean }>({
+    down: false, startX: 0, startScroll: 0, moved: false,
+  });
+
+  // New ball -> shift everything left by scrolling to the newest (right end).
+  useEffect(() => {
+    const el = trackRef.current;
+    if (el) el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+  }, [drawn.length]);
+
+  const onDown = (e: React.PointerEvent) => {
+    const el = trackRef.current;
+    if (!el) return;
+    drag.current = { down: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+    el.setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const el = trackRef.current;
+    if (!el || !drag.current.down) return;
+    const dx = e.clientX - drag.current.startX;
+    if (Math.abs(dx) > 3) drag.current.moved = true;
+    el.scrollLeft = drag.current.startScroll - dx;
+  };
+  const onUp = (e: React.PointerEvent) => {
+    drag.current.down = false;
+    trackRef.current?.releasePointerCapture(e.pointerId);
+  };
+
   return (
     <div className="pointer-events-auto flex items-center gap-2">
-      <div className="rounded-full bg-slate-900/55 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+      <div className="shrink-0 rounded-full bg-slate-900/55 px-3 py-1 text-xs font-bold text-white backdrop-blur">
         {drawn.length}<span className="font-medium text-white/60">/75</span>
       </div>
-      <div className="scrollbar-none flex max-w-[62vw] items-center gap-1.5 overflow-x-auto rounded-full bg-slate-900/45 px-2.5 py-1.5 backdrop-blur sm:max-w-md">
-        {latest.length === 0 && (
+      <div
+        ref={trackRef}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        className="scrollbar-none flex max-w-[62vw] cursor-grab touch-pan-x items-center gap-1.5 overflow-x-auto rounded-full bg-slate-900/45 px-2.5 py-1.5 backdrop-blur active:cursor-grabbing sm:max-w-md"
+      >
+        {drawn.length === 0 && (
           <span className="whitespace-nowrap px-1 text-xs font-medium text-white/70">Aun no salen bolas</span>
         )}
-        {latest.map((n, i) => {
+        {drawn.map((n, i) => {
           const L = letterForNumber(n);
+          const newest = i === drawn.length - 1;
           return (
             <motion.span
-              key={n}
-              initial={i === 0 ? { scale: 0, opacity: 0 } : false}
+              key={`${n}-${i}`}
+              initial={newest ? { scale: 0, opacity: 0 } : false}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 380, damping: 22 }}
-              className={`flex h-7 shrink-0 items-center justify-center rounded-full font-bold text-white shadow ${i === 0 ? "w-auto gap-0.5 px-2.5 text-sm ring-2 ring-white/80" : "w-7 text-[11px]"}`}
+              className={`flex h-7 shrink-0 select-none items-center justify-center rounded-full font-bold text-white shadow ${newest ? "w-auto gap-0.5 px-2.5 text-sm ring-2 ring-white/80" : "w-7 text-[11px]"}`}
               style={{ background: LETTER_COLORS[L] }}
               title={`${L}-${n}`}
             >
-              {i === 0 && <span className="text-[10px] font-black opacity-90">{L}</span>}
+              {newest && <span className="text-[10px] font-black opacity-90">{L}</span>}
               {n}
             </motion.span>
           );

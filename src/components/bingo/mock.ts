@@ -191,8 +191,22 @@ export function useMockBingo(participantCount = 348): MockApi {
         const m = markedCount(c, drawn);
         if (m > bestMarks) { bestMarks = m; best = c; }
       }
-      return { ...p, bestLetters: completedLetters(best, drawn), marks: bestMarks };
+      return { ...p, bestLetters: completedLetters(best, drawn), marks: bestMarks, cards: cs.length };
     });
+
+  // Static per-round: total tarjetas + how many contain each number (for toasts).
+  const cardStats = useMemo(() => {
+    const per: Record<number, number> = {};
+    for (let n = 1; n <= 75; n++) per[n] = 0;
+    let total = 0;
+    for (const cs of world.cards.values()) {
+      for (const c of cs) {
+        total++;
+        for (const n of cardNums(c)) per[n]++;
+      }
+    }
+    return { total, per };
+  }, [world]);
 
   // Global per-letter tarjeta counts: how many tarjetas (all players, all
   // tarjetas) already completed each column. The real API fills this field.
@@ -223,6 +237,8 @@ export function useMockBingo(participantCount = 348): MockApi {
       },
       participants: computeParticipants(drawn),
       lettersDone: computeLettersDone(drawn),
+      totalCards: cardStats.total,
+      cardsPerNumber: cardStats.per,
       viewers: Math.round((participantCount + 1) * 1.7) + 60, // players + spectators
       chat: seedChat(55), // an established backlog so pagination has history
       winners: undefined,

@@ -8,9 +8,10 @@
 // Reaction picker sits ABOVE the text input; sending a reaction floats an emoji
 // over the 3D scene (handled by the parent).
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Icon from "../../Icon";
-import type { ChatMsg } from "../types";
+import { PlayerCard } from "./ParticipantsPanel";
+import type { ChatMsg, Participant } from "../types";
 
 const REACTIONS = ["🎉", "🔥", "🍀", "😂", "😱", "👏", "💚", "🤞"];
 const PAGE = 50; // messages rendered per window
@@ -22,18 +23,52 @@ export default function ChatPanel({
   onSend,
   onReaction,
   className = "",
+  participants,
+  meId,
+  onHoverUser,
 }: {
   chat: ChatMsg[];
   onSend: (text: string) => void;
   onReaction: (emoji: string) => void;
   className?: string;
+  /** For the hover card + scene spotlight when hovering a chat name. */
+  participants?: Participant[];
+  meId?: string;
+  onHoverUser?: (userId: string | null) => void;
 }) {
   const [text, setText] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE);
   const [atBottom, setAtBottom] = useState(true);
   const [unseen, setUnseen] = useState(0);
+  const [hovered, setHovered] = useState<{ userId: string; top: number; below: boolean } | null>(null);
+
+  const { byNick, byId } = useMemo(() => {
+    const byNick = new Map<string, Participant>();
+    const byId = new Map<string, Participant>();
+    for (const p of participants ?? []) {
+      if (!byNick.has(p.nickname)) byNick.set(p.nickname, p);
+      byId.set(p.userId, p);
+    }
+    return { byNick, byId };
+  }, [participants]);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const enterName = (e: React.MouseEvent, nickname: string) => {
+    const p = byNick.get(nickname);
+    if (!p) return;
+    const row = e.currentTarget as HTMLElement;
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const top = row.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
+    setHovered({ userId: p.userId, top, below: top < 110 });
+    onHoverUser?.(p.userId);
+  };
+  const leaveName = () => {
+    setHovered(null);
+    onHoverUser?.(null);
+  };
   const atBottomRef = useRef(true);
   const prevLen = useRef(chat.length);
   const loadAnchor = useRef<number | null>(null);
@@ -113,7 +148,7 @@ export default function ChatPanel({
       </div>
 
       {/* message list (windowed) + jump-to-latest overlay */}
-      <div className="relative min-h-0 flex-1">
+      <div ref={wrapRef} className="relative min-h-0 flex-1">
         <div
           ref={listRef}
           onScroll={onScroll}
@@ -129,20 +164,38 @@ export default function ChatPanel({
               Cargar {PAGE} mensajes mas
             </button>
           )}
-          {visible.map((m) => (
-            <div key={m.id} className="text-[13px] leading-snug">
-              <span className={`font-bold ${m.suertudo ? "text-amber-300" : "text-emerald-300"}`}>
-                {m.nickname}
-              </span>
-              {m.suertudo && (
-                <span className="ml-1 rounded bg-amber-400/20 px-1 py-px align-middle text-[9px] font-black uppercase tracking-wide text-amber-300">
-                  Suertudo
+          {visible.map((m) => {
+            const known = byNick.has(m.nickname);
+            return (
+              <div
+                key={m.id}
+                onMouseEnter={known ? (e) => enterName(e, m.nickname) : undefined}
+                onMouseLeave={known ? leaveName : undefined}
+                className={`text-[13px] leading-snug ${known ? "cursor-pointer rounded px-1 -mx-1 transition hover:bg-white/5" : ""}`}
+              >
+                <span className={`font-bold ${m.suertudo ? "text-amber-300" : "text-emerald-300"}`}>
+                  {m.nickname}
                 </span>
-              )}
-              <span className="ml-1.5 break-words text-white/90">{m.text}</span>
-            </div>
-          ))}
+                {m.suertudo && (
+                  <span className="ml-1 rounded bg-amber-400/20 px-1 py-px align-middle text-[9px] font-black uppercase tracking-wide text-amber-300">
+                    Suertudo
+                  </span>
+                )}
+                <span className="ml-1.5 break-words text-white/90">{m.text}</span>
+              </div>
+            );
+          })}
         </div>
+
+        {/* hover player card, anchored to the hovered name */}
+        {hovered && byId.get(hovered.userId) && (
+          <div
+            className={`pointer-events-none absolute left-2 right-2 z-40 ${hovered.below ? "" : "-translate-y-full"}`}
+            style={{ top: hovered.below ? hovered.top + 22 : hovered.top - 4 }}
+          >
+            <PlayerCard p={byId.get(hovered.userId)!} meId={meId ?? ""} />
+          </div>
+        )}
 
         {!atBottom && (
           <button

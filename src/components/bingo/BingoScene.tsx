@@ -17,6 +17,7 @@ import ChatPanel from "./hud/ChatPanel";
 import ParticipantsPanel, { LetterTotals } from "./hud/ParticipantsPanel";
 import WinnersOverlay from "./hud/WinnersOverlay";
 import { cardColumns, remainingToFill, type BingoCard } from "./types";
+import { playSfx } from "./audio";
 
 // Desktop: up to this many tarjetas open as floating windows at once.
 const MAX_OPEN_CARDS = 3;
@@ -60,6 +61,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
   ]);
   const [minimizedIdx, setMinimizedIdx] = useState<number[]>([]);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
+  const [highlightUser, setHighlightUser] = useState<string | null>(null);
   const dragAreaRef = useRef<HTMLDivElement>(null);
 
   // First-visit "how to play" card (dismissed forever via localStorage).
@@ -118,10 +120,47 @@ function BingoSceneView({ api }: { api: MockApi }) {
   useEffect(() => {
     if (lastNumber != null && myNumbers.has(lastNumber)) {
       setHitToast(lastNumber);
+      playSfx("hit"); // little dopamine arpeggio when a ball hits my tarjetas
       const t = window.setTimeout(() => setHitToast(null), 2600);
       return () => window.clearTimeout(t);
     }
   }, [lastNumber, myNumbers]);
+
+  // Player-set cell marks: diagonal daubs (on called cells) + red circles
+  // (reminders on not-yet-drawn cells). Keyed `${cardIndex}:${r}:${c}`.
+  const [daubs, setDaubs] = useState<Set<string>>(new Set());
+  const [circles, setCircles] = useState<Set<string>>(new Set());
+  const onCell = (cardIndex: number) => (r: number, c: number, _v: number, isDrawn: boolean) => {
+    const key = `${cardIndex}:${r}:${c}`;
+    if (isDrawn) {
+      setDaubs((prev) => {
+        const n = new Set(prev);
+        if (n.has(key)) { n.delete(key); playSfx("undaub"); } else { n.add(key); playSfx("daub"); }
+        return n;
+      });
+    } else {
+      setCircles((prev) => {
+        const n = new Set(prev);
+        if (n.has(key)) { n.delete(key); playSfx("click"); } else { n.add(key); playSfx("circle"); }
+        return n;
+      });
+    }
+  };
+  // When a circled number finally comes out, drop the circle so it can be daubed.
+  useEffect(() => {
+    setCircles((prev) => {
+      if (!prev.size) return prev;
+      let changed = false;
+      const n = new Set(prev);
+      for (const key of prev) {
+        const [ci, r, c] = key.split(":").map(Number);
+        const card = state.me.cards[ci];
+        const v = card ? cardColumns(card)[c][r] : null;
+        if (v != null && drawn.has(v)) { n.delete(key); changed = true; }
+      }
+      return changed ? n : prev;
+    });
+  }, [drawn, state.me.cards]);
 
   // Latest api for async callbacks (three.js loads code-split).
   const apiRef = useRef(api);
@@ -169,6 +208,11 @@ function BingoSceneView({ api }: { api: MockApi }) {
   useEffect(() => {
     sceneRef.current?.updateProgress(state.participants);
   }, [state.participants]);
+
+  // Spotlight a player in the 3D scene when hovering their chat name / avatar.
+  useEffect(() => {
+    sceneRef.current?.setHighlight?.(highlightUser);
+  }, [highlightUser]);
 
   const countdownActive = revealPhase === null && state.status === "drawing";
 
@@ -317,6 +361,9 @@ function BingoSceneView({ api }: { api: MockApi }) {
           onSend={api.sendChat}
           onReaction={api.sendReaction}
           className="h-72 w-80"
+          participants={state.participants}
+          meId={state.me.userId}
+          onHoverUser={setHighlightUser}
         />
       </div>
 
@@ -340,6 +387,12 @@ function BingoSceneView({ api }: { api: MockApi }) {
                 onMinimize={() => toggleMinimize(o.idx)}
                 onClose={() => closeTarjeta(o.idx)}
                 constraintsRef={dragAreaRef}
+                daubs={daubs}
+                circles={circles}
+                onCell={onCell(o.idx)}
+                drawnOrder={state.drawnBalls}
+                cardsPerNumber={state.cardsPerNumber}
+                totalCards={state.totalCards}
               />
             </div>
           ))}
@@ -371,6 +424,12 @@ function BingoSceneView({ api }: { api: MockApi }) {
                 currentNumber={lastNumber}
                 index={state.me.activeCardIndex}
                 compact
+                daubs={daubs}
+                circles={circles}
+                onCell={onCell(state.me.activeCardIndex)}
+                drawnOrder={state.drawnBalls}
+                cardsPerNumber={state.cardsPerNumber}
+                totalCards={state.totalCards}
               />
             </motion.div>
           )}
@@ -383,7 +442,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
               className="mb-2 px-3"
             >
-              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" />
+              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} />
             </motion.div>
           )}
           {panel === "players" && (
