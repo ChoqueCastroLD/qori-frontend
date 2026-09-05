@@ -14,6 +14,7 @@
 // - Camera: elevated 3/4 broadcast angle, machine as the hero.
 
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { AvatarAtlas, MAX_TILES } from "./avatarAtlas";
 import { LETTER_COLORS, type BingoLetter, type Participant } from "./types";
 
@@ -69,6 +70,7 @@ export class BingoScene3D {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
+  private controls!: OrbitControls;
   private clock = new THREE.Clock();
   private disposed = false;
   private pointer = new THREE.Vector2(0, 0);
@@ -122,6 +124,21 @@ export class BingoScene3D {
     this.camera = new THREE.PerspectiveCamera(46, 1, 0.1, 120);
     this.camera.position.copy(this.camBase);
     this.camera.lookAt(this.camLook);
+
+    // Orbit + zoom: drag to orbit the gumball, wheel to zoom. Damped, no pan,
+    // clamped so you can't dive under the floor or zoom past the machine.
+    this.controls = new OrbitControls(this.camera, this.canvas);
+    this.controls.target.copy(this.camLook);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.enablePan = false;
+    this.controls.rotateSpeed = 0.55;
+    this.controls.zoomSpeed = 0.8;
+    this.controls.minDistance = 6.5;
+    this.controls.maxDistance = 22;
+    this.controls.minPolarAngle = 0.5;
+    this.controls.maxPolarAngle = 1.5;
+    this.controls.update();
 
     this.buildEnvironment();
     this.buildMachine();
@@ -611,27 +628,28 @@ export class BingoScene3D {
   private buildSeats(total: number): { seats: Seat[]; rows: number[] } {
     const seats: Seat[] = [];
     const rowCounts: number[] = [];
-    const SPREAD = 1.62; // half-angle (rad) of the arc, ~93 deg each side
+    // Full concentric rings AROUND the machine, leaving a wedge open toward the
+    // camera (+z) so the bolillero is never blocked. Angle is measured from +z
+    // (front): seats fill FRONT_GAP..(2PI - FRONT_GAP), i.e. the sides + back.
+    // Seat 0 of each row sits at the front edge (nearest the camera) - that's
+    // where "me" ends up (see setParticipants), on the front row.
+    const FRONT_GAP = 0.8; // ~46 deg clear wedge toward the viewer
+    const avail = Math.PI * 2 - FRONT_GAP * 2;
     let row = 0;
     while (seats.length < total) {
-      const radius = 4.7 + row * 1.25;
-      const y = 0.62 + row * 0.6;
-      // Row spacing matches chip size: labeled chips (rows 0-2) need air,
-      // compact chips (3-4) less, head chips (5+) pack tighter.
-      const spacing = row < 3 ? 1.72 : row < 5 ? 1.2 : 0.92;
-      // Near rows keep a center aisle so the machine never occludes the
-      // leaders (they flank the stage instead of hiding behind the dome).
-      const aisle = row < 5 ? Math.asin(Math.min(0.6, 2.0 / radius)) : 0;
+      const radius = 6.6 + row * 1.28;
+      const y = 0.5 + row * 0.62;
+      const spacing = row < 3 ? 1.55 : row < 5 ? 1.15 : 0.94;
       const step = spacing / radius;
-      const capacity = Math.max(4, 2 * Math.floor((SPREAD - aisle) / step + 1));
+      const capacity = Math.max(6, Math.floor(avail / step) + 1);
       const inRow = Math.min(capacity, total - seats.length);
+      // Alternate front-right / front-left outward so the closest (best-ranked
+      // + me) flank the front opening, then wrap around the back.
       for (let k = 0; k < inRow; k++) {
-        // alternate left/right from the aisle edge outward, so the best
-        // ranked sit closest to the stage on both sides.
         const side = k % 2 === 0 ? 1 : -1;
         const idx = Math.floor(k / 2);
-        const a = side * (aisle + idx * step);
-        seats.push({ x: Math.sin(a) * radius, y, z: -Math.cos(a) * radius, row });
+        const a = side * (FRONT_GAP + idx * step); // from +z, both ways around
+        seats.push({ x: Math.sin(a) * radius, y, z: Math.cos(a) * radius, row });
       }
       rowCounts.push(inRow);
       row++;
@@ -650,10 +668,9 @@ export class BingoScene3D {
       });
     }
     const group = new THREE.Group();
-    const SPREAD = 1.7; // slightly wider than seats so steps frame the crowd
     for (let row = 0; row < rowCount; row++) {
-      const radius = 4.7 + row * 1.25;
-      const topY = 0.62 + row * 0.6 - 0.5; // seat bottoms rest on this
+      const radius = 6.6 + row * 1.28;
+      const topY = 0.5 + row * 0.62 - 0.5; // seat bottoms rest on this
       const even = row % 2 === 0;
       const topMat = new THREE.MeshStandardMaterial({
         color: even ? PAL.tierTopA : PAL.tierTopB,
@@ -665,19 +682,15 @@ export class BingoScene3D {
         roughness: 0.88,
         metalness: 0.02,
       });
-      // Flat step top (partial ring). Ring lies in XY; rotate flat, then the
-      // arc t in (0, PI) maps to negative z - centered on the back.
-      const top = new THREE.Mesh(
-        new THREE.RingGeometry(radius - 0.62, radius + 0.62, 48, 1, Math.PI / 2 - SPREAD, SPREAD * 2),
-        topMat
-      );
+      // Full concentric step ring around the machine.
+      const top = new THREE.Mesh(new THREE.RingGeometry(radius - 0.6, radius + 0.6, 72), topMat);
       top.rotation.x = -Math.PI / 2;
       top.position.y = topY;
       group.add(top);
       // Riser wall down to the previous step.
       const riserH = row === 0 ? topY : 0.6;
       const wall = new THREE.Mesh(
-        new THREE.CylinderGeometry(radius - 0.62, radius - 0.62, riserH, 48, 1, true, Math.PI - SPREAD, SPREAD * 2),
+        new THREE.CylinderGeometry(radius - 0.6, radius - 0.6, riserH, 72, 1, true),
         faceMat
       );
       wall.position.y = topY - riserH / 2;
@@ -706,12 +719,17 @@ export class BingoScene3D {
     const sorted = [...all].sort((a, b) => b.marks - a.marks);
     let near = sorted.slice(0, nearN);
     let far = sorted.slice(nearN);
-    if (!near.some((p) => p.userId === meId)) {
+    // "Me" always sits front-and-center: seat 0 (front row, nearest the camera).
+    const meNearIdx = near.findIndex((p) => p.userId === meId);
+    if (meNearIdx > 0) {
+      const [meP] = near.splice(meNearIdx, 1);
+      near.unshift(meP);
+    } else if (meNearIdx === -1) {
       const me = all.find((p) => p.userId === meId);
       if (me) {
         far = far.filter((p) => p.userId !== meId);
-        far.unshift(near[near.length - 1]);
-        near = [me, ...near.slice(0, near.length - 1)];
+        if (near.length) far.unshift(near.pop()!);
+        near.unshift(me);
       }
     }
 
@@ -736,7 +754,7 @@ export class BingoScene3D {
       nOff[i * 3] = s.x;
       nOff[i * 3 + 1] = s.y + (compact ? 0.48 : 0.62); // chip center above seat
       nOff[i * 3 + 2] = s.z;
-      nScale[i] = compact ? 0.95 : s.row === 0 ? 1.38 : s.row === 1 ? 1.28 : 1.2;
+      nScale[i] = compact ? 0.82 : s.row === 0 ? 1.12 : s.row === 1 ? 1.04 : 0.98;
       const t = this.atlas.tileOf(near[i].userId)!;
       nTile[i * 2] = t.u;
       nTile[i * 2 + 1] = t.v;
@@ -900,15 +918,22 @@ export class BingoScene3D {
     const narrow = w < 640 || w < h;
     // Portrait: pull back + up and widen so machine + grandstand still fit.
     if (narrow) {
-      this.camera.fov = 56;
-      this.camBase.set(1.2, 5.6, 14.8);
-      this.camLook.set(0, 2.8, -3.2);
+      this.camera.fov = 58;
+      this.camBase.set(0.8, 7.6, 16.2);
+      this.camLook.set(0, 2.2, 0);
     } else {
       this.camera.fov = 46;
-      this.camBase.set(3.6, 5.0, 12.8);
-      this.camLook.set(0, 2.4, -2.6);
+      this.camBase.set(3.2, 6.6, 13.8);
+      this.camLook.set(0, 2.2, 0);
     }
     this.camera.updateProjectionMatrix();
+    // Reset the camera to its framing base (also the initial constructor call).
+    // Resizes are rare, so snapping the orbit back here is acceptable.
+    this.camera.position.copy(this.camBase);
+    if (this.controls) {
+      this.controls.target.copy(this.camLook);
+      this.controls.update();
+    }
   };
 
   private onPointer = (e: PointerEvent) => {
@@ -920,13 +945,8 @@ export class BingoScene3D {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     const t = this.clock.elapsedTime;
 
-    // Gentle drift + pointer parallax around the broadcast base position.
-    const swayX = Math.sin(t * 0.14) * 0.35 + this.pointer.x * 0.45;
-    const swayY = Math.cos(t * 0.1) * 0.15 - this.pointer.y * 0.25;
-    this.camera.position.x += (this.camBase.x + swayX - this.camera.position.x) * 0.03;
-    this.camera.position.y += (this.camBase.y + swayY - this.camera.position.y) * 0.03;
-    this.camera.position.z += (this.camBase.z - this.camera.position.z) * 0.03;
-    this.camera.lookAt(this.camLook);
+    // User-driven camera: OrbitControls (drag to orbit, wheel to zoom).
+    this.controls.update();
 
     // Tumbling balls inside the dome (speed up while agitating).
     this.agitate = Math.max(0, this.agitate - dt * 0.45);
@@ -1014,6 +1034,7 @@ export class BingoScene3D {
 
   dispose() {
     this.disposed = true;
+    this.controls.dispose();
     this.renderer.setAnimationLoop(null);
     window.removeEventListener("resize", this.onResize);
     window.removeEventListener("pointermove", this.onPointer);
