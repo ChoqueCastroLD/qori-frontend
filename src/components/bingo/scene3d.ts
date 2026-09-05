@@ -1020,9 +1020,10 @@ export class BingoScene3D {
 
   private onPointer = (e: PointerEvent) => {
     this.pointer.set((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
-    // Only pick avatars when the pointer is over the canvas itself (not a HUD
-    // panel on top), so hovering the chat/cards doesn't trip a scene hover.
-    if (e.target === this.canvas) {
+    // Avatar hover is MOUSE-ONLY: touch has no hover, and picking while
+    // drag-orbiting on mobile would flicker the card/spotlight. Also require the
+    // pointer be over the canvas (not a HUD panel on top).
+    if (e.pointerType === "mouse" && e.target === this.canvas) {
       this.pointerPx.set(e.clientX, e.clientY);
       this.pickHover();
     } else if (this.lastHoverId !== null) {

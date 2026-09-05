@@ -531,20 +531,57 @@ function BingoSceneView({ api }: { api: MockApi }) {
                   horizontal
                 />
               </div>
-              <div className="flex justify-center">
-                <ActiveCard
-                  card={activeCard}
-                  drawn={drawn}
-                  currentNumber={lastNumber}
-                  index={state.me.activeCardIndex}
-                  compact
-                  daubs={daubs}
-                  circles={circles}
-                  onCell={onCell(state.me.activeCardIndex)}
-                  drawnOrder={state.drawnBalls}
-                  cardsPerNumber={state.cardsPerNumber}
-                  totalCards={state.totalCards}
-                />
+              <div className="flex items-center justify-center gap-1">
+                {state.me.cards.length > 1 && (
+                  <button
+                    type="button"
+                    aria-label="Tarjeta anterior"
+                    onClick={() => api.setActiveCard((state.me.activeCardIndex - 1 + state.me.cards.length) % state.me.cards.length)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur active:scale-95"
+                  >
+                    <Icon name="chevron-left" className="h-5 w-5" />
+                  </button>
+                )}
+                <motion.div
+                  key={state.me.activeCardIndex}
+                  drag={state.me.cards.length > 1 ? "x" : false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.25}
+                  dragMomentum={false}
+                  onDragEnd={(_e, info) => {
+                    const n = state.me.cards.length;
+                    if (n < 2) return;
+                    if (info.offset.x < -55 || info.velocity.x < -450) api.setActiveCard((state.me.activeCardIndex + 1) % n);
+                    else if (info.offset.x > 55 || info.velocity.x > 450) api.setActiveCard((state.me.activeCardIndex - 1 + n) % n);
+                  }}
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="touch-pan-y"
+                >
+                  <ActiveCard
+                    card={activeCard}
+                    drawn={drawn}
+                    currentNumber={lastNumber}
+                    index={state.me.activeCardIndex}
+                    compact
+                    daubs={daubs}
+                    circles={circles}
+                    onCell={onCell(state.me.activeCardIndex)}
+                    drawnOrder={state.drawnBalls}
+                    cardsPerNumber={state.cardsPerNumber}
+                    totalCards={state.totalCards}
+                  />
+                </motion.div>
+                {state.me.cards.length > 1 && (
+                  <button
+                    type="button"
+                    aria-label="Tarjeta siguiente"
+                    onClick={() => api.setActiveCard((state.me.activeCardIndex + 1) % state.me.cards.length)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur active:scale-95"
+                  >
+                    <Icon name="chevron-right" className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </motion.div>
           )}

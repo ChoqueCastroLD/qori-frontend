@@ -177,7 +177,6 @@ export default function ActiveCard({
                         onClick: () => onCell!(r, c, v!, marked),
                         onMouseEnter: () => setHover(v),
                         onMouseLeave: () => setHover((h) => (h === v ? null : h)),
-                        onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
                       }
                     : {})}
                   className={`relative flex items-center justify-center rounded-lg font-bold tabular-nums ${cell} ${
