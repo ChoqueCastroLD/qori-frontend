@@ -321,42 +321,42 @@ function BingoSceneView({ api }: { api: MockApi }) {
       </div>
 
       {/* ------- TOP: prize, countdown, reveal, called balls ------- */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1.5 p-3">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1.5 p-2.5 pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3">
         <div className="flex w-full items-start justify-between gap-2">
           {/* left: ONE compact brand panel: prize + jugadores + BINGO counters */}
-          <div className="pointer-events-auto max-w-[56vw] rounded-2xl bg-slate-900/60 p-2.5 backdrop-blur sm:max-w-[290px] sm:p-3">
+          <div className="pointer-events-auto max-w-[52vw] rounded-2xl bg-slate-900/60 p-2 backdrop-blur sm:max-w-[290px] sm:p-3">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="qori" className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" />
               <span className="min-w-0">
-                <span className="block truncate text-xs font-bold leading-tight text-white">{state.prize.title}</span>
+                <span className="block truncate text-[11px] font-bold leading-tight text-white sm:text-xs">{state.prize.title}</span>
                 <span className="block truncate text-[10px] font-semibold leading-tight text-emerald-300">
                   <span className="hidden sm:inline">Valor aprox. </span>USD {state.prize.valueUsd}
-                  <span className="text-white/45"> - {state.participants.length} jugadores</span>
+                  <span className="text-white/45"> - {state.participants.length} jug.</span>
                 </span>
               </span>
             </div>
             <div
-              className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2"
+              className="mt-1.5 flex items-center gap-2 border-t border-white/10 pt-1.5 sm:mt-2 sm:pt-2"
               title="Cuantas tarjetas de toda la sala ya completaron cada columna"
             >
-              <span className="max-w-[52px] text-[9px] font-bold uppercase leading-tight tracking-wider text-white/55 sm:max-w-none sm:whitespace-nowrap">
+              <span className="hidden text-[9px] font-bold uppercase leading-tight tracking-wider text-white/55 sm:inline sm:whitespace-nowrap">
                 Columnas llenas
               </span>
-              <span className="ml-auto">
+              <span className="mx-auto sm:ml-auto sm:mr-0">
                 <LetterTotals counts={state.lettersDone} />
               </span>
             </div>
           </div>
 
-          {/* right: countdown + info link */}
+          {/* right: viewers + countdown + compact controls (icon-only on mobile) */}
           <div className="flex flex-col items-end gap-1.5">
-            <div className="flex items-center gap-2">
-              <div className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-rose-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow sm:gap-1.5 sm:px-2.5">
                 <Icon name="eye" className="h-3 w-3 text-white/90" />
                 <span className="tabular-nums" title={`${state.viewers} personas viendo`}>{fmtCount(state.viewers)}</span>
                 <span className="h-3 w-px bg-white/30" />
                 <Icon name="live" className="h-2.5 w-2.5" />
-                En vivo
+                <span className="hidden sm:inline">En vivo</span>
               </div>
               <CountdownRing secondsLeft={state.nextBallInSec} total={intervalSec} active={countdownActive} />
             </div>
@@ -364,21 +364,22 @@ function BingoSceneView({ api }: { api: MockApi }) {
               <button
                 type="button"
                 onClick={() => setShowHelp(true)}
-                className="pointer-events-auto flex items-center gap-1 rounded-full bg-slate-900/55 px-3 py-1.5 text-[11px] font-bold text-white/90 backdrop-blur transition hover:bg-slate-900/75"
+                aria-label="Como jugar"
+                className="pointer-events-auto flex h-8 items-center gap-1 rounded-full bg-slate-900/55 px-2 text-[11px] font-bold text-white/90 backdrop-blur transition hover:bg-slate-900/75 sm:px-3"
               >
-                <Icon name="info" className="h-3.5 w-3.5 text-emerald-300" />
-                Como jugar
+                <Icon name="info" className="h-4 w-4 text-emerald-300" />
+                <span className="hidden sm:inline">Como jugar</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSettingsOpen((v) => !v)}
                 aria-label="Configuracion"
-                className={`pointer-events-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white/90 backdrop-blur transition ${
+                className={`pointer-events-auto flex h-8 items-center gap-1 rounded-full px-2 text-[11px] font-bold text-white/90 backdrop-blur transition sm:px-3 ${
                   settingsOpen ? "bg-emerald-500" : "bg-slate-900/55 hover:bg-slate-900/75"
                 }`}
               >
-                <Icon name="settings" className="h-3.5 w-3.5 text-emerald-300" />
-                Config
+                <Icon name="settings" className="h-4 w-4 text-emerald-300" />
+                <span className="hidden sm:inline">Config</span>
               </button>
             </div>
           </div>
@@ -511,28 +512,40 @@ function BingoSceneView({ api }: { api: MockApi }) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="mb-2 flex flex-col items-center gap-2 px-3"
+              className="mb-1.5 rounded-t-3xl bg-gradient-to-b from-slate-900/20 to-slate-900/45 px-2 pb-1 pt-1.5 backdrop-blur-sm"
             >
-              <CardStack
-                cards={state.me.cards}
-                openIndexes={[state.me.activeCardIndex]}
-                drawn={drawn}
-                onSelect={api.setActiveCard}
-                horizontal
+              {/* drag handle: tap to hide the sheet and see the full room */}
+              <button
+                type="button"
+                onClick={() => setPanel(null)}
+                aria-label="Ocultar tarjeta"
+                className="mx-auto mb-1 block h-1.5 w-10 rounded-full bg-white/45"
               />
-              <ActiveCard
-                card={activeCard}
-                drawn={drawn}
-                currentNumber={lastNumber}
-                index={state.me.activeCardIndex}
-                compact
-                daubs={daubs}
-                circles={circles}
-                onCell={onCell(state.me.activeCardIndex)}
-                drawnOrder={state.drawnBalls}
-                cardsPerNumber={state.cardsPerNumber}
-                totalCards={state.totalCards}
-              />
+              <div className="mb-1.5 flex justify-center">
+                <CardStack
+                  cards={state.me.cards}
+                  openIndexes={[state.me.activeCardIndex]}
+                  bestIndex={myBestIdx}
+                  drawn={drawn}
+                  onSelect={api.setActiveCard}
+                  horizontal
+                />
+              </div>
+              <div className="flex justify-center">
+                <ActiveCard
+                  card={activeCard}
+                  drawn={drawn}
+                  currentNumber={lastNumber}
+                  index={state.me.activeCardIndex}
+                  compact
+                  daubs={daubs}
+                  circles={circles}
+                  onCell={onCell(state.me.activeCardIndex)}
+                  drawnOrder={state.drawnBalls}
+                  cardsPerNumber={state.cardsPerNumber}
+                  totalCards={state.totalCards}
+                />
+              </div>
             </motion.div>
           )}
           {panel === "chat" && showChat && (
@@ -561,7 +574,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-center gap-2 px-3 pb-3">
+        <div className="flex items-center justify-center gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1">
           <MobileTab
             icon="card"
             label="Tarjeta"
