@@ -33,6 +33,10 @@ const cardNumberSet = (card: BingoCard): Set<number> => {
   return s;
 };
 
+// Compact count: 653 -> "653", 1250 -> "1.2k".
+const fmtCount = (n: number): string =>
+  n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(n);
+
 export default function BingoScene({ participantCount = 348 }: { participantCount?: number }) {
   const api = useMockBingo(participantCount);
   return <BingoSceneView api={api} />;
@@ -250,6 +254,9 @@ function BingoSceneView({ api }: { api: MockApi }) {
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex items-center gap-2">
               <div className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-rose-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow">
+                <Icon name="eye" className="h-3 w-3 text-white/90" />
+                <span className="tabular-nums" title={`${state.viewers} personas viendo`}>{fmtCount(state.viewers)}</span>
+                <span className="h-3 w-px bg-white/30" />
                 <Icon name="live" className="h-2.5 w-2.5" />
                 En vivo
               </div>

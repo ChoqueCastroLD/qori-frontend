@@ -36,6 +36,7 @@ export type BingoState = {
   drawnBalls: number[]; // in call order
   currentBall: Ball | null; // being revealed
   nextBallInSec: number; // 0..18 countdown
+  viewers: number; // people watching live (>= players; spectators included)
   prize: { title: string; description: string; valueUsd: number; imageUrl: string };
   fairness: {
     commitment: string;

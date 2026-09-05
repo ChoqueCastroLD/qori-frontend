@@ -223,11 +223,8 @@ export function useMockBingo(participantCount = 348): MockApi {
       },
       participants: computeParticipants(drawn),
       lettersDone: computeLettersDone(drawn),
-      chat: [
-        mkMsg("LuzPE", false, "ya empieza, suerte a todos"),
-        mkMsg("MarcoGamer", true, "hoy si canto bingo"),
-        mkMsg("Vale_x", false, "vamos!!"),
-      ],
+      viewers: Math.round((participantCount + 1) * 1.7) + 60, // players + spectators
+      chat: seedChat(55), // an established backlog so pagination has history
       winners: undefined,
     };
   });
@@ -244,6 +241,18 @@ export function useMockBingo(participantCount = 348): MockApi {
 
   function mkMsg(nickname: string, suertudo: boolean, text: string): ChatMsg {
     return { id: `m${uid++}`, nickname, avatarUrl: null, suertudo, text, at: new Date().toISOString() };
+  }
+
+  // A believable chat backlog so the "cargar 50 mas" pagination has real history.
+  // Uses the deterministic world PRNG (NOT Math.random) so the SSR markup and the
+  // client's first render match - otherwise React hydration mismatches (#418).
+  function seedChat(n: number): ChatMsg[] {
+    const out: ChatMsg[] = [];
+    for (let i = 0; i < n; i++) {
+      const p = world.base[Math.floor(world.rnd() * world.base.length)];
+      out.push(mkMsg(p.nickname, p.suertudo, BOT_LINES[Math.floor(world.rnd() * BOT_LINES.length)]));
+    }
+    return out;
   }
 
   const pushReaction = (emoji: string) => {
@@ -379,11 +388,17 @@ export function useMockBingo(participantCount = 348): MockApi {
     // -- ambient chat + reactions from "the room" ---------------------------
     const chatTimer = window.setInterval(() => {
       if (disposed) return;
-      if (Math.random() < 0.75) {
-        const p = stateRef.current.participants[Math.floor(Math.random() * stateRef.current.participants.length)];
-        const line = BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)];
-        setState((s) => ({ ...s, chat: [...s.chat.slice(-59), mkMsg(p.nickname, p.suertudo, line)] }));
-      }
+      setState((s) => {
+        let chat = s.chat;
+        if (Math.random() < 0.75) {
+          const p = s.participants[Math.floor(Math.random() * s.participants.length)];
+          const line = BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)];
+          chat = [...s.chat.slice(-399), mkMsg(p.nickname, p.suertudo, line)]; // keep up to 400
+        }
+        // spectators gently drift (slight upward bias)
+        const viewers = Math.max(20, s.viewers + Math.round((Math.random() - 0.45) * 8));
+        return chat === s.chat && viewers === s.viewers ? s : { ...s, chat, viewers };
+      });
       if (Math.random() < 0.45) {
         pushReaction(REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)]);
       }
@@ -408,7 +423,7 @@ export function useMockBingo(participantCount = 348): MockApi {
     sendChat: (text) => {
       const t = text.trim();
       if (!t) return;
-      setState((s) => ({ ...s, chat: [...s.chat.slice(-59), mkMsg(s.me.nickname, s.me.suertudo, t)] }));
+      setState((s) => ({ ...s, chat: [...s.chat.slice(-399), mkMsg(s.me.nickname, s.me.suertudo, t)] }));
     },
     sendReaction: (emoji) => pushReaction(emoji),
     subscribe: (fn) => {
