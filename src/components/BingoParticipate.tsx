@@ -3,11 +3,27 @@
 // no repeats) or REGENERATE — allowed until 5 min before the draw. Each number
 // shows how many cartillas across the room already hold it.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Icon from "./Icon";
 import Lingote from "./Lingote";
 import Skeleton from "./Skeleton";
 import QuickTopup from "./QuickTopup";
+
+// Cooldowns (anti-reroll fishing): wait between regenerations / number swaps.
+const REGEN_COOLDOWN_MS = 30_000;
+const PICK_COOLDOWN_MS = 10_000;
+
+// A ticking clock that only runs while `active`, for live cooldown counters.
+function useNow(active: boolean, ms = 500) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setNow(Date.now()), ms);
+    return () => clearInterval(t);
+  }, [active, ms]);
+  return now;
+}
 
 type Card = { id: string; seq: number; B: number[]; I: (number | null)[]; N: (number | null)[]; G: (number | null)[]; O: (number | null)[]; win?: any };
 type CardsData = { editable: boolean; editableUntil: string | null; totalCards: number; cardsPerNumber: Record<number, number>; cards: Card[] };
@@ -127,16 +143,23 @@ export default function BingoParticipate({
 
       {/* My tarjetas: pick numbers / regenerate */}
       {myCount > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-semibold text-slate-900"><Icon name="clover" className="h-5 w-5 text-emerald-500" /> Mis tarjetas ({myCount})</h3>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100"><Icon name="clover" className="h-4 w-4 text-emerald-600" /></span>
+              Mis tarjetas
+            </h3>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">{myCount}</span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
-            {canEdit
-              ? <>Puedes cambiar tus números o regenerar hasta <strong>{editUntil ? new Date(editUntil).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "que empiece"}</strong> (5 min antes del sorteo). El número pequeño indica cuántas cartillas lo tienen.</>
-              : <>La edición está cerrada (faltan menos de 5 min para el sorteo).</>}
-          </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className={`mt-2 flex items-start gap-2 rounded-xl px-3 py-2 text-xs ${canEdit ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-slate-500"}`}>
+            <Icon name={canEdit ? "clock" : "lock"} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              {canEdit
+                ? <>Cambia tus números o regenera hasta las <strong>{editUntil ? new Date(editUntil).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "que empiece"}</strong> (5 min antes). El <strong>×N</strong> muestra cuántas cartillas tienen ese número.</>
+                : <>La edición está cerrada (faltan menos de 5 min para el sorteo).</>}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {mine.map((c) => (
               <CardEditor key={c.id} slug={slug} card={c} cardsPerNumber={data!.cardsPerNumber} totalCards={data!.totalCards} canEdit={canEdit} onChanged={loadCards} />
             ))}
@@ -166,12 +189,25 @@ function CardEditor({ slug, card, cardsPerNumber, totalCards, canEdit, onChanged
   const [picker, setPicker] = useState<{ col: number; row: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [regenUntil, setRegenUntil] = useState(0);
+  const [pickUntil, setPickUntil] = useState(0);
   const dirtyRef = useRef(false);
+
+  const now = useNow(regenUntil > 0 || pickUntil > 0);
+  const regenLeft = Math.max(0, Math.ceil((regenUntil - now) / 1000));
+  const pickLeft = Math.max(0, Math.ceil((pickUntil - now) / 1000));
 
   // Reset when the card changes from the server (after save/regenerate reload).
   useEffect(() => { if (!dirtyRef.current) setCols({ B: [...card.B], I: [...card.I], N: [...card.N], G: [...card.G], O: [...card.O] }); }, [card]);
 
+  // Clear expired cooldowns so the clock stops ticking once they run out.
+  useEffect(() => {
+    if (regenUntil && regenLeft === 0) setRegenUntil(0);
+    if (pickUntil && pickLeft === 0) setPickUntil(0);
+  }, [regenLeft, pickLeft, regenUntil, pickUntil]);
+
   const pop = (n: number | null) => (n == null ? 0 : cardsPerNumber[n] ?? 0);
+  const reset = () => setCols({ B: [...card.B], I: [...card.I], N: [...card.N], G: [...card.G], O: [...card.O] });
 
   async function save() {
     setBusy(true); setErr("");
@@ -185,12 +221,13 @@ function CardEditor({ slug, card, cardsPerNumber, totalCards, canEdit, onChanged
     finally { setBusy(false); }
   }
   async function regen() {
+    if (regenLeft > 0 || busy) return;
     setBusy(true); setErr("");
     try {
       const res = await fetch(`/api/bingo/cards/${card.id}/regenerate`, { method: "POST", credentials: "include" });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setErr(EDIT_ERR[d.error] ?? "No se pudo regenerar."); return; }
-      dirtyRef.current = false; setPicker(null); onChanged();
+      dirtyRef.current = false; setPicker(null); setRegenUntil(Date.now() + REGEN_COOLDOWN_MS); onChanged();
     } catch { setErr("Error de red."); }
     finally { setBusy(false); }
   }
@@ -198,90 +235,152 @@ function CardEditor({ slug, card, cardsPerNumber, totalCards, canEdit, onChanged
     setCols((prev) => {
       const key = COLS[col][0] as string;
       const arr = [...prev[key]];
+      if (arr[row] === value) return prev; // no-op: same number, no cooldown
       arr[row] = value;
       dirtyRef.current = true;
+      setPickUntil(Date.now() + PICK_COOLDOWN_MS);
       return { ...prev, [key]: arr };
     });
     setPicker(null);
   }
 
+  const openPicker = (col: number, row: number) => { if (pickLeft === 0) setPicker({ col, row }); };
+
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-black uppercase tracking-wider text-slate-500">Tarjeta {card.seq}</span>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-xs font-black text-white shadow-sm">{card.seq}</span>
+          <span className="text-sm font-bold text-slate-700">Tarjeta {card.seq}</span>
+        </div>
         {canEdit && (
           <div className="flex gap-1.5">
             {edit ? (
               <>
-                <button type="button" onClick={save} disabled={busy} className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50">Guardar</button>
-                <button type="button" onClick={() => { dirtyRef.current = false; setEdit(false); setPicker(null); setCols({ B: [...card.B], I: [...card.I], N: [...card.N], G: [...card.G], O: [...card.O] }); }} className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Cancelar</button>
+                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={save} disabled={busy} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-500 disabled:opacity-50">{busy ? "Guardando…" : "Guardar"}</motion.button>
+                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => { dirtyRef.current = false; setEdit(false); setPicker(null); reset(); }} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">Cancelar</motion.button>
               </>
             ) : (
               <>
-                <button type="button" onClick={() => setEdit(true)} className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"><Icon name="edit" className="h-3 w-3" /> Editar</button>
-                <button type="button" onClick={regen} disabled={busy} className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"><Icon name="refresh" className="h-3 w-3" /> Regenerar</button>
+                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setEdit(true)} className="flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"><Icon name="edit" className="h-3.5 w-3.5" /> Editar</motion.button>
+                <motion.button whileTap={{ scale: regenLeft > 0 ? 1 : 0.95 }} type="button" onClick={regen} disabled={busy || regenLeft > 0} className="flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400">
+                  <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} /> {regenLeft > 0 ? `Espera ${regenLeft}s` : "Regenerar"}
+                </motion.button>
               </>
             )}
           </div>
         )}
       </div>
-      <div className="grid grid-cols-5 gap-1">
-        {COLS.map(([, L]) => (
-          <div key={L} className="flex h-6 items-center justify-center rounded font-black text-white" style={{ background: LETTER_BG[L] }}>{L}</div>
-        ))}
-        {[0, 1, 2, 3, 4].map((r) =>
-          COLS.map(([key], c) => {
-            const v = cols[key as string][r];
-            const free = v == null;
-            const editable = edit && !free;
-            return (
-              <button
-                type="button"
-                key={`${r}-${c}`}
-                disabled={!editable}
-                onClick={() => editable && setPicker({ col: c, row: r })}
-                className={`relative flex h-11 flex-col items-center justify-center rounded-lg text-sm font-bold ${free ? "bg-emerald-500 text-white" : editable ? "bg-amber-50 text-slate-800 ring-1 ring-amber-300" : "bg-slate-100 text-slate-700"}`}
-              >
-                {free ? <Icon name="clover" className="h-5 w-5" /> : (
-                  <>
-                    <span className="leading-none">{v}</span>
-                    <span className="text-[9px] font-semibold leading-none text-slate-400">×{pop(v)}</span>
-                  </>
-                )}
-              </button>
-            );
-          })
-        )}
-      </div>
-      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
 
-      {/* column number picker */}
-      {picker && (
-        <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-          <div className="mb-1 text-[11px] font-semibold text-slate-500">
-            Elige un número de la columna <strong>{COLS[picker.col][1]}</strong> ({COLS[picker.col][2]}–{COLS[picker.col][3]}). El ×N es cuántas cartillas lo tienen.
-          </div>
-          <div className="grid grid-cols-5 gap-1">
-            {Array.from({ length: 15 }, (_, i) => COLS[picker.col][2] + i).map((n) => {
-              const key = COLS[picker.col][0] as string;
-              const used = cols[key].includes(n) && cols[key][picker.row] !== n;
-              const current = cols[key][picker.row] === n;
-              return (
-                <button
-                  type="button"
-                  key={n}
-                  disabled={used}
-                  onClick={() => pick(picker.col, picker.row, n)}
-                  className={`flex flex-col items-center justify-center rounded py-1 text-xs font-bold ${current ? "bg-emerald-600 text-white" : used ? "cursor-not-allowed bg-slate-200 text-slate-400" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-emerald-400"}`}
-                >
-                  <span className="leading-none">{n}</span>
-                  <span className={`text-[9px] font-semibold leading-none ${current ? "text-white/70" : "text-slate-400"}`}>×{pop(n)}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="p-3">
+        {/* BINGO header */}
+        <div className="grid grid-cols-5 gap-1.5">
+          {COLS.map(([, L]) => (
+            <div key={L} className="flex h-8 items-center justify-center rounded-lg text-sm font-black text-white shadow-sm" style={{ background: LETTER_BG[L] }}>{L}</div>
+          ))}
         </div>
-      )}
+
+        {/* cells */}
+        <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+          {[0, 1, 2, 3, 4].map((r) =>
+            COLS.map(([key], c) => {
+              const v = cols[key as string][r];
+              const free = v == null;
+              const editable = edit && !free && pickLeft === 0;
+              const isActivePick = picker?.col === c && picker?.row === r;
+              return (
+                <motion.button
+                  type="button"
+                  key={`${r}-${c}`}
+                  disabled={!editable}
+                  whileTap={editable ? { scale: 0.9 } : undefined}
+                  onClick={() => openPicker(c, r)}
+                  className={`relative flex aspect-square flex-col items-center justify-center rounded-xl text-base font-bold transition ${
+                    free
+                      ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white"
+                      : isActivePick
+                        ? "bg-amber-100 text-slate-900 ring-2 ring-amber-400"
+                        : editable
+                          ? "bg-amber-50 text-slate-800 ring-1 ring-amber-300 hover:ring-amber-400"
+                          : edit && !free
+                            ? "bg-slate-100 text-slate-400"
+                            : "bg-slate-50 text-slate-700 ring-1 ring-slate-100"
+                  }`}
+                >
+                  {free ? (
+                    <motion.span animate={{ rotate: [0, -6, 6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+                      <Icon name="clover" className="h-6 w-6" />
+                    </motion.span>
+                  ) : (
+                    <>
+                      <span className="leading-none">{v}</span>
+                      <span className={`mt-0.5 text-[9px] font-semibold leading-none ${editable ? "text-amber-500" : "text-slate-400"}`}>×{pop(v)}</span>
+                    </>
+                  )}
+                  {editable && <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-white"><Icon name="edit" className="h-2 w-2" /></span>}
+                </motion.button>
+              );
+            })
+          )}
+        </div>
+
+        {/* edit / cooldown hints */}
+        {edit && pickLeft === 0 && <p className="mt-2 text-center text-[11px] font-medium text-amber-600">Toca un número para cambiarlo</p>}
+        {pickLeft > 0 && (
+          <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-slate-50 py-1.5 text-[11px] font-medium text-slate-500">
+            <Icon name="clock" className="h-3.5 w-3.5" /> Puedes cambiar otro número en {pickLeft}s
+          </div>
+        )}
+        {err && <p className="mt-2 text-center text-xs font-medium text-red-600">{err}</p>}
+      </div>
+
+      {/* column number picker — animated modal (doesn't shift the layout) */}
+      <AnimatePresence>
+        {picker && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setPicker(null)}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-4 backdrop-blur-sm sm:items-center"
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.97 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 30, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 26 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-xs rounded-2xl bg-white p-4 shadow-2xl"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg text-sm font-black text-white" style={{ background: LETTER_BG[COLS[picker.col][1]] }}>{COLS[picker.col][1]}</span>
+                  <span className="text-sm font-bold text-slate-700">Elige entre {COLS[picker.col][2]}–{COLS[picker.col][3]}</span>
+                </div>
+                <button type="button" onClick={() => setPicker(null)} aria-label="Cerrar" className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><Icon name="x" className="h-3.5 w-3.5" /></button>
+              </div>
+              <p className="mb-2.5 text-[11px] text-slate-400">El <strong>×N</strong> indica cuántas cartillas ya tienen ese número.</p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {Array.from({ length: 15 }, (_, i) => COLS[picker.col][2] + i).map((n) => {
+                  const key = COLS[picker.col][0] as string;
+                  const used = cols[key].includes(n) && cols[key][picker.row] !== n;
+                  const current = cols[key][picker.row] === n;
+                  return (
+                    <motion.button
+                      type="button"
+                      key={n}
+                      disabled={used}
+                      whileTap={used ? undefined : { scale: 0.9 }}
+                      onClick={() => pick(picker.col, picker.row, n)}
+                      className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm font-bold transition ${current ? "bg-emerald-600 text-white shadow" : used ? "cursor-not-allowed bg-slate-100 text-slate-300" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-emerald-400"}`}
+                    >
+                      <span className="leading-none">{n}</span>
+                      <span className={`mt-0.5 text-[9px] font-semibold leading-none ${current ? "text-white/70" : "text-slate-400"}`}>×{pop(n)}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
