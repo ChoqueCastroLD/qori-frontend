@@ -682,7 +682,11 @@ function BingoSceneView({ api }: { api: MockApi }) {
       {/* ------- winners ------- */}
       <AnimatePresence>
         {state.status === "finished" && state.winners && (
-          <WinnersOverlay winners={state.winners} meNickname={state.me.nickname} />
+          <WinnersOverlay
+            winners={state.winners}
+            meNickname={state.me.nickname}
+            topCards={[...state.participants].sort((a, b) => b.cards - a.cards).slice(0, 3)}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -899,10 +899,12 @@ function Mini({ label, value, sub }: { label: string; value: string; sub?: strin
 function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   // Default draw time: 48h from now, in local time for the datetime picker.
   const [f, setF] = useState<any>({
+    kind: "SHOW",
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
     minTickets: 50, winnersCount: 1, maxPerUser: "", paidOnly: false, games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
     image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
+  const isBingo = f.kind === "BINGO";
   const [err, setErr] = useState("");
   function toggleGame(g: string) {
     setF((s: any) => {
@@ -916,17 +918,22 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
     e.preventDefault(); setErr("");
     if (!f.image) { setErr("Sube una imagen para el sorteo."); return; }
     if (!f.closesAt) { setErr("Elige la fecha y hora del sorteo."); return; }
-    if (f.games.length === 0) { setErr("Elige al menos un juego para el show."); return; }
-    const body = {
+    if (!isBingo && f.games.length === 0) { setErr("Elige al menos un juego para el show."); return; }
+    const common = {
       slug: f.slug, title: f.title, description: f.description, images: [f.image],
       prizeValue: Math.round(f.prizeUsd * 100), ticketPrice: Number(f.ticketPrice),
       totalTickets: Number(f.totalTickets), minTickets: Number(f.minTickets),
-      winnersCount: Number(f.winnersCount), games: f.games, finale: f.finale,
       paidOnly: !!f.paidOnly,
       closesAt: new Date(f.closesAt).toISOString(),
       ...(f.maxPerUser !== "" && Number(f.maxPerUser) > 0 ? { maxTicketsPerUser: Number(f.maxPerUser) } : {}),
     };
-    const r = await adminFetch("/admin/raffles", { method: "POST", body: JSON.stringify(body) });
+    // Bingo raffles use their own endpoint (no games/finale; the prize can split
+    // on ties). They are born DRAFT so they never touch live raffles by accident.
+    const endpoint = isBingo ? "/admin/bingo" : "/admin/raffles";
+    const body = isBingo
+      ? common
+      : { ...common, winnersCount: Number(f.winnersCount), games: f.games, finale: f.finale };
+    const r = await adminFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
     if (r.ok) { onCreated(); return; }
     const ERRS: Record<string, string> = {
       invalid_slug: "Slug inválido: usa solo minúsculas, números y guiones (ej. ps5-octubre).",
@@ -938,6 +945,26 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   const inp = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
   return (
     <form onSubmit={submit} className="mt-6 space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+      <div>
+        <label className="text-xs text-slate-500">Tipo de sorteo</label>
+        <div className="mt-1 flex gap-2">
+          {([["SHOW", "Sorteo (show)"], ["BINGO", "Bingo"]] as const).map(([k, l]) => (
+            <button
+              type="button"
+              key={k}
+              onClick={() => setF({ ...f, kind: k })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold ${f.kind === k ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        {isBingo && (
+          <p className="mt-1.5 text-xs text-slate-500">
+            Bingo de 75 bolas, cartón lleno. Los precios/máximos son por <strong>tarjeta</strong>. Nace en <strong>borrador</strong>.
+          </p>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-xs text-slate-500">Slug</label><input required className={inp} value={f.slug} onChange={(e) => setF({ ...f, slug: e.target.value })} /></div>
         <div><label className="text-xs text-slate-500">Título</label><input required className={inp} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
@@ -946,27 +973,31 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
       <ImageUpload label="Imagen del sorteo" value={f.image} onChange={(url) => setF({ ...f, image: url })} endpoint="/admin/upload" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div><label className="text-xs text-slate-500">Valor USD</label><input type="number" className={inp} value={f.prizeUsd} onChange={(e) => setF({ ...f, prizeUsd: e.target.value })} /></div>
-        <div><label className="text-xs text-slate-500">Precio (lingotes)</label><input type="number" className={inp} value={f.ticketPrice} onChange={(e) => setF({ ...f, ticketPrice: e.target.value })} /></div>
-        <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" className={inp} value={f.winnersCount} onChange={(e) => setF({ ...f, winnersCount: e.target.value })} /></div>
-        <div><label className="text-xs text-slate-500">Total tickets</label><input type="number" className={inp} value={f.totalTickets} onChange={(e) => setF({ ...f, totalTickets: e.target.value })} /></div>
-        <div><label className="text-xs text-slate-500">Mín. tickets</label><input type="number" className={inp} value={f.minTickets} onChange={(e) => setF({ ...f, minTickets: e.target.value })} /></div>
-        <div><label className="text-xs text-slate-500">Máx. tickets por persona</label><input type="number" className={inp} value={f.maxPerUser} placeholder="sin límite" onChange={(e) => setF({ ...f, maxPerUser: e.target.value })} /></div>
+        <div><label className="text-xs text-slate-500">{isBingo ? "Precio por tarjeta (lingotes)" : "Precio (lingotes)"}</label><input type="number" className={inp} value={f.ticketPrice} onChange={(e) => setF({ ...f, ticketPrice: e.target.value })} /></div>
+        {!isBingo && <div><label className="text-xs text-slate-500"># Ganadores</label><input type="number" className={inp} value={f.winnersCount} onChange={(e) => setF({ ...f, winnersCount: e.target.value })} /></div>}
+        <div><label className="text-xs text-slate-500">{isBingo ? "Total tarjetas" : "Total tickets"}</label><input type="number" className={inp} value={f.totalTickets} onChange={(e) => setF({ ...f, totalTickets: e.target.value })} /></div>
+        <div><label className="text-xs text-slate-500">{isBingo ? "Mín. tarjetas" : "Mín. tickets"}</label><input type="number" className={inp} value={f.minTickets} onChange={(e) => setF({ ...f, minTickets: e.target.value })} /></div>
+        <div><label className="text-xs text-slate-500">{isBingo ? "Máx. tarjetas por persona" : "Máx. tickets por persona"}</label><input type="number" className={inp} value={f.maxPerUser} placeholder="sin límite" onChange={(e) => setF({ ...f, maxPerUser: e.target.value })} /></div>
         <div>
           <label className="flex items-center gap-1 text-xs text-slate-500"><Icon name="clock" className="h-3.5 w-3.5" /> Fecha y hora del sorteo</label>
           <input type="datetime-local" required className={inp} value={f.closesAt} onChange={(e) => setF({ ...f, closesAt: e.target.value })} />
         </div>
       </div>
-      <div>
-        <label className="text-xs text-slate-500">Juegos</label>
-        <div className="mt-1 flex flex-wrap gap-2">
-          {GAMES.map((g) => (
-            <button type="button" key={g} onClick={() => toggleGame(g)} className={`rounded-full px-3 py-1 text-xs font-medium ${f.games.includes(g) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{g}</button>
-          ))}
-        </div>
-      </div>
-      <div><label className="text-xs text-slate-500">Juego final</label>
-        <select className={inp} value={f.finale} onChange={(e) => setF({ ...f, finale: e.target.value })}>{f.games.map((g: string) => <option key={g} value={g}>{g}</option>)}</select>
-      </div>
+      {!isBingo && (
+        <>
+          <div>
+            <label className="text-xs text-slate-500">Juegos</label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {GAMES.map((g) => (
+                <button type="button" key={g} onClick={() => toggleGame(g)} className={`rounded-full px-3 py-1 text-xs font-medium ${f.games.includes(g) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{g}</button>
+              ))}
+            </div>
+          </div>
+          <div><label className="text-xs text-slate-500">Juego final</label>
+            <select className={inp} value={f.finale} onChange={(e) => setF({ ...f, finale: e.target.value })}>{f.games.map((g: string) => <option key={g} value={g}>{g}</option>)}</select>
+          </div>
+        </>
+      )}
       <label className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <input type="checkbox" checked={!!f.paidOnly} onChange={(e) => setF({ ...f, paidOnly: e.target.checked })} className="mt-0.5 h-4 w-4 accent-emerald-600" />
         <span className="flex items-center gap-1.5 text-sm text-slate-700">

@@ -61,7 +61,7 @@ export type BingoState = {
   totalCards: number;
   cardsPerNumber: Record<number, number>;
   chat: ChatMsg[];
-  winners?: { nickname: string; avatarUrl: string | null; shareUsd: number }[];
+  winners?: { nickname: string; avatarUrl: string | null; shareUsd: number; cards: number }[];
 };
 
 export const LETTERS: BingoLetter[] = ["B", "I", "N", "G", "O"];

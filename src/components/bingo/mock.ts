@@ -371,9 +371,9 @@ export function useMockBingo(participantCount = 348): MockApi {
         const winners = s.participants.filter((p) => p.bestLetters.length === 5);
         const meWon = s.me.cards.some((c) => hasFullCard(c, drawn));
         if (winners.length > 0 || meWon) {
-          const names = winners.map((w) => ({ nickname: w.nickname, avatarUrl: w.avatarUrl }));
+          const names = winners.map((w) => ({ nickname: w.nickname, avatarUrl: w.avatarUrl, cards: w.cards }));
           if (meWon && !winners.some((w) => w.userId === s.me.userId)) {
-            names.push({ nickname: s.me.nickname, avatarUrl: null });
+            names.push({ nickname: s.me.nickname, avatarUrl: null, cards: s.me.cards.length });
           }
           finish(names);
         } else {
@@ -384,7 +384,7 @@ export function useMockBingo(participantCount = 348): MockApi {
       });
     }
 
-    function finish(names: { nickname: string; avatarUrl: string | null }[]) {
+    function finish(names: { nickname: string; avatarUrl: string | null; cards: number }[]) {
       playSfx("bingo");
       emit({ type: "bingo" });
       const share = names.length ? PRIZE.valueUsd / names.length : PRIZE.valueUsd;
