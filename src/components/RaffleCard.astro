@@ -12,9 +12,11 @@ const isLive = r.status === "CLOSED" || r.status === "DRAWING";
 const isCancelled = r.status === "CANCELLED";
 const winner = r.winners?.[0];
 const image = r.images?.[0] ?? "/og.png";
-const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled ? "Ver detalle" : isLive ? "Ver el sorteo" : "Participar";
+const isBingo = (r as any).kind === "BINGO";
+const href = isBingo ? `/bingo/${r.slug}` : `/sorteos/${r.slug}`;
+const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled ? "Ver detalle" : isBingo ? "Jugar bingo" : isLive ? "Ver el sorteo" : "Participar";
 ---
-<a href={`/sorteos/${r.slug}`} class={`group flex flex-col overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${r.paidOnly ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"}`}>
+<a href={href} class={`group flex flex-col overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${r.paidOnly ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"}`}>
   <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
     <img src={image} alt={r.title} class="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
     {r.paidOnly && (

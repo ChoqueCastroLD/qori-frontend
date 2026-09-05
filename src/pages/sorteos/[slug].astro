@@ -23,6 +23,8 @@ const GAME_DESC: Record<string, string> = {
 const { slug } = Astro.params;
 const r = await ssrGet<Raffle | null>(`/raffles/${slug}`, null);
 if (!r) return Astro.redirect("/sorteos");
+// Bingo raffles have their own live room.
+if ((r as any).kind === "BINGO") return Astro.redirect(`/bingo/${slug}`);
 
 const sold = r.ticketsSold ?? 0;
 const isDrawn = r.status === "DRAWN";
