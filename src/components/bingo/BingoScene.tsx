@@ -17,7 +17,7 @@ import ChatPanel from "./hud/ChatPanel";
 import ParticipantsPanel, { LetterTotals } from "./hud/ParticipantsPanel";
 import WinnersOverlay from "./hud/WinnersOverlay";
 import { cardColumns, remainingToFill, type BingoCard } from "./types";
-import { playSfx } from "./audio";
+import { playSfx, setVolume as setAudioVolume } from "./audio";
 
 // Desktop: up to this many tarjetas open as floating windows at once.
 const MAX_OPEN_CARDS = 3;
@@ -63,6 +63,13 @@ function BingoSceneView({ api }: { api: MockApi }) {
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [highlightUser, setHighlightUser] = useState<string | null>(null);
   const dragAreaRef = useRef<HTMLDivElement>(null);
+
+  // Settings (config window): toggle chat / reactions, master volume.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showChat, setShowChat] = useState(true);
+  const [showReactions, setShowReactions] = useState(true);
+  const [volume, setVolume] = useState(0.7);
+  useEffect(() => { setAudioVolume(volume); }, [volume]);
 
   // First-visit "how to play" card (dismissed forever via localStorage).
   const [showHelp, setShowHelp] = useState(false);
@@ -250,7 +257,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
       {/* ------- floating reactions over the scene ------- */}
       <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
         <AnimatePresence>
-          {reactions.map((r) => (
+          {showReactions && reactions.map((r) => (
             <motion.span
               key={r.id}
               initial={{ opacity: 0, y: 0, scale: 0.6 }}
@@ -315,20 +322,65 @@ function BingoSceneView({ api }: { api: MockApi }) {
                 <Icon name="info" className="h-3.5 w-3.5 text-emerald-300" />
                 Como jugar
               </button>
-              <a
-                href="#info"
-                className="pointer-events-auto flex items-center gap-1 rounded-full bg-slate-900/55 px-3 py-1.5 text-[11px] font-bold text-white/90 backdrop-blur transition hover:bg-slate-900/75"
+              <button
+                type="button"
+                onClick={() => setSettingsOpen((v) => !v)}
+                aria-label="Configuracion"
+                className={`pointer-events-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white/90 backdrop-blur transition ${
+                  settingsOpen ? "bg-emerald-500" : "bg-slate-900/55 hover:bg-slate-900/75"
+                }`}
               >
-                <Icon name="document" className="h-3.5 w-3.5 text-emerald-300" />
-                Detalles
-              </a>
+                <Icon name="settings" className="h-3.5 w-3.5 text-emerald-300" />
+                Config
+              </button>
             </div>
           </div>
         </div>
 
-        <BallReveal ball={state.currentBall} phase={revealPhase} />
         <CalledStrip drawn={state.drawnBalls} />
+        <BallReveal ball={state.currentBall} phase={revealPhase} />
       </div>
+
+      {/* ------- settings / config window ------- */}
+      <AnimatePresence>
+        {settingsOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="pointer-events-auto absolute right-3 top-[68px] z-40 w-60 rounded-2xl bg-slate-900/85 p-3 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
+          >
+            <div className="mb-2.5 flex items-center gap-2">
+              <Icon name="settings" className="h-4 w-4 text-emerald-300" />
+              <span className="text-xs font-black uppercase tracking-wider">Configuracion</span>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(false)}
+                aria-label="Cerrar"
+                className="ml-auto flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-white/70 transition hover:bg-white/20"
+              >
+                <Icon name="x" className="h-3 w-3" />
+              </button>
+            </div>
+            <SettingToggle icon="chat" label="Chat" checked={showChat} onChange={setShowChat} />
+            <SettingToggle icon="smile" label="Reacciones" checked={showReactions} onChange={setShowReactions} />
+            <div className="mt-1 flex items-center gap-2 py-1.5">
+              <Icon name={volume <= 0 ? "volume-off" : "volume"} className="h-4 w-4 shrink-0 text-emerald-300" />
+              <span className="text-[13px] font-semibold">Volumen</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(volume * 100)}
+                onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                aria-label="Volumen"
+                className="ml-auto w-24 accent-emerald-500"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ------- BOTTOM desktop: tarjetas grid left, chat right ------- */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 hidden items-end justify-between gap-3 p-4 md:flex">
@@ -356,15 +408,18 @@ function BingoSceneView({ api }: { api: MockApi }) {
           />
         </div>
 
-        <ChatPanel
-          chat={state.chat}
-          onSend={api.sendChat}
-          onReaction={api.sendReaction}
-          className="h-72 w-80"
-          participants={state.participants}
-          meId={state.me.userId}
-          onHoverUser={setHighlightUser}
-        />
+        {showChat && (
+          <ChatPanel
+            chat={state.chat}
+            onSend={api.sendChat}
+            onReaction={api.sendReaction}
+            className="h-72 w-80"
+            participants={state.participants}
+            meId={state.me.userId}
+            onHoverUser={setHighlightUser}
+            reactionsEnabled={showReactions}
+          />
+        )}
       </div>
 
       {/* ------- desktop: floating draggable tarjetas (max 3 open) ------- */}
@@ -433,7 +488,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
               />
             </motion.div>
           )}
-          {panel === "chat" && (
+          {panel === "chat" && showChat && (
             <motion.div
               key="p-chat"
               initial={{ y: 40, opacity: 0 }}
@@ -442,7 +497,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
               className="mb-2 px-3"
             >
-              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} />
+              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} reactionsEnabled={showReactions} />
             </motion.div>
           )}
           {panel === "players" && (
@@ -472,12 +527,14 @@ function BingoSceneView({ api }: { api: MockApi }) {
             active={panel === "players"}
             onClick={() => setPanel(panel === "players" ? null : "players")}
           />
-          <MobileTab
-            icon="chat"
-            label="Chat"
-            active={panel === "chat"}
-            onClick={() => setPanel(panel === "chat" ? null : "chat")}
-          />
+          {showChat && (
+            <MobileTab
+              icon="chat"
+              label="Chat"
+              active={panel === "chat"}
+              onClick={() => setPanel(panel === "chat" ? null : "chat")}
+            />
+          )}
         </div>
       </div>
 
@@ -583,6 +640,28 @@ function MobileTab({
     >
       <Icon name={icon} className="h-4 w-4" />
       {label}
+    </button>
+  );
+}
+
+function SettingToggle({
+  icon,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: string;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button type="button" onClick={() => onChange(!checked)} className="flex w-full items-center gap-2 py-1.5 text-left">
+      <Icon name={icon} className="h-4 w-4 shrink-0 text-emerald-300" />
+      <span className="text-[13px] font-semibold">{label}</span>
+      <span className={`ml-auto flex h-5 w-9 items-center rounded-full p-0.5 transition ${checked ? "bg-emerald-500" : "bg-white/20"}`}>
+        <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : ""}`} />
+      </span>
     </button>
   );
 }

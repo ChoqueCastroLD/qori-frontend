@@ -9,6 +9,7 @@ import type { BingoLetter } from "./types";
 
 let ctx: AudioContext | null = null;
 let muted = false;
+let volume = 0.7; // master 0..1
 
 function ac(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -27,8 +28,9 @@ function ac(): AudioContext | null {
 /** Play a short envelope of tones (an arpeggio when more than one freq). */
 function blip(freqs: number[], dur = 0.12, type: OscillatorType = "sine", gain = 0.06): void {
   const c = ac();
-  if (!c || muted) return;
+  if (!c || muted || volume <= 0) return;
   const t0 = c.currentTime;
+  const peak = Math.max(0.0002, gain * volume);
   freqs.forEach((f, i) => {
     const o = c.createOscillator();
     const g = c.createGain();
@@ -36,7 +38,7 @@ function blip(freqs: number[], dur = 0.12, type: OscillatorType = "sine", gain =
     o.frequency.value = f;
     const start = t0 + i * 0.05;
     g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(gain, start + 0.01);
+    g.gain.exponentialRampToValueAtTime(peak, start + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
     o.connect(g);
     g.connect(c.destination);
@@ -50,6 +52,10 @@ export function setMuted(m: boolean): void {
 }
 export function isMuted(): boolean {
   return muted;
+}
+/** Master volume 0..1 (applied to every SFX; 0 = silent). */
+export function setVolume(v: number): void {
+  volume = Math.max(0, Math.min(1, v));
 }
 
 /** Beat 1 - the letter is revealed alone. */

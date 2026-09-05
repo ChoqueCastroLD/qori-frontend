@@ -26,6 +26,7 @@ export default function ChatPanel({
   participants,
   meId,
   onHoverUser,
+  reactionsEnabled = true,
 }: {
   chat: ChatMsg[];
   onSend: (text: string) => void;
@@ -35,6 +36,7 @@ export default function ChatPanel({
   participants?: Participant[];
   meId?: string;
   onHoverUser?: (userId: string | null) => void;
+  reactionsEnabled?: boolean;
 }) {
   const [text, setText] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE);
@@ -210,19 +212,21 @@ export default function ChatPanel({
       </div>
 
       {/* reaction picker ABOVE the input */}
-      <div className="flex items-center justify-between gap-1 border-t border-white/10 px-2 py-1.5">
-        {REACTIONS.map((e) => (
-          <button
-            key={e}
-            type="button"
-            onClick={() => onReaction(e)}
-            className="rounded-lg px-1.5 py-0.5 text-lg transition-transform hover:scale-125 active:scale-95"
-            aria-label={`Enviar reaccion ${e}`}
-          >
-            {e}
-          </button>
-        ))}
-      </div>
+      {reactionsEnabled && (
+        <div className="flex items-center justify-between gap-1 border-t border-white/10 px-2 py-1.5">
+          {REACTIONS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => onReaction(e)}
+              className="rounded-lg px-1.5 py-0.5 text-lg transition-transform hover:scale-125 active:scale-95"
+              aria-label={`Enviar reaccion ${e}`}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 border-t border-white/10 p-2">
         <div className="relative min-w-0 flex-1">

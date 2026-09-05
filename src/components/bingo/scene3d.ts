@@ -138,6 +138,9 @@ export class BingoScene3D {
     this.controls.maxDistance = 22;
     this.controls.minPolarAngle = 0.5;
     this.controls.maxPolarAngle = 1.5;
+    // Barely-there automatic drift to the right; pauses while you drag.
+    this.controls.autoRotate = true;
+    this.controls.autoRotateSpeed = -0.22;
     this.controls.update();
 
     this.buildEnvironment();
