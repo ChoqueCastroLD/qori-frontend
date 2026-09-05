@@ -93,7 +93,7 @@ export function useLiveBingo(slug: string): LiveApi {
           participants: (d.participants ?? []) as Participant[],
           chat: chatRef.current,
           me: d.me
-            ? { userId: d.me.userId, nickname: d.me.nickname, avatarUrl: d.me.avatarUrl, suertudo: d.me.suertudo, cards: meCards, activeCardIndex: Math.min(activeIdx.current, Math.max(0, meCards.length - 1)) }
+            ? { userId: d.me.userId, nickname: d.me.nickname, avatarUrl: d.me.avatarUrl, suertudo: d.me.suertudo, cards: meCards, activeCardIndex: Math.min(activeIdx.current, Math.max(0, meCards.length - 1)), win: d.me.win ?? null }
             : emptyState().me,
           winners: d.winners,
         };

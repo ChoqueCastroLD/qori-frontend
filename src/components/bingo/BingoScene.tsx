@@ -40,12 +40,14 @@ const fmtCount = (n: number): string =>
 
 export default function BingoScene({ participantCount = 348 }: { participantCount?: number }) {
   const api = useMockBingo(participantCount);
-  return <BingoSceneView api={api} />;
+  return <BingoSceneView api={api} demo />;
 }
 
-export function BingoSceneView({ api, buySlot }: { api: MockApi; buySlot?: React.ReactNode }) {
+export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; buySlot?: React.ReactNode; demo?: boolean }) {
   const { state, revealPhase, intervalSec, reactions } = api;
   const hasCards = state.me.cards.length > 0;
+  const [winnersDismissed, setWinnersDismissed] = useState(false);
+  useEffect(() => { if (state.status !== "finished") setWinnersDismissed(false); }, [state.status]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<BingoScene3D | null>(null);
   const [webgl, setWebgl] = useState(true);
@@ -697,11 +699,14 @@ export function BingoSceneView({ api, buySlot }: { api: MockApi; buySlot?: React
 
       {/* ------- winners ------- */}
       <AnimatePresence>
-        {state.status === "finished" && state.winners && (
+        {state.status === "finished" && state.winners && !winnersDismissed && (
           <WinnersOverlay
             winners={state.winners}
             meNickname={state.me.nickname}
             topCards={[...state.participants].sort((a, b) => b.cards - a.cards).slice(0, 3)}
+            myWin={state.me.win ?? null}
+            demo={demo}
+            onClose={() => setWinnersDismissed(true)}
           />
         )}
       </AnimatePresence>
