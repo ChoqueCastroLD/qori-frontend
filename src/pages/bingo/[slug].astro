@@ -1,0 +1,25 @@
+---
+// Live bingo (real data). Full-screen 3D room wired to the API by slug.
+import "../../styles/global.css";
+import LiveBingoScene from "../../components/bingo/LiveBingoScene.tsx";
+
+const { slug } = Astro.params;
+const title = "Bingo en vivo · qori";
+const description = "Bingo en vivo de qori: sala 3D, bolas cantadas en tiempo real y resultado verificable.";
+---
+
+<!doctype html>
+<html lang="es" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0b3b30" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+  </head>
+  <body class="min-h-full bg-[#f3efe2] text-slate-900 antialiased">
+    <LiveBingoScene slug={slug} client:load />
+  </body>
+</html>

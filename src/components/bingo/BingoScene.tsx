@@ -43,8 +43,9 @@ export default function BingoScene({ participantCount = 348 }: { participantCoun
   return <BingoSceneView api={api} />;
 }
 
-function BingoSceneView({ api }: { api: MockApi }) {
+export function BingoSceneView({ api, buySlot }: { api: MockApi; buySlot?: React.ReactNode }) {
   const { state, revealPhase, intervalSec, reactions } = api;
+  const hasCards = state.me.cards.length > 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<BingoScene3D | null>(null);
   const [webgl, setWebgl] = useState(true);
@@ -440,6 +441,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
 
       {/* ------- BOTTOM desktop: tarjetas grid left, chat right ------- */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 hidden items-end justify-between gap-3 p-4 md:flex">
+        {hasCards ? (
         <div className="flex flex-col items-start gap-1.5">
           <div className="ml-1 flex items-center gap-1.5">
             <span className="flex items-center gap-1.5 rounded-full bg-slate-900/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 backdrop-blur">
@@ -463,6 +465,9 @@ function BingoSceneView({ api }: { api: MockApi }) {
             onSelect={openTarjeta}
           />
         </div>
+        ) : (
+          <div className="pointer-events-auto">{buySlot}</div>
+        )}
 
         {showChat && (
           <ChatPanel
@@ -481,7 +486,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
       {/* ------- desktop: floating draggable tarjetas (max 3 open) ------- */}
       <div ref={dragAreaRef} className="pointer-events-none absolute inset-0 z-20 hidden md:block">
         <AnimatePresence>
-          {openCards.map((o) => (
+          {openCards.filter((o) => o.idx < state.me.cards.length).map((o) => (
             <div
               key={o.idx}
               onPointerDown={() => setFocusedIdx(o.idx)}
@@ -513,7 +518,7 @@ function BingoSceneView({ api }: { api: MockApi }) {
       {/* ------- MOBILE: collapsible panels + bottom bar ------- */}
       <div className="absolute inset-x-0 bottom-0 z-20 md:hidden">
         <>
-          {panel === "card" && (
+          {panel === "card" && (hasCards ? (
             <motion.div
               key="p-card"
               initial={{ y: 40, opacity: 0 }}
@@ -597,7 +602,9 @@ function BingoSceneView({ api }: { api: MockApi }) {
                 )}
               </div>
             </motion.div>
-          )}
+          ) : (
+            <div className="mb-2 px-3">{buySlot}</div>
+          ))}
           {panel === "chat" && showChat && (
             <motion.div
               key="p-chat"
