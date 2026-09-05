@@ -975,9 +975,12 @@ export class BingoScene3D {
       if (ft <= 1) {
         const e = easeInOutCubic(Math.min(ft, 1));
         this.flyCurve.getPoint(e, this.flyBall.position);
-        // slow spin so the number stays mostly readable in flight
-        this.flyBall.rotation.y += dt * 3.2;
-        this.flyBall.rotation.x += dt * 1.2;
+        // Spins out fast as it's dispensed, then eases down so the number settles
+        // readable by the time it hands off to the HUD reveal.
+        const spin = 1 - Math.min(ft, 1); // 1 -> 0 across the flight
+        const decel = spin * spin; // quadratic ease-out on the spin speed
+        this.flyBall.rotation.y += dt * (17 * decel + 0.5);
+        this.flyBall.rotation.x += dt * (7 * decel + 0.2);
         const s = 1 + e * 1.15;
         this.flyBall.scale.setScalar(s);
       } else if (ft <= 1.22) {

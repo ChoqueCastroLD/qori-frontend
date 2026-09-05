@@ -167,13 +167,13 @@ export default function ChatPanel({
           {visible.map((m) => {
             const known = byNick.has(m.nickname);
             return (
-              <div
-                key={m.id}
-                onMouseEnter={known ? (e) => enterName(e, m.nickname) : undefined}
-                onMouseLeave={known ? leaveName : undefined}
-                className={`text-[13px] leading-snug ${known ? "cursor-pointer rounded px-1 -mx-1 transition hover:bg-white/5" : ""}`}
-              >
-                <span className={`font-bold ${m.suertudo ? "text-amber-300" : "text-emerald-300"}`}>
+              <div key={m.id} className="text-[13px] leading-snug">
+                {/* hover ONLY the name -> player card (not the message text) */}
+                <span
+                  onMouseEnter={known ? (e) => enterName(e, m.nickname) : undefined}
+                  onMouseLeave={known ? leaveName : undefined}
+                  className={`font-bold ${m.suertudo ? "text-amber-300" : "text-emerald-300"} ${known ? "cursor-pointer rounded hover:underline" : ""}`}
+                >
                   {m.nickname}
                 </span>
                 {m.suertudo && (
