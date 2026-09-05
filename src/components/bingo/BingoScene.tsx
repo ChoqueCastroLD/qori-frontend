@@ -324,8 +324,16 @@ export function BingoSceneView({ api, buySlot }: { api: MockApi; buySlot?: React
       {/* ------- TOP: prize, countdown, reveal, called balls ------- */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1.5 p-2.5 pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3">
         <div className="flex w-full items-start justify-between gap-2">
-          {/* left: ONE compact brand panel: prize + jugadores + BINGO counters */}
-          <div className="pointer-events-auto max-w-[52vw] rounded-2xl bg-slate-900/60 p-2 backdrop-blur sm:max-w-[290px] sm:p-3">
+          {/* left: back-to-site + ONE compact brand panel (prize + BINGO counters) */}
+          <div className="flex items-start gap-1.5">
+            <a
+              href="/"
+              aria-label="Volver a qori.cc"
+              className="pointer-events-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900/60 text-white backdrop-blur transition hover:bg-slate-900/80 sm:h-9 sm:w-9"
+            >
+              <Icon name="home" className="h-4 w-4 text-emerald-300 sm:h-5 sm:w-5" />
+            </a>
+          <div className="pointer-events-auto max-w-[46vw] rounded-2xl bg-slate-900/60 p-2 backdrop-blur sm:max-w-[290px] sm:p-3">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="qori" className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" />
               <span className="min-w-0">
@@ -347,6 +355,7 @@ export function BingoSceneView({ api, buySlot }: { api: MockApi; buySlot?: React
                 <LetterTotals counts={state.lettersDone} />
               </span>
             </div>
+          </div>
           </div>
 
           {/* right: viewers + countdown + compact controls (icon-only on mobile) */}
