@@ -70,7 +70,7 @@ const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled 
     ) : (
       <div class="mt-4">
         <div class="mb-1.5 flex justify-between text-xs text-slate-500">
-          <span data-live-sold={r.slug} data-live-total={r.totalTickets}>{sold} / {r.totalTickets} {isBingo ? "tarjetas" : "tickets"}</span>
+          <span data-live-sold={r.slug} data-live-total={r.totalTickets} data-unit={isBingo ? "tarjetas" : "tickets"}>{sold} / {r.totalTickets} {isBingo ? "tarjetas" : "tickets"}</span>
           <span class="inline-flex items-center gap-1 font-medium text-slate-700"><Icon name="clock" class="h-3.5 w-3.5" /> <span data-closes-at={r.closesAt}>{timeLeft(r.closesAt)}</span></span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-slate-100">

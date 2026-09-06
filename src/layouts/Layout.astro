@@ -183,7 +183,8 @@ const altLocales = ["es_MX", "es_CO", "es_CL", "es_AR", "es_EC", "es_BO"];
         const total0 = Number(d.total) || 0;
         document.querySelectorAll<HTMLElement>(`[data-live-sold="${d.slug}"]`).forEach((el) => {
           const total = Number(el.getAttribute("data-live-total")) || total0;
-          el.textContent = `${d.sold} / ${total} tickets`;
+          const unit = el.getAttribute("data-unit") || "tickets";
+          el.textContent = `${d.sold} / ${total} ${unit}`;
           if (el.id === "rf-sold") el.setAttribute("data-sold", String(d.sold));
         });
         document.querySelectorAll<HTMLElement>(`[data-live-fill="${d.slug}"]`).forEach((el) => {

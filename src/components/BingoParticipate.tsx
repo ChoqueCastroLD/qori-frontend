@@ -68,7 +68,9 @@ export default function BingoParticipate({
       .finally(() => setLoaded(true));
     loadCards();
     const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    // Refresh sold count / card popularity live as others buy.
+    const p = setInterval(loadCards, 6000);
+    return () => { clearInterval(t); clearInterval(p); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
