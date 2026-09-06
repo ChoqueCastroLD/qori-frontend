@@ -85,11 +85,11 @@ function WinsPanel({ wins }: { wins: any[] }) {
 
 // One card per raffle with all its ticket numbers (instead of one row per ticket).
 function groupTickets(tickets: any[]) {
-  const map = new Map<string, { slug: string; title: string; image: string | null; status: string; lastAt: string | null; hasWin: boolean; tickets: any[] }>();
+  const map = new Map<string, { slug: string; title: string; image: string | null; status: string; kind: string; lastAt: string | null; hasWin: boolean; tickets: any[] }>();
   for (const t of tickets) {
     let g = map.get(t.raffle.slug);
     if (!g) {
-      g = { slug: t.raffle.slug, title: t.raffle.title, image: t.raffle.images?.[0] ?? null, status: t.raffle.status, lastAt: t.createdAt ?? null, hasWin: false, tickets: [] };
+      g = { slug: t.raffle.slug, title: t.raffle.title, image: t.raffle.images?.[0] ?? null, status: t.raffle.status, kind: t.kind ?? t.raffle.kind ?? "SHOW", lastAt: t.createdAt ?? null, hasWin: false, tickets: [] };
       map.set(t.raffle.slug, g);
     }
     if (t.win) g.hasWin = true;
@@ -300,7 +300,7 @@ export default function Account() {
                         <a href={`/sorteos/${g.slug}`} className="font-semibold text-slate-900 hover:underline">{g.title}</a>
                         <div className="text-xs text-slate-500">
                           {g.status === "DRAWN" ? "Finalizado" : g.status === "CANCELLED" ? "Cancelado (reembolsado)" : "Activo"}
-                          {" · "}{g.tickets.length} ticket{g.tickets.length > 1 ? "s" : ""}
+                          {" · "}{g.tickets.length} {g.kind === "BINGO" ? "tarjeta" : "ticket"}{g.tickets.length > 1 ? "s" : ""}
                           {g.lastAt ? ` · última compra ${fmtDate(g.lastAt)}` : ""}
                         </div>
                       </div>
