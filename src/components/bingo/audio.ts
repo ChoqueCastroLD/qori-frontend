@@ -58,20 +58,34 @@ export function setVolume(v: number): void {
   volume = Math.max(0, Math.min(1, v));
 }
 
-/** Beat 1 - the letter is revealed alone. */
+/** Play a pre-generated voice clip (ElevenLabs), respecting mute + master volume. */
+function playClip(src: string, gain = 1): void {
+  if (typeof window === "undefined" || muted || volume <= 0) return;
+  try {
+    const a = new Audio(src);
+    a.volume = Math.max(0, Math.min(1, volume * gain));
+    a.play().catch(() => {});
+  } catch { /* ignore */ }
+}
+
+/** Beat 1 - the letter is revealed alone (visual only; the voice is the call). */
 export function playLetter(letter: BingoLetter): void {
-  void letter; // TODO(audio): /audio/bingo/letter-${letter}.mp3
-}
-
-/** Beat 2 - the number joins the letter. */
-export function playNumber(number: number): void {
-  void number; // TODO(audio): /audio/bingo/num-${number}.mp3
-}
-
-/** Beat 3 - the full call ("B, doce"). */
-export function playCall(letter: BingoLetter, number: number): void {
   void letter;
-  void number; // TODO(audio): /audio/bingo/call-${letter}-${number}.mp3
+}
+
+/** Beat 2 - the number joins the letter (visual only). */
+export function playNumber(number: number): void {
+  void number;
+}
+
+/** Beat 3 - the full spoken call ("Be, veintiocho") from /audio/bingo/{letter}{n}.mp3. */
+export function playCall(letter: BingoLetter, number: number): void {
+  playClip(`/audio/bingo/${letter.toLowerCase()}${number}.mp3`);
+}
+
+/** Spoken end-of-game line: you won / single winner / tie. */
+export function playWin(kind: "you" | "single" | "tie"): void {
+  playClip(`/audio/bingo/win-${kind}.mp3`);
 }
 
 export type Sfx =

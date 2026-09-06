@@ -8,7 +8,7 @@ import type {
   Ball, BingoCard, BingoLetter, BingoState, ChatMsg, Participant,
 } from "./types";
 import type { MockApi, RevealPhase, SceneEvent, FloatingReaction } from "./mock";
-import { playCall, playLetter, playNumber, playSfx } from "./audio";
+import { playCall, playLetter, playNumber, playSfx, playWin } from "./audio";
 
 const EMPTY_LETTERS = { B: 0, I: 0, N: 0, G: 0, O: 0 };
 
@@ -127,7 +127,14 @@ export function useLiveBingo(slug: string): LiveApi {
         // when we actually WITNESS the end (drawing -> finished), not when
         // opening an already-finished bingo (waiting -> finished on first load).
         if (mapped.status !== lastStatus.current) {
-          if (mapped.status === "finished" && lastStatus.current === "drawing") { emit({ type: "bingo" }); playSfx("bingo"); }
+          if (mapped.status === "finished" && lastStatus.current === "drawing") {
+            emit({ type: "bingo" }); playSfx("bingo");
+            const tie = (mapped.winners?.length ?? 0) > 1;
+            const iWon = !!mapped.me.win;
+            // Let the celebration chime land first, then the spoken line.
+            const t = window.setTimeout(() => playWin(tie ? "tie" : iWon ? "you" : "single"), 650);
+            timers.current.push(t);
+          }
           if (mapped.status === "drawing" && lastStatus.current === "finished") emit({ type: "reset" });
           lastStatus.current = mapped.status;
         }
