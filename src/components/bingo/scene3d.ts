@@ -344,15 +344,17 @@ export class BingoScene3D {
 
   /** Cream cell-shaded podium disc grounding every toon machine. */
   private toonPodium(machine: THREE.Group) {
+    // Lift the disc a hair off the floor and the gold lip clear of the disc top
+    // so neither co-planes with the surface below it (kills the z-fighting ring).
     const disc = outlined(new THREE.CylinderGeometry(2.3, 2.42, 0.26, 48), toon(PAL.cream), 1.02, 1.35);
-    disc.position.y = 0.13;
+    disc.position.y = 0.135;
     machine.add(disc);
     const lip = new THREE.Mesh(
       new THREE.TorusGeometry(2.36, 0.045, 10, 56),
       toon(PAL.gold)
     );
     lip.rotation.x = Math.PI / 2;
-    lip.position.y = 0.27;
+    lip.position.y = 0.315;
     machine.add(lip);
   }
 

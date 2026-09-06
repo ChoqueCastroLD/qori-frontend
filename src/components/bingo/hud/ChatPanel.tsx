@@ -27,6 +27,7 @@ export default function ChatPanel({
   meId,
   onHoverUser,
   reactionsEnabled = true,
+  closed = false,
 }: {
   chat: ChatMsg[];
   onSend: (text: string) => void;
@@ -37,6 +38,8 @@ export default function ChatPanel({
   meId?: string;
   onHoverUser?: (userId: string | null) => void;
   reactionsEnabled?: boolean;
+  /** Read-only once the chat closes (a few min after the bingo ends). */
+  closed?: boolean;
 }) {
   const [text, setText] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE);
@@ -211,6 +214,12 @@ export default function ChatPanel({
         )}
       </div>
 
+      {closed ? (
+        <div className="flex items-center justify-center gap-2 border-t border-white/10 px-3 py-3 text-xs font-medium text-white/50">
+          <Icon name="lock" className="h-3.5 w-3.5" /> El chat se cerró. Quedó como historial.
+        </div>
+      ) : (
+      <>
       {/* reaction picker ABOVE the input */}
       {reactionsEnabled && (
         <div className="flex items-center justify-between gap-1 border-t border-white/10 px-2 py-1.5">
@@ -258,6 +267,8 @@ export default function ChatPanel({
           <Icon name="send" className="h-4 w-4" />
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }

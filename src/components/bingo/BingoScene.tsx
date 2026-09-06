@@ -519,6 +519,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
             meId={state.me.userId}
             onHoverUser={setHighlightUser}
             reactionsEnabled={showReactions}
+            closed={(api as any).chatClosed}
           />
         )}
       </div>
@@ -654,7 +655,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
               className="mb-2 px-3"
             >
-              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} reactionsEnabled={showReactions} />
+              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} reactionsEnabled={showReactions} closed={(api as any).chatClosed} />
             </motion.div>
           )}
           {panel === "players" && (

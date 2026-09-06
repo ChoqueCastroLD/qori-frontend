@@ -35,6 +35,7 @@ export type LiveApi = MockApi & {
   meta: { ticketPrice: number; totalCards: number; soldCards: number; maxPerUser: number | null; paidOnly: boolean; playersCount: number; closesAt: string | null; startsAt: string | null; intervalSec: number } | null;
   loggedIn: boolean;
   loaded: boolean;
+  chatClosed: boolean;
   refresh: () => void;
 };
 
@@ -48,6 +49,7 @@ export function useLiveBingo(slug: string): LiveApi {
   const [meta, setMeta] = useState<LiveApi["meta"]>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [chatClosed, setChatClosed] = useState(false);
   const [poke, setPoke] = useState(0);
 
   const listeners = useRef<Set<(ev: SceneEvent) => void>>(new Set());
@@ -152,6 +154,7 @@ export function useLiveBingo(slug: string): LiveApi {
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) return;
       const d = await res.json();
+      setChatClosed(!!d.closed);
       const incoming: ChatMsg[] = (d.messages ?? []).map((m: any) => ({
         id: m.id, nickname: m.nickname, avatarUrl: m.avatarUrl ?? null, suertudo: !!m.suertudo, text: m.text, at: m.createdAt,
       }));
@@ -192,6 +195,7 @@ export function useLiveBingo(slug: string): LiveApi {
     meta,
     loggedIn,
     loaded,
+    chatClosed,
     refresh: () => setPoke((p) => p + 1),
     setActiveCard: (i) => { activeIdx.current = i; setState((s) => ({ ...s, me: { ...s.me, activeCardIndex: i } })); },
     sendChat: (text) => {
