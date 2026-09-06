@@ -118,7 +118,7 @@ export default function WinnersOverlay({
         )}
 
         {demo ? (
-          <p className="mt-4 text-xs text-slate-400">La demo reinicia en unos segundos…</p>
+          <p className="mt-4 text-xs text-slate-400">Recarga la página para ver otra partida.</p>
         ) : (
           <div className="mt-5 flex flex-col gap-2">
             {iWon && <a href="/cuenta" className="w-full rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500">Ver mis premios</a>}

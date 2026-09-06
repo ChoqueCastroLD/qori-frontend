@@ -399,11 +399,8 @@ export function useMockBingo(participantCount = 348): MockApi {
         currentBall: null,
         winners: names.map((n) => ({ ...n, shareUsd: Math.round(share * 100) / 100 })),
       }));
-      // Demo loops: fresh round after the celebration.
-      after(10000, () => {
-        emit({ type: "reset" });
-        startRound();
-      });
+      // The demo ends on the winner (no auto-loop): balls stop and stay stopped,
+      // like a real finished bingo. Reload the page to watch again.
     }
 
     // -- ambient chat + reactions from "the room" ---------------------------
