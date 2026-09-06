@@ -17,6 +17,13 @@ import Layout from "../../layouts/Layout.astro";
       <p>El ganador será contactado por los datos de su cuenta. Deberá acreditar identidad y edad (+18). El premio es personal e intransferible salvo indicación contraria.</p>
       <h2>Publicación de resultados</h2>
       <p>Los resultados y datos de verificación se publican en la página del sorteo.</p>
+
+      <h2>Modalidad Bingo (75 bolas)</h2>
+      <p>Algunos sorteos usan la modalidad <strong>Bingo</strong>. En lugar de tickets se compran <strong>tarjetas</strong> (cartones de 5×5, números del 1 al 75 por columnas B-I-N-G-O y centro libre). Cada tarjeta tiene un precio en lingotes y puede haber un cupo total y un máximo por persona.</p>
+      <p>Hasta <strong>5 minutos antes</strong> del inicio, cada jugador puede elegir sus números (dentro del rango de cada columna, sin repetir) o regenerar sus tarjetas. Los cambios se cierran automáticamente en ese plazo.</p>
+      <p>A la hora del sorteo, el <strong>orden de las 75 bolas</strong> se deriva de forma <strong>provably-fair</strong>: <code>HMAC(semilla, entropía)</code>, donde la entropía combina la aleatoriedad del faro público <strong>drand</strong> fijada a la hora de cierre y la <strong>raíz de las tarjetas</strong> en juego. La semilla se revela al finalizar para verificación pública.</p>
+      <p><strong>Gana</strong> quien complete primero una tarjeta entera (<strong>cartón lleno</strong>: los 24 números marcados). El sorteo se detiene en la bola con la que se completó el primer cartón. Si <strong>dos o más tarjetas</strong> se completan con esa misma bola, hay <strong>empate</strong> y el valor del premio se reparte en partes iguales entre los ganadores.</p>
+      <p>La sala del bingo se transmite en vivo para todos al mismo tiempo. La entrega del premio, el mínimo de participación, el reembolso ante cancelación y la verificación pública se rigen por las mismas reglas generales de estas bases. Solo para mayores de edad.</p>
     </div>
   </div>
 </Layout>

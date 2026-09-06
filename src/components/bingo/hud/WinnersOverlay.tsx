@@ -17,7 +17,7 @@ export default function WinnersOverlay({
   winners: NonNullable<BingoState["winners"]>;
   meNickname: string;
   topCards?: Participant[];
-  myWin?: { shareUsd: number; claimCode: string | null; claimCodes?: string[]; prizeStatus: string; cards?: number } | null;
+  myWin?: { shareUsd: number; claimCode: string | null; claimCodes?: string[]; prizeStatus: string; cards?: number; message?: string | null } | null;
   demo?: boolean;
   onClose?: () => void;
 }) {
@@ -88,14 +88,19 @@ export default function WinnersOverlay({
           </div>
         )}
 
-        <div className="mt-4 max-h-40 space-y-2 overflow-y-auto pr-0.5 scrollbar-thin">
+        <div className="mt-4 max-h-52 space-y-2 overflow-y-auto pr-0.5 scrollbar-thin">
           {winners.map((w, i) => (
-            <div key={`${w.nickname}-${i}`} className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-left ${w.nickname === meNickname ? "bg-emerald-50 ring-2 ring-emerald-400" : "bg-slate-50"}`}>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold text-slate-800">{w.nickname}</span>
-                <span className="block text-[11px] font-semibold text-slate-400">{w.cards} tarjeta{w.cards === 1 ? "" : "s"} compradas</span>
-              </span>
-              <span className="shrink-0 font-black text-emerald-600">USD {w.shareUsd.toFixed(2)}</span>
+            <div key={`${w.nickname}-${i}`} className={`rounded-xl px-4 py-2.5 text-left ${w.nickname === meNickname ? "bg-emerald-50 ring-2 ring-emerald-400" : "bg-slate-50"}`}>
+              <div className="flex items-center gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-bold text-slate-800">{w.nickname}</span>
+                  <span className="block text-[11px] font-semibold text-slate-400">{w.cards} tarjeta{w.cards === 1 ? "" : "s"} compradas</span>
+                </span>
+                <span className="shrink-0 font-black text-emerald-600">USD {w.shareUsd.toFixed(2)}</span>
+              </div>
+              {w.message && (
+                <p className="mt-1.5 rounded-lg bg-white/70 px-2.5 py-1.5 text-[12px] italic leading-snug text-slate-600">“{w.message}”</p>
+              )}
             </div>
           ))}
         </div>

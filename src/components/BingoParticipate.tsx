@@ -43,6 +43,7 @@ export default function BingoParticipate({
   const [loaded, setLoaded] = useState(false);
   const [data, setData] = useState<CardsData | null>(null);
   const [qty, setQty] = useState(1);
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -83,7 +84,7 @@ export default function BingoParticipate({
     try {
       const res = await fetch(`/api/raffles/${slug}/bingo/buy`, {
         method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ quantity: qty }),
+        body: JSON.stringify({ quantity: qty, comment: message.trim() || undefined }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg(BUY_ERR[d.error] ?? "No se pudo completar la compra."); return; }
@@ -123,6 +124,17 @@ export default function BingoParticipate({
           <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"><Icon name="minus" className="h-4 w-4" /></button>
           <input type="number" min={1} max={max} value={qty} onChange={(e) => { const n = Math.floor(Number(e.target.value)); setQty(!n || n < 1 ? 1 : Math.min(max, n)); }} className="h-10 w-full rounded-lg border border-slate-200 text-center font-semibold" />
           <button type="button" onClick={() => setQty((q) => Math.min(max, q + 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"><Icon name="plus" className="h-4 w-4" /></button>
+        </div>
+        <div className="mt-3">
+          <label className="mb-1 block text-sm font-medium text-slate-700">Mensaje si ganas <span className="font-normal text-slate-400">(opcional)</span></label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value.slice(0, 140))}
+            rows={2}
+            placeholder="Una dedicatoria o saludo que se mostrará si tu tarjeta gana…"
+            className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          />
+          <div className="mt-0.5 text-right text-[11px] text-slate-400">{message.length}/140</div>
         </div>
         <div className="my-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
           <span className="text-slate-500">Total</span>

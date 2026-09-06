@@ -55,7 +55,7 @@ export type BingoState = {
     suertudo: boolean;
     cards: BingoCard[];
     activeCardIndex: number;
-    win?: { shareUsd: number; claimCode: string | null; claimCodes?: string[]; prizeStatus: string; cards?: number } | null;
+    win?: { shareUsd: number; claimCode: string | null; claimCodes?: string[]; prizeStatus: string; cards?: number; message?: string | null } | null;
   };
   participants: Participant[];
   /** Global count of tarjetas (across all players) that completed each column. */
@@ -64,7 +64,7 @@ export type BingoState = {
   totalCards: number;
   cardsPerNumber: Record<number, number>;
   chat: ChatMsg[];
-  winners?: { nickname: string; avatarUrl: string | null; shareUsd: number; cards: number }[];
+  winners?: { nickname: string; avatarUrl: string | null; shareUsd: number; cards: number; message?: string | null }[];
 };
 
 export const LETTERS: BingoLetter[] = ["B", "I", "N", "G", "O"];
