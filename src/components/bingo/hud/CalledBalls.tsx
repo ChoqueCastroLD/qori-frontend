@@ -101,37 +101,43 @@ export function BallBoard({ drawn, currentNumber = null, onClose }: {
         initial={{ scale: 0.94, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl ring-1 ring-black/5"
       >
-        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-white">
-          <div className="flex items-center gap-2">
-            <Icon name="grid" className="h-4 w-4" />
-            <h3 className="text-base font-black uppercase tracking-wide">Panel de control</h3>
+        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 px-5 py-4 text-white">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/15"><Icon name="clover" className="h-5 w-5" /></span>
+            <h3 className="text-lg font-black uppercase tracking-wide sm:text-xl">Panel de control</h3>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold tabular-nums">{drawn.length}/75</span>
-            <button type="button" onClick={onClose} aria-label="Cerrar" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition hover:bg-white/30"><Icon name="x" className="h-4 w-4" /></button>
+            <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-bold tabular-nums">{drawn.length}<span className="text-white/70">/75</span></span>
+            <button type="button" onClick={onClose} aria-label="Cerrar" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 transition hover:bg-white/30"><Icon name="x" className="h-4 w-4" /></button>
           </div>
         </div>
-        <div className="space-y-2 p-4">
+        <div className="space-y-2.5 overflow-y-auto bg-slate-50 p-4 sm:space-y-3 sm:p-6">
           {LETTERS.map((L, li) => {
             const start = li * 15 + 1;
+            const color = LETTER_COLORS[L];
             return (
-              <div key={L} className="flex items-center gap-1.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white shadow-sm" style={{ background: LETTER_COLORS[L] }}>{L}</span>
-                <div className="grid flex-1 grid-cols-[repeat(15,minmax(0,1fr))] gap-1">
+              <div key={L} className="flex items-center gap-2 sm:gap-2.5">
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base font-black text-white shadow-md sm:h-10 sm:w-10 sm:text-lg"
+                  style={{ background: `radial-gradient(circle at 34% 28%, rgba(255,255,255,.55), rgba(255,255,255,0) 46%), ${color}` }}
+                >{L}</span>
+                <div className="grid flex-1 grid-cols-[repeat(15,minmax(0,1fr))] gap-1 sm:gap-1.5">
                   {Array.from({ length: 15 }, (_, i) => start + i).map((n) => {
                     const on = called.has(n);
                     const isCurrent = n === currentNumber;
                     return (
                       <motion.span
                         key={n}
-                        animate={isCurrent ? { scale: [1, 1.18, 1] } : {}}
+                        animate={isCurrent ? { scale: [1, 1.16, 1] } : {}}
                         transition={isCurrent ? { duration: 1.1, repeat: Infinity } : {}}
-                        className={`flex aspect-square items-center justify-center rounded-md text-[11px] font-bold tabular-nums transition ${
-                          on ? "text-white shadow-sm" : "bg-slate-100 text-slate-300"
-                        } ${isCurrent ? "ring-2 ring-slate-900 ring-offset-1" : ""}`}
-                        style={on ? { background: LETTER_COLORS[L] } : undefined}
+                        className={`flex aspect-square items-center justify-center rounded-full text-[10px] font-bold tabular-nums transition sm:text-xs ${
+                          on ? "text-white shadow-md" : "text-slate-400 shadow-inner"
+                        } ${isCurrent ? "ring-2 ring-slate-900 ring-offset-1 ring-offset-slate-50" : ""}`}
+                        style={{ background: on
+                          ? `radial-gradient(circle at 34% 26%, rgba(255,255,255,.6), rgba(255,255,255,0) 44%), ${color}`
+                          : "radial-gradient(circle at 34% 26%, rgba(255,255,255,.8), rgba(255,255,255,0) 46%), #e2e8f0" }}
                       >
                         {n}
                       </motion.span>
@@ -142,8 +148,12 @@ export function BallBoard({ drawn, currentNumber = null, onClose }: {
             );
           })}
         </div>
-        <div className="border-t border-slate-100 px-4 py-2.5 text-center text-[11px] text-slate-400">
-          {drawn.length === 0 ? "Aún no salen bolas" : `Última bola: ${currentNumber ?? drawn[drawn.length - 1]}`}
+        <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-400">
+          {drawn.length === 0 ? "Aún no salen bolas" : (
+            <>Última bola:
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white shadow" style={{ background: `radial-gradient(circle at 34% 26%, rgba(255,255,255,.6), rgba(255,255,255,0) 44%), ${LETTER_COLORS[letterForNumber(currentNumber ?? drawn[drawn.length - 1])]}` }}>{currentNumber ?? drawn[drawn.length - 1]}</span>
+            </>
+          )}
         </div>
       </motion.div>
     </motion.div>

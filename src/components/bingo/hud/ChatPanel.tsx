@@ -28,6 +28,7 @@ export default function ChatPanel({
   onHoverUser,
   reactionsEnabled = true,
   closed = false,
+  live = true,
 }: {
   chat: ChatMsg[];
   onSend: (text: string) => void;
@@ -40,6 +41,8 @@ export default function ChatPanel({
   reactionsEnabled?: boolean;
   /** Read-only once the chat closes (a few min after the bingo ends). */
   closed?: boolean;
+  /** While the draw is running (drives the "en vivo" label). */
+  live?: boolean;
 }) {
   const [text, setText] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE);
@@ -149,7 +152,7 @@ export default function ChatPanel({
     <div className={`pointer-events-auto flex flex-col overflow-hidden rounded-2xl bg-slate-900/60 shadow-2xl ring-1 ring-white/10 backdrop-blur-md ${className}`}>
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
         <Icon name="chat" className="h-4 w-4 text-emerald-300" />
-        <span className="text-xs font-bold uppercase tracking-wider text-white/90">Chat en vivo</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-white/90">{live ? "Chat en vivo" : "Chat"}</span>
       </div>
 
       {/* message list (windowed) + jump-to-latest overlay */}

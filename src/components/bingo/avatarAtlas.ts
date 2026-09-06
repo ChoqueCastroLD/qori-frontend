@@ -176,11 +176,11 @@ export class AvatarAtlas {
       ctx.font = "600 13px system-ui, sans-serif";
       const tw = Math.min(TILE - 8, ctx.measureText(name).width + 14);
       roundRect(ctx, (TILE - tw) / 2, 101, tw, 20, 10);
-      // Your own tag stands out: solid green pill + white text. Everyone else
-      // gets the light pill with dark-green text.
-      ctx.fillStyle = isMe ? "#10b981" : "rgba(255,255,255,0.88)";
+      // Winner gets a light-yellow tag; your own tag is a solid green pill;
+      // everyone else gets the light pill with dark-green text.
+      ctx.fillStyle = p.won ? "#fef08a" : isMe ? "#10b981" : "rgba(255,255,255,0.88)";
       ctx.fill();
-      ctx.fillStyle = isMe ? "#ffffff" : "#155e50";
+      ctx.fillStyle = p.won ? "#854d0e" : isMe ? "#ffffff" : "#155e50";
       ctx.fillText(name, TILE / 2, 111.5);
     }
 

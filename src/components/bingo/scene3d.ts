@@ -1299,7 +1299,7 @@ function makeHeadChipTexture(): THREE.CanvasTexture {
 }
 
 function progressSig(p: Participant): string {
-  return p.bestLetters.join("") + "|" + p.marks + "|" + (p.avatarUrl ?? "");
+  return p.bestLetters.join("") + "|" + p.marks + "|" + (p.avatarUrl ?? "") + "|" + (p.won ? "W" : "");
 }
 
 function easeInOutCubic(x: number): number {

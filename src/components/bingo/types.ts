@@ -21,6 +21,7 @@ export type Participant = {
   bestLetters: BingoLetter[]; // columns fully marked on their best card
   marks: number; // marked cells on their best card
   cards: number; // how many tarjetas this player holds
+  won?: boolean; // winner of the finished draw (yellow nametag)
 };
 
 export type ChatMsg = {

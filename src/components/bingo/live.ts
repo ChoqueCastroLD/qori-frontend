@@ -105,7 +105,10 @@ export function useLiveBingo(slug: string): LiveApi {
           lettersDone: d.lettersDone ?? { ...EMPTY_LETTERS },
           totalCards: d.totalCards ?? 0,
           cardsPerNumber: d.cardsPerNumber ?? {},
-          participants: (d.participants ?? []) as Participant[],
+          participants: (() => {
+            const winnerNames = new Set<string>((d.winners ?? []).map((w: any) => w.nickname));
+            return ((d.participants ?? []) as Participant[]).map((p) => ({ ...p, won: winnerNames.has(p.nickname) }));
+          })(),
           chat: chatRef.current,
           me: d.me
             ? { userId: d.me.userId, nickname: d.me.nickname, avatarUrl: d.me.avatarUrl, suertudo: d.me.suertudo, cards: meCards, activeCardIndex: Math.min(activeIdx.current, Math.max(0, meCards.length - 1)), win: d.me.win ?? null }

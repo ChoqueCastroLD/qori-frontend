@@ -539,6 +539,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
             onHoverUser={setHighlightUser}
             reactionsEnabled={showReactions}
             closed={(api as any).chatClosed}
+            live={state.status !== "finished"}
           />
         )}
       </div>
@@ -569,6 +570,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
                 drawnOrder={state.drawnBalls}
                 cardsPerNumber={state.cardsPerNumber}
                 totalCards={state.totalCards}
+                finished={state.status === "finished"}
               />
             </div>
           ))}
@@ -647,6 +649,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
                       drawnOrder={state.drawnBalls}
                       cardsPerNumber={state.cardsPerNumber}
                       totalCards={state.totalCards}
+                      finished={state.status === "finished"}
                     />
                   </motion.div>
                 </motion.div>
@@ -674,7 +677,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
               className="mb-2 px-3"
             >
-              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} reactionsEnabled={showReactions} closed={(api as any).chatClosed} />
+              <ChatPanel chat={state.chat} onSend={api.sendChat} onReaction={api.sendReaction} className="h-64 w-full" participants={state.participants} meId={state.me.userId} onHoverUser={setHighlightUser} reactionsEnabled={showReactions} closed={(api as any).chatClosed} live={state.status !== "finished"} />
             </motion.div>
           )}
           {panel === "players" && (
