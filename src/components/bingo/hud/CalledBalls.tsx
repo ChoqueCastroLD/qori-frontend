@@ -4,9 +4,10 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { LETTER_COLORS, letterForNumber } from "../types";
+import Icon from "../../Icon";
+import { LETTER_COLORS, LETTERS, letterForNumber } from "../types";
 
-export function CalledStrip({ drawn }: { drawn: number[] }) {
+export function CalledStrip({ drawn, onOpenBoard }: { drawn: number[]; onOpenBoard?: () => void }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ down: boolean; startX: number; startScroll: number; moved: boolean }>({
     down: false, startX: 0, startScroll: 0, moved: false,
@@ -36,18 +37,27 @@ export function CalledStrip({ drawn }: { drawn: number[] }) {
     trackRef.current?.releasePointerCapture(e.pointerId);
   };
 
+  const openBoard = () => { if (!drag.current.moved) onOpenBoard?.(); };
+
   return (
     <div className="pointer-events-auto flex items-center gap-2">
-      <div className="shrink-0 rounded-full bg-slate-900/55 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+      <button
+        type="button"
+        onClick={openBoard}
+        title="Ver el tablero completo"
+        className="flex shrink-0 items-center gap-1 rounded-full bg-slate-900/55 px-3 py-1 text-xs font-bold text-white backdrop-blur transition hover:bg-slate-900/75"
+      >
         {drawn.length}<span className="font-medium text-white/60">/75</span>
-      </div>
+        <Icon name="grid" className="ml-0.5 h-3 w-3 text-white/70" />
+      </button>
       <div
         ref={trackRef}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={onUp}
-        className="scrollbar-none flex max-w-[62vw] cursor-grab touch-pan-x items-center gap-1.5 overflow-x-auto rounded-full bg-slate-900/45 px-2.5 py-1.5 backdrop-blur active:cursor-grabbing sm:max-w-md"
+        onClick={openBoard}
+        className="scrollbar-none flex max-w-[62vw] cursor-pointer touch-pan-x items-center gap-1.5 overflow-x-auto rounded-full bg-slate-900/45 px-2.5 py-1.5 backdrop-blur active:cursor-grabbing sm:max-w-md"
       >
         {drawn.length === 0 && (
           <span className="whitespace-nowrap px-1 text-xs font-medium text-white/70">Aun no salen bolas</span>
@@ -72,6 +82,71 @@ export function CalledStrip({ drawn }: { drawn: number[] }) {
         })}
       </div>
     </div>
+  );
+}
+
+// Full 1-75 board ("Panel de control"). Called numbers light up in their letter
+// color; the newest ball pulses. Opened by tapping the called-balls strip.
+export function BallBoard({ drawn, currentNumber = null, onClose }: {
+  drawn: number[]; currentNumber?: number | null; onClose: () => void;
+}) {
+  const called = new Set(drawn);
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.94, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 26 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+      >
+        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-white">
+          <div className="flex items-center gap-2">
+            <Icon name="grid" className="h-4 w-4" />
+            <h3 className="text-base font-black uppercase tracking-wide">Panel de control</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold tabular-nums">{drawn.length}/75</span>
+            <button type="button" onClick={onClose} aria-label="Cerrar" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition hover:bg-white/30"><Icon name="x" className="h-4 w-4" /></button>
+          </div>
+        </div>
+        <div className="space-y-2 p-4">
+          {LETTERS.map((L, li) => {
+            const start = li * 15 + 1;
+            return (
+              <div key={L} className="flex items-center gap-1.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white shadow-sm" style={{ background: LETTER_COLORS[L] }}>{L}</span>
+                <div className="grid flex-1 grid-cols-[repeat(15,minmax(0,1fr))] gap-1">
+                  {Array.from({ length: 15 }, (_, i) => start + i).map((n) => {
+                    const on = called.has(n);
+                    const isCurrent = n === currentNumber;
+                    return (
+                      <motion.span
+                        key={n}
+                        animate={isCurrent ? { scale: [1, 1.18, 1] } : {}}
+                        transition={isCurrent ? { duration: 1.1, repeat: Infinity } : {}}
+                        className={`flex aspect-square items-center justify-center rounded-md text-[11px] font-bold tabular-nums transition ${
+                          on ? "text-white shadow-sm" : "bg-slate-100 text-slate-300"
+                        } ${isCurrent ? "ring-2 ring-slate-900 ring-offset-1" : ""}`}
+                        style={on ? { background: LETTER_COLORS[L] } : undefined}
+                      >
+                        {n}
+                      </motion.span>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="border-t border-slate-100 px-4 py-2.5 text-center text-[11px] text-slate-400">
+          {drawn.length === 0 ? "Aún no salen bolas" : `Última bola: ${currentNumber ?? drawn[drawn.length - 1]}`}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

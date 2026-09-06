@@ -120,9 +120,11 @@ export function useLiveBingo(slug: string): LiveApi {
           lastBall.current = cur;
           if (cur != null && mapped.status === "drawing" && mapped.currentBall) runReveal(mapped.currentBall);
         }
-        // Status transitions -> celebrate / reset the 3D scene.
+        // Status transitions -> celebrate / reset the 3D scene. Only celebrate
+        // when we actually WITNESS the end (drawing -> finished), not when
+        // opening an already-finished bingo (waiting -> finished on first load).
         if (mapped.status !== lastStatus.current) {
-          if (mapped.status === "finished") { emit({ type: "bingo" }); playSfx("bingo"); }
+          if (mapped.status === "finished" && lastStatus.current === "drawing") { emit({ type: "bingo" }); playSfx("bingo"); }
           if (mapped.status === "drawing" && lastStatus.current === "finished") emit({ type: "reset" });
           lastStatus.current = mapped.status;
         }

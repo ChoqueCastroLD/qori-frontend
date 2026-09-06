@@ -37,6 +37,7 @@ export const ICONS: Record<string, string> = {
   next: '<path fill="currentColor" stroke="none" d="M15 5h2v14h-2zM6 5l9 7-9 7V5Z"/>',
   document: '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>',
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   users: '<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 20a6 6 0 0 1 12 0M16.5 11a3 3 0 1 0-1.5-5.6M21 20a6 6 0 0 0-4-5.6"/>',
   cash: '<path d="M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>',
   info: '<path d="M12 16v-4m0-4h.01"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>',

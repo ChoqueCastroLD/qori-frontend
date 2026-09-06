@@ -10,7 +10,7 @@ import Icon from "../Icon";
 import { useMockBingo, type MockApi } from "./mock";
 import type { BingoScene3D } from "./scene3d";
 import BallReveal from "./hud/BallReveal";
-import { CalledStrip, CountdownRing } from "./hud/CalledBalls";
+import { CalledStrip, CountdownRing, BallBoard } from "./hud/CalledBalls";
 import ActiveCard from "./hud/ActiveCard";
 import CardStack from "./hud/CardStack";
 import ChatPanel from "./hud/ChatPanel";
@@ -76,6 +76,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
 
   // Settings (config window): toggle chat / reactions, master volume.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showReactions, setShowReactions] = useState(true);
   const [autoCamera, setAutoCamera] = useState(true);
@@ -229,10 +230,21 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
     });
   }, [api]);
 
-  // Repaint progress chips on the billboards after each official ball.
+  // Keep the crowd in sync. When the SET of players changes (incl. the first
+  // load, or opening a finished bingo after the scene mounted), REBUILD the
+  // avatars; otherwise just repaint progress chips after each ball.
+  const crowdIdsRef = useRef("");
   useEffect(() => {
-    sceneRef.current?.updateProgress(state.participants);
-  }, [state.participants]);
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const ids = state.participants.map((p) => p.userId).join(",");
+    if (ids !== crowdIdsRef.current) {
+      crowdIdsRef.current = ids;
+      scene.setParticipants(state.participants, state.me.userId);
+    } else {
+      scene.updateProgress(state.participants);
+    }
+  }, [state.participants, state.me.userId]);
 
   // Spotlight a player in the 3D scene when hovering their chat name / avatar.
   useEffect(() => {
@@ -427,15 +439,22 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
 
         {/* mobile: recent balls on their own row below the top bar */}
         <div className="flex w-full justify-center md:hidden">
-          <CalledStrip drawn={state.drawnBalls} />
+          <CalledStrip drawn={state.drawnBalls} onOpenBoard={() => setBoardOpen(true)} />
         </div>
         <BallReveal ball={state.currentBall} phase={revealPhase} />
 
         {/* desktop: recent balls pinned at the top-center of the whole screen */}
         <div className="pointer-events-none absolute left-1/2 top-2 z-10 hidden -translate-x-1/2 md:flex">
-          <CalledStrip drawn={state.drawnBalls} />
+          <CalledStrip drawn={state.drawnBalls} onOpenBoard={() => setBoardOpen(true)} />
         </div>
       </div>
+
+      {/* ------- full board ("Panel de control") ------- */}
+      <AnimatePresence>
+        {boardOpen && (
+          <BallBoard drawn={state.drawnBalls} currentNumber={state.currentBall?.number ?? null} onClose={() => setBoardOpen(false)} />
+        )}
+      </AnimatePresence>
 
       {/* ------- settings / config window ------- */}
       <AnimatePresence>
