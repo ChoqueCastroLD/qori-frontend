@@ -369,14 +369,22 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
           {/* right: viewers + countdown + compact controls (icon-only on mobile) */}
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow sm:gap-1.5 sm:px-2.5">
-                <Icon name="eye" className="h-3 w-3 text-white/90" />
-                <span className="tabular-nums" title={`${state.viewers} personas viendo`}>{fmtCount(state.viewers)}</span>
-                <span className="h-3 w-px bg-white/30" />
-                <Icon name="live" className="h-2.5 w-2.5" />
-                <span className="hidden sm:inline">En vivo</span>
-              </div>
-              <CountdownRing secondsLeft={state.nextBallInSec} total={intervalSec} active={countdownActive} />
+              {state.status === "finished" ? (
+                <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-slate-900/60 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow backdrop-blur sm:gap-1.5 sm:px-2.5" title={`${state.viewers} personas vieron este bingo`}>
+                  <Icon name="eye" className="h-3 w-3 text-white/80" />
+                  <span className="tabular-nums">{fmtCount(state.viewers)}</span>
+                  <span className="hidden sm:inline text-white/80">vieron esto</span>
+                </div>
+              ) : (
+                <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow sm:gap-1.5 sm:px-2.5">
+                  <Icon name="eye" className="h-3 w-3 text-white/90" />
+                  <span className="tabular-nums" title={`${state.viewers} personas viendo`}>{fmtCount(state.viewers)}</span>
+                  <span className="h-3 w-px bg-white/30" />
+                  <Icon name="live" className="h-2.5 w-2.5" />
+                  <span className="hidden sm:inline">En vivo</span>
+                </div>
+              )}
+              {state.status !== "finished" && <CountdownRing secondsLeft={state.nextBallInSec} total={intervalSec} active={countdownActive} />}
             </div>
             <div className="flex items-center gap-1.5">
               <button
