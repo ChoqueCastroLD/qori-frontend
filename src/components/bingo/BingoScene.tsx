@@ -78,8 +78,10 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showReactions, setShowReactions] = useState(true);
+  const [autoCamera, setAutoCamera] = useState(true);
   const [volume, setVolume] = useState(0.7);
   useEffect(() => { setAudioVolume(volume); }, [volume]);
+  useEffect(() => { sceneRef.current?.setAutoCamera?.(autoCamera); }, [autoCamera]);
 
   // First-visit "how to play" card (dismissed forever via localStorage).
   const [showHelp, setShowHelp] = useState(false);
@@ -197,6 +199,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
         }
         scene = new mod.BingoScene3D(canvasRef.current);
         sceneRef.current = scene;
+        scene.setAutoCamera(autoCamera);
         const st = apiRef.current.state;
         scene.setParticipants(st.participants, st.me.userId);
         // Hovering a scene avatar -> spotlight + floating player card.
@@ -326,18 +329,21 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
       {/* ------- TOP: prize, countdown, reveal, called balls ------- */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1.5 p-2.5 pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3">
         <div className="flex w-full items-start justify-between gap-2">
-          {/* left: back-to-site + ONE compact brand panel (prize + BINGO counters) */}
+          {/* left: ONE compact brand panel (prize + BINGO counters); the logo goes home */}
           <div className="flex items-start gap-1.5">
-            <a
-              href="/"
-              aria-label="Volver a qori.cc"
-              className="pointer-events-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900/60 text-white backdrop-blur transition hover:bg-slate-900/80 sm:h-9 sm:w-9"
-            >
-              <Icon name="home" className="h-4 w-4 text-emerald-300 sm:h-5 sm:w-5" />
-            </a>
           <div className="pointer-events-auto max-w-[46vw] rounded-2xl bg-slate-900/60 p-2 backdrop-blur sm:max-w-[290px] sm:p-3">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="qori" className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" />
+              <motion.a
+                href="/"
+                aria-label="Ir al inicio de qori.cc"
+                title="Ir a qori.cc"
+                className="shrink-0 rounded-full"
+                whileHover={{ scale: 1.15, rotate: -10 }}
+                whileTap={{ scale: 0.88, rotate: 8 }}
+                transition={{ type: "spring", stiffness: 420, damping: 14 }}
+              >
+                <img src="/logo.png" alt="qori" className="h-6 w-6 drop-shadow sm:h-7 sm:w-7" />
+              </motion.a>
               <span className="min-w-0">
                 <span className="block truncate text-[11px] font-bold leading-tight text-white sm:text-xs">{state.prize.title}</span>
                 <span className="block truncate text-[10px] font-semibold leading-tight text-emerald-300">
@@ -433,6 +439,7 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
             </div>
             <SettingToggle icon="chat" label="Chat" checked={showChat} onChange={setShowChat} />
             <SettingToggle icon="smile" label="Reacciones" checked={showReactions} onChange={setShowReactions} />
+            <SettingToggle icon="refresh" label="Cámara automática" checked={autoCamera} onChange={setAutoCamera} />
             <div className="mt-1 flex items-center gap-2 py-1.5">
               <Icon name={volume <= 0 ? "volume-off" : "volume"} className="h-4 w-4 shrink-0 text-emerald-300" />
               <span className="text-[13px] font-semibold">Volumen</span>
@@ -710,6 +717,21 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
           />
         )}
       </AnimatePresence>
+
+      {/* Reopen the result once it's been dismissed (so you're never locked out). */}
+      {state.status === "finished" && state.winners && winnersDismissed && (
+        <motion.button
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          type="button"
+          onClick={() => setWinnersDismissed(false)}
+          className="pointer-events-auto absolute left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 hover:bg-amber-400"
+        >
+          <Icon name="trophy" className="h-4 w-4" /> Ver resultado
+        </motion.button>
+      )}
     </div>
   );
 }

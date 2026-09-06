@@ -28,7 +28,10 @@ if (!r) return Astro.redirect("/sorteos");
 const isBingo = (r as any).kind === "BINGO";
 // A bingo sells here (buy + pick tarjetas), then hands off to the 3D live room
 // the moment the draw starts.
-if (isBingo && (r.status === "DRAWING" || r.status === "DRAWN")) return Astro.redirect(`/bingo/${slug}`);
+// Route into the live 3D room ONLY while the draw is actually happening. A
+// FINISHED bingo stays here (results view); the "Ver el bingo" button below
+// links into the room for replay.
+if (isBingo && r.status === "DRAWING") return Astro.redirect(`/bingo/${slug}`);
 const bingoMeta = isBingo ? await ssrGet<any>(`/raffles/${slug}/bingo`, null) : null;
 
 const sold = isBingo ? (bingoMeta?.meta?.soldCards ?? 0) : (r.ticketsSold ?? 0);
@@ -232,14 +235,20 @@ const partTotal = partData.totalTickets ?? 0;
                       {w.position}º · {w.nickname ?? "Ganador"}
                       {w.suertudo && <span class="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-1.5 py-0.5 text-[9px] font-black uppercase text-white" title="Suertudo">Suertudo</span>}
                     </div>
-                    <div class="text-xs text-slate-500">Ticket #{w.ticketNumber}</div>
+                    <div class="text-xs text-slate-500">
+                      {isBingo
+                        ? <>Cartón lleno{(w as any).cards > 1 ? ` · ${(w as any).cards} tarjetas` : ""}{(w as any).shareUsd != null ? ` · USD ${(w as any).shareUsd.toFixed(2)}` : ""}</>
+                        : <>Ticket #{w.ticketNumber}</>}
+                    </div>
                   </div>
                 </li>
               ))}
             </ul>
             {r.legacy
               ? <p class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">Sorteo histórico (hecho a mano antes de la plataforma).</p>
-              : <a href={`/sorteos/${r.slug}/show`} class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"><Icon name="play" class="h-4 w-4" /> Ver el show</a>}
+              : isBingo
+                ? <a href={`/bingo/${r.slug}`} class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"><Icon name="play" class="h-4 w-4" /> Ver el bingo</a>
+                : <a href={`/sorteos/${r.slug}/show`} class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"><Icon name="play" class="h-4 w-4" /> Ver el show</a>}
           </div>
           {!r.legacy && <RaffleChat client:load slug={r.slug} compact paid={r.ticketPrice > 0} />}
           </div>

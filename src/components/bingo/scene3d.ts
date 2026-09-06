@@ -153,7 +153,7 @@ export class BingoScene3D {
     this.controls.maxPolarAngle = 1.5;
     // Barely-there automatic drift to the right; pauses while you drag.
     this.controls.autoRotate = true;
-    this.controls.autoRotateSpeed = -0.22;
+    this.controls.autoRotateSpeed = -0.11;
     this.controls.update();
 
     this.buildEnvironment();
@@ -913,6 +913,11 @@ export class BingoScene3D {
     this.hoverCb = fn;
   }
 
+  /** Toggle the gentle automatic camera drift (user drag still works either way). */
+  setAutoCamera(on: boolean): void {
+    if (this.controls) this.controls.autoRotate = on;
+  }
+
   /** Project an avatar's world position to client pixels (null if behind cam). */
   worldToScreen(userId: string): { x: number; y: number } | null {
     const e = this.crowdPositions.find((c) => c.userId === userId);
@@ -1092,8 +1097,17 @@ export class BingoScene3D {
         // readable by the time it hands off to the HUD reveal.
         const spin = 1 - Math.min(ft, 1); // 1 -> 0 across the flight
         const decel = spin * spin; // quadratic ease-out on the spin speed
-        this.flyBall.rotation.y += dt * (17 * decel + 0.5);
-        this.flyBall.rotation.x += dt * (7 * decel + 0.2);
+        // Spin ONLY around the vertical axis so the number never ends upside
+        // down; ease the yaw to face the camera upright as it settles.
+        if (ft < 0.7) {
+          this.flyBall.rotation.y += dt * (17 * decel + 0.5);
+        } else {
+          const target = Math.round(this.flyBall.rotation.y / (Math.PI * 2)) * (Math.PI * 2);
+          const rate = 1 - Math.pow(0.0009, dt);
+          this.flyBall.rotation.y += (target - this.flyBall.rotation.y) * rate;
+        }
+        this.flyBall.rotation.x = 0;
+        this.flyBall.rotation.z = 0;
         const s = 1 + e * 1.15;
         this.flyBall.scale.setScalar(s);
       } else if (ft <= 1.22) {

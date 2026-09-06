@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
-// On the raffle page of a BINGO: once the draw starts (status DRAWING/DRAWN),
-// send everyone into the live 3D room. Polls lightly; harmless if it never fires.
+// On the raffle page of a BINGO: once the draw STARTS (status DRAWING), send
+// everyone into the live 3D room. A FINISHED bingo (DRAWN) stays on the results
+// page — you reach the room via the "Ver el bingo" button. Polls lightly.
 export default function BingoGate({ slug }: { slug: string }) {
   useEffect(() => {
     let stop = false;
@@ -9,7 +10,7 @@ export default function BingoGate({ slug }: { slug: string }) {
       if (stop) return;
       try {
         const r = await fetch(`/api/raffles/${slug}`).then((x) => (x.ok ? x.json() : null));
-        if (r && (r.status === "DRAWING" || r.status === "DRAWN")) {
+        if (r && r.status === "DRAWING") {
           window.location.href = `/bingo/${slug}`;
           return;
         }

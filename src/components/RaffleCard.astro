@@ -15,7 +15,9 @@ const image = r.images?.[0] ?? "/og.png";
 const isBingo = (r as any).kind === "BINGO";
 // Bingo lives at /sorteos while selling (buy tarjetas), then the detail page
 // hands off to the live room once the draw starts.
-const href = isBingo && (r.status === "DRAWING" || isDrawn) ? `/bingo/${r.slug}` : `/sorteos/${r.slug}`;
+// Bingo: while selling AND once finished it lives on /sorteos (buy / results);
+// only route straight into the 3D room while the draw is actually running.
+const href = isBingo && r.status === "DRAWING" ? `/bingo/${r.slug}` : `/sorteos/${r.slug}`;
 const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled ? "Ver detalle" : isLive ? (isBingo ? "Jugar bingo" : "Ver el sorteo") : isBingo ? "Comprar tarjetas" : "Participar";
 ---
 <a href={href} class={`group flex flex-col overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${r.paidOnly ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"}`}>
