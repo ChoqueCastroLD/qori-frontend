@@ -38,6 +38,7 @@ export type BingoState = {
   currentBall: Ball | null; // being revealed
   nextBallInSec: number; // 0..18 countdown
   viewers: number; // people watching live (>= players; spectators included)
+  viewersTotal?: number; // distinct people who ever watched (historical)
   prize: { title: string; description: string; valueUsd: number; imageUrl: string };
   fairness: {
     commitment: string;

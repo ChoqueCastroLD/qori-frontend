@@ -19,6 +19,7 @@ function emptyState(): BingoState {
     currentBall: null,
     nextBallInSec: 0,
     viewers: 0,
+    viewersTotal: 0,
     prize: { title: "", description: "", valueUsd: 0, imageUrl: "" },
     fairness: { commitment: "" },
     me: { userId: "", nickname: "Tú", avatarUrl: null, suertudo: false, cards: [], activeCardIndex: 0 },
@@ -41,6 +42,15 @@ export type LiveApi = MockApi & {
 
 let ridSeq = 1;
 
+// Stable per-tab id so the server can count distinct anonymous viewers.
+function viewerId(): string {
+  try {
+    let v = sessionStorage.getItem("qori_vid");
+    if (!v) { v = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("qori_vid", v); }
+    return v;
+  } catch { return "anon"; }
+}
+
 export function useLiveBingo(slug: string): LiveApi {
   const [state, setState] = useState<BingoState>(emptyState);
   const [revealPhase, setRevealPhase] = useState<RevealPhase>(null);
@@ -52,6 +62,8 @@ export function useLiveBingo(slug: string): LiveApi {
   const [chatClosed, setChatClosed] = useState(false);
   const [poke, setPoke] = useState(0);
 
+  const vidRef = useRef<string>("");
+  if (!vidRef.current) vidRef.current = viewerId();
   const listeners = useRef<Set<(ev: SceneEvent) => void>>(new Set());
   const activeIdx = useRef(0);
   const chatRef = useRef<ChatMsg[]>([]);
@@ -68,7 +80,7 @@ export function useLiveBingo(slug: string): LiveApi {
     let alive = true;
     async function tick() {
       try {
-        const res = await fetch(`/api/raffles/${slug}/bingo`, { credentials: "include" });
+        const res = await fetch(`/api/raffles/${slug}/bingo?vid=${encodeURIComponent(vidRef.current)}`, { credentials: "include" });
         if (!res.ok || !alive) return;
         const d = await res.json();
         if (!alive) return;
@@ -87,6 +99,7 @@ export function useLiveBingo(slug: string): LiveApi {
           currentBall: d.currentBall ? { letter: d.currentBall.letter as BingoLetter, number: d.currentBall.number } : null,
           nextBallInSec: d.nextBallInSec ?? 0,
           viewers: d.viewers ?? (d.participants?.length ?? 0),
+          viewersTotal: d.viewersTotal ?? d.viewers ?? 0,
           prize: d.prize,
           fairness: d.fairness,
           lettersDone: d.lettersDone ?? { ...EMPTY_LETTERS },
