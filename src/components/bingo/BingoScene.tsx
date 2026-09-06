@@ -212,11 +212,8 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
         scene.setAutoCamera(autoCamera);
         const st = apiRef.current.state;
         scene.setParticipants(st.participants, st.me.userId);
-        // Hovering a scene avatar -> spotlight + floating player card.
-        scene.setHoverCallback((userId, x, y) => {
-          setHighlightUser(userId);
-          setSceneHover(userId ? { userId, x, y } : null);
-        });
+        // Scene-avatar hover (spotlight + floating player card) intentionally
+        // disabled. Chat-name hover still spotlights via setHighlightUser.
       } catch {
         setWebgl(false);
       }
