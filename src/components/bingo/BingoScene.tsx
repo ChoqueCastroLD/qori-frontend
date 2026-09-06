@@ -384,7 +384,21 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
                   <span className="hidden sm:inline">En vivo</span>
                 </div>
               )}
-              {state.status !== "finished" && <CountdownRing secondsLeft={state.nextBallInSec} total={intervalSec} active={countdownActive} />}
+              {state.status !== "finished" ? (
+                <CountdownRing secondsLeft={state.nextBallInSec} total={intervalSec} active={countdownActive} />
+              ) : demo ? null : (
+                <motion.button
+                  type="button"
+                  aria-label="Minimizar el show y volver al sorteo"
+                  title="Volver al sorteo"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => { window.location.href = window.location.pathname.replace("/bingo/", "/sorteos/"); }}
+                  className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/60 text-white shadow backdrop-blur transition hover:bg-slate-900/80 sm:h-9 sm:w-9"
+                >
+                  <Icon name="x" className="h-4 w-4 text-emerald-300 sm:h-5 sm:w-5" />
+                </motion.button>
+              )}
             </div>
             <div className="flex items-center gap-1.5">
               <button
