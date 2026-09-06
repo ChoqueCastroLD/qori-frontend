@@ -8,7 +8,7 @@ import type {
   Ball, BingoCard, BingoLetter, BingoState, ChatMsg, Participant,
 } from "./types";
 import type { MockApi, RevealPhase, SceneEvent, FloatingReaction } from "./mock";
-import { playCall, playLetter, playNumber, playSfx, playWin } from "./audio";
+import { playCall, playNumber, playSfx, playWin } from "./audio";
 
 const EMPTY_LETTERS = { B: 0, I: 0, N: 0, G: 0, O: 0 };
 
@@ -163,9 +163,11 @@ export function useLiveBingo(slug: string): LiveApi {
     setRevealPhase("flight");
     playSfx("pop");
     emit({ type: "draw", letter: ball.letter, number: ball.number });
-    after(1350, () => { setRevealPhase("letter"); playLetter(ball.letter); });
+    // Voice sings the full call ("Be, veintiocho") the moment the letter shows,
+    // so the spoken line stays in sync with the ball reveal animation.
+    after(1350, () => { setRevealPhase("letter"); playCall(ball.letter, ball.number); });
     after(2600, () => { setRevealPhase("number"); playNumber(ball.number); });
-    after(3700, () => { setRevealPhase("call"); playCall(ball.letter, ball.number); playSfx("mark"); });
+    after(3700, () => { setRevealPhase("call"); playSfx("mark"); });
     after(5300, () => setRevealPhase(null));
   }
 

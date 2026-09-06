@@ -17,7 +17,7 @@ import ChatPanel from "./hud/ChatPanel";
 import ParticipantsPanel, { LetterTotals, PlayerCard } from "./hud/ParticipantsPanel";
 import WinnersOverlay from "./hud/WinnersOverlay";
 import { cardColumns, remainingToFill, type BingoCard } from "./types";
-import { playSfx, setVolume as setAudioVolume } from "./audio";
+import { playSfx, setVolume as setAudioVolume, setMuted as setAudioMuted } from "./audio";
 
 // Desktop: up to this many tarjetas open as floating windows at once.
 const MAX_OPEN_CARDS = 3;
@@ -77,6 +77,15 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
   // Settings (config window): toggle chat / reactions, master volume.
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
+  // Entry gate: audio stays OFF until the viewer taps "Entrar" (confirms age +
+  // gives the browser the user gesture it needs to allow audio autoplay).
+  const [entered, setEntered] = useState(false);
+  useEffect(() => { setAudioMuted(true); }, []);
+  const enterRoom = () => {
+    setAudioMuted(false);
+    playSfx("click"); // resumes the AudioContext under the user gesture
+    setEntered(true);
+  };
   const [showChat, setShowChat] = useState(true);
   const [showReactions, setShowReactions] = useState(true);
   const [autoCamera, setAutoCamera] = useState(true);
@@ -777,6 +786,38 @@ export function BingoSceneView({ api, buySlot, demo = false }: { api: MockApi; b
           <Icon name="trophy" className="h-4 w-4" /> Ver resultado
         </motion.button>
       )}
+
+      {/* Entry gate: first tap = age confirm + unlock audio (browser autoplay). */}
+      <AnimatePresence>
+        {!entered && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="pointer-events-auto absolute inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-5 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl"
+            >
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
+                <Icon name="clover" className="h-7 w-7" />
+              </div>
+              <h2 className="text-xl font-black text-slate-900">¡Bienvenido al bingo!</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Al entrar confirmas que eres <strong>mayor de edad</strong>. Activaremos el sonido para que vivas el sorteo con la voz cantando cada bola.
+              </p>
+              <button
+                type="button"
+                onClick={enterRoom}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-500 active:scale-[0.98]"
+              >
+                <Icon name="volume" className="h-4 w-4" /> Soy mayor de edad · Entrar
+              </button>
+              <p className="mt-2.5 text-[11px] text-slate-400">Puedes ajustar o silenciar el sonido en Configuración.</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

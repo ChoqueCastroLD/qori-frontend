@@ -16,7 +16,7 @@ import {
   type ChatMsg,
   type Participant,
 } from "./types";
-import { playCall, playLetter, playNumber, playSfx } from "./audio";
+import { playCall, playNumber, playSfx, playWin } from "./audio";
 
 // Demo cadence: a ball every few seconds so the preview is lively.
 // Production uses 18s between balls - only this constant changes.
@@ -342,14 +342,13 @@ export function useMockBingo(participantCount = 348): MockApi {
       playSfx("pop");
       emit({ type: "draw", letter, number });
 
-      // Beat 1: LETTER alone, big.
-      after(1350, () => { setRevealPhase("letter"); playLetter(letter); });
+      // Beat 1: LETTER alone, big -> the voice sings the call here (in sync).
+      after(1350, () => { setRevealPhase("letter"); playCall(letter, number); });
       // Beat 2: the NUMBER joins.
       after(2600, () => { setRevealPhase("number"); playNumber(number); });
-      // Beat 3: full call repeated; the ball becomes official -> cards mark.
+      // Beat 3: the ball becomes official -> cards mark.
       after(3700, () => {
         setRevealPhase("call");
-        playCall(letter, number);
         setState((s) => {
           const drawnBalls = [...s.drawnBalls, number!];
           const drawn = new Set(drawnBalls);
@@ -387,6 +386,12 @@ export function useMockBingo(participantCount = 348): MockApi {
     function finish(names: { nickname: string; avatarUrl: string | null; cards: number }[]) {
       playSfx("bingo");
       emit({ type: "bingo" });
+      if (names.length > 0) {
+        const meNick = stateRef.current.me.nickname;
+        const iWon = names.some((n) => n.nickname === meNick);
+        const t = window.setTimeout(() => playWin(names.length > 1 ? "tie" : iWon ? "you" : "single"), 650);
+        timers.current.push(t as unknown as number);
+      }
       const share = names.length ? PRIZE.valueUsd / names.length : PRIZE.valueUsd;
       setState((s) => ({
         ...s,
