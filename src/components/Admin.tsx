@@ -919,7 +919,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
   const [f, setF] = useState<any>({
     kind: "SHOW",
     slug: "", title: "", description: "", prizeUsd: 500, ticketPrice: 10, totalTickets: 200,
-    minTickets: 50, winnersCount: 1, maxPerUser: "", paidOnly: false, intervalSec: 8, games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
+    minTickets: 50, winnersCount: 1, maxPerUser: "", paidOnly: false, intervalSec: 16, games: ["ROCKETS", "BOMBS", "ROULETTE"], finale: "ROULETTE",
     image: "", closesAt: toLocalInput(new Date(Date.now() + 48 * 3600000).toISOString()),
   });
   const isBingo = f.kind === "BINGO";
@@ -1000,7 +1000,7 @@ function CreateRaffle({ onCreated }: { onCreated: () => void }) {
           <div>
             <label className="text-xs text-slate-500">Segundos por bola</label>
             <input type="number" min={6} max={60} className={inp} value={f.intervalSec} onChange={(e) => setF({ ...f, intervalSec: e.target.value })} />
-            <p className="mt-0.5 text-[11px] text-slate-400">Ritmo del sorteo (6–60s). 8s ≈ rápido, 18s ≈ pausado.</p>
+            <p className="mt-0.5 text-[11px] text-slate-400">Ritmo del sorteo (6–60s). 8s ≈ rápido, 16s ≈ normal.</p>
           </div>
         )}
         <div>
