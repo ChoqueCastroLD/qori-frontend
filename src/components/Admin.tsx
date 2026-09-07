@@ -77,8 +77,9 @@ export default function Admin() {
     const res = await adminFetch(`/admin/affiliates/${id}/payout`, { method: "POST", body: JSON.stringify({ usd }) });
     if (res.ok) { setMsg(`Pago registrado`); reloadAffiliates(); } else setMsg(`Error: ${res.data?.error ?? "no se pudo"}`);
   }
-  async function setPrizeStatus(id: string, prizeStatus: string) {
-    const res = await adminFetch(`/admin/winners/${id}`, { method: "PATCH", body: JSON.stringify({ prizeStatus }) });
+  async function setPrizeStatus(id: string, prizeStatus: string, kind?: string) {
+    const path = kind === "BINGO" ? `/admin/bingo-wins/${id}` : `/admin/winners/${id}`;
+    const res = await adminFetch(path, { method: "PATCH", body: JSON.stringify({ prizeStatus }) });
     if (res.ok) adminFetch("/admin/winners").then((r) => r.ok && setWinners(r.data));
     else setMsg(`Error: ${res.data?.error ?? "no se pudo"}`);
   }
@@ -1049,7 +1050,7 @@ function RevealCode({ code }: { code: string | null }) {
   );
 }
 
-function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; onStatus: (id: string, s: string) => void; onNotify: () => void }) {
+function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; onStatus: (id: string, s: string, kind?: string) => void; onNotify: () => void }) {
   const [q, setQ] = useState("");
   if (!winners) return <div className="mt-6 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>;
   const pending = winners.filter((w) => w.email && !w.notifiedAt && !w.raffle?.legacy).length;
@@ -1078,7 +1079,7 @@ function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; 
               <div className="min-w-0">
                 <div className="text-lg font-bold text-slate-900">{match.raffle?.title}</div>
                 <div className="text-sm text-slate-600">
-                  {match.raffle?.prizeValue > 0 ? `Premio: valor aprox. ${usd(match.raffle.prizeValue)} · ` : ""}Ticket #{match.ticketNumber}
+                  {match.raffle?.prizeValue > 0 ? `Premio: ${usd(match.raffle.prizeValue)} · ` : ""}{match.kind === "BINGO" ? "Bingo · cartón lleno" : `Ticket #${match.ticketNumber}`}
                 </div>
                 <div className="mt-1 text-sm text-slate-600">Ganador: <strong>{match.name ?? "sin cuenta"}</strong>{match.email ? ` · ${match.email}` : ""}{match.username ? ` · @${match.username}` : ""}</div>
               </div>
@@ -1088,9 +1089,9 @@ function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; 
             </div>
             <div className="mt-3">
               {match.prizeStatus === "DELIVERED" ? (
-                <button onClick={() => onStatus(match.id, "PENDING")} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">Revertir a pendiente</button>
+                <button onClick={() => onStatus(match.id, "PENDING", match.kind)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">Revertir a pendiente</button>
               ) : (
-                <button onClick={() => onStatus(match.id, "DELIVERED")} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500">
+                <button onClick={() => onStatus(match.id, "DELIVERED", match.kind)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500">
                   <Icon name="check" className="h-4 w-4" /> Marcar como entregado
                 </button>
               )}
@@ -1118,13 +1119,13 @@ function WinnersPanel({ winners, onStatus, onNotify }: { winners: any[] | null; 
                 <tr key={w.id} className="border-t border-slate-100 align-middle">
                   <td className="p-3"><a href={`/sorteos/${w.raffle?.slug}`} className="font-semibold text-slate-800 hover:underline">{w.raffle?.title}</a></td>
                   <td className="p-3"><div className="font-medium text-slate-800">{w.name ?? "-"}</div><div className="text-xs text-slate-400">{w.email ?? (w.raffle?.legacy ? "histórico" : "sin cuenta")}</div></td>
-                  <td className="p-3 font-mono text-slate-600">#{w.ticketNumber ?? "-"}</td>
+                  <td className="p-3 font-mono text-slate-600">{w.kind === "BINGO" ? "Bingo" : `#${w.ticketNumber ?? "-"}`}</td>
                   <td className="p-3 text-slate-600">{w.raffle?.prizeValue > 0 ? usd(w.raffle.prizeValue) : "-"}</td>
                   <td className="p-3"><RevealCode code={w.claimCode} /></td>
                   <td className="p-3 text-xs text-slate-500">{fmtD(w.notifiedAt)}</td>
                   <td className="p-3">
                     <button
-                      onClick={() => onStatus(w.id, w.prizeStatus === "DELIVERED" ? "PENDING" : "DELIVERED")}
+                      onClick={() => onStatus(w.id, w.prizeStatus === "DELIVERED" ? "PENDING" : "DELIVERED", w.kind)}
                       className={`rounded-full px-2.5 py-1 text-xs font-bold ${w.prizeStatus === "DELIVERED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
                       title="Cambiar estado"
                     >
