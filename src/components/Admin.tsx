@@ -303,6 +303,7 @@ function Recharges({ topups, onConfirm, onReject }: { topups: any[] | null; onCo
                   <div className="min-w-0">
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{label(t.method)}</span>
                     <span className="ml-2 text-sm font-bold text-slate-900">${(t.amountUsd / 100).toFixed(2)}</span>
+                    {t.amountPen != null && <span className="ml-1 text-sm font-semibold text-emerald-700">· S/ {(t.amountPen / 100).toFixed(2)} esperado</span>}
                     <span className="ml-1 text-sm text-slate-500">→ {nf(t.lingotes)} lingotes</span>
                   </div>
                   <span className="text-xs text-slate-400">{new Date(t.createdAt).toLocaleString("es-PE")}</span>
@@ -316,6 +317,11 @@ function Recharges({ topups, onConfirm, onReject }: { topups: any[] | null; onCo
                         : <span className="break-all font-mono text-slate-700">{t.proofUrl}</span>)
                     : <span className="text-red-500">sin comprobante aún</span>}
                 </div>
+                {t.proofUrl && isLink(t.proofUrl) && (
+                  <a href={t.proofUrl} target="_blank" rel="noreferrer" className="mt-2 block">
+                    <img src={t.proofUrl} alt="Captura del pago" className="max-h-56 rounded-lg border border-slate-200 object-contain" />
+                  </a>
+                )}
                 <div className="mt-3 flex gap-2">
                   <button onClick={() => onConfirm(t.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
                     <Icon name="check" className="h-4 w-4" /> Confirmar y acreditar

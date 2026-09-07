@@ -122,6 +122,24 @@ export default function Recharge() {
     setLoading(false);
   }
 
+  async function uploadYapeProof(file: File) {
+    if (!cryptoTopupId || !file) return;
+    setLoading(true); setPayErr("");
+    try {
+      const fd = new FormData(); fd.append("file", file);
+      const res = await fetch(`/api/topups/${cryptoTopupId}/proof-image`, { method: "POST", credentials: "include", body: fd });
+      if (res.ok) { setProofSent(true); }
+      else {
+        const d = await res.json().catch(() => ({}));
+        setPayErr(d?.error === "expired" ? "Se venció el tiempo para enviar el comprobante. Genera la recarga de nuevo."
+          : d?.error === "too_large" ? "La imagen es muy grande (máx 6 MB)."
+          : d?.error === "unsupported_type" ? "Sube una imagen (JPG/PNG)."
+          : "No se pudo enviar la captura. Intenta de nuevo.");
+      }
+    } catch { setPayErr("Error de red al subir la captura."); }
+    setLoading(false);
+  }
+
   async function sendProof() {
     if (!cryptoTopupId || !proof.trim()) return;
     setLoading(true);
@@ -268,8 +286,7 @@ export default function Recharge() {
           />
         ) : method === "YAPE" && yape ? (
           <YapePanel
-            info={yape} amountUsd={sel / 100} proof={proof} setProof={setProof}
-            proofSent={proofSent} onSend={sendProof} loading={loading}
+            info={yape} amountUsd={sel / 100} proofSent={proofSent} onUpload={uploadYapeProof} loading={loading}
             copyField={copyField} copiedField={copiedField}
           />
         ) : (
@@ -340,7 +357,15 @@ function CryptoPanel({ info, amountUsd, proof, setProof, proofSent, onSend, load
   );
 }
 
-function YapePanel({ info, amountUsd, proof, setProof, proofSent, onSend, loading, copyField, copiedField }: any) {
+function YapePanel({ info, amountUsd, proofSent, onUpload, loading, copyField, copiedField }: any) {
+  const [now, setNow] = useState(() => Date.now());
+  const [file, setFile] = useState<File | null>(null);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const deadline = info.expiresAt ? new Date(info.expiresAt).getTime() : 0;
+  const left = Math.max(0, Math.floor((deadline - now) / 1000));
+  const mm = Math.floor(left / 60), ss = left % 60;
+  const expired = deadline > 0 && left <= 0;
+
   if (proofSent) {
     return (
       <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
@@ -364,20 +389,23 @@ function YapePanel({ info, amountUsd, proof, setProof, proofSent, onSend, loadin
     <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
       <h3 className="text-sm font-bold text-slate-900">Yapea a este número</h3>
       <p className="mt-1 text-xs text-slate-500">
-        Abre Yape y envía <strong className="text-slate-800">S/ {info.amountPen}</strong> (equivale a ${amountUsd}) al número de abajo. Luego pega el <strong>número de operación</strong> (o el enlace de tu captura) y confírmanos.
+        Abre Yape y envía <strong className="text-slate-800">S/ {info.amountPen}</strong> (equivale a ${amountUsd}) al número de abajo. Luego <strong>sube la captura</strong> del pago para validarlo.
       </p>
+      <div className={`mt-2 rounded-lg px-3 py-1.5 text-center text-xs font-bold ${expired ? "bg-red-100 text-red-700" : "bg-slate-900 text-white"}`}>
+        {expired ? "Tiempo agotado — genera la recarga de nuevo" : `Tienes ${mm}:${String(ss).padStart(2, "0")} para enviar el comprobante`}
+      </div>
       <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3">
         <Row label="Número Yape" value={String(info.number)} k="num" />
         {info.name ? <Row label="Titular" value={String(info.name)} k="name" /> : null}
-        <Row label="Monto a enviar" value={`S/ ${info.amountPen}`} k="amt" />
+        <Row label="Monto exacto a enviar" value={`S/ ${info.amountPen}`} k="amt" />
       </div>
       <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-        Envía el monto exacto. Verifica que en Yape aparezca el titular correcto antes de enviar.
+        Envía el <strong>monto exacto</strong>. Verifica que en Yape aparezca el titular correcto antes de enviar.
       </p>
-      <label className="mt-4 block text-xs font-medium text-slate-700">Número de operación o enlace de la captura</label>
-      <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="Ej: 01234567 o link de la captura" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-      <button onClick={onSend} disabled={loading || !proof.trim()} className="mt-3 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:bg-slate-400">
-        {loading ? "Enviando…" : "Ya yapeé, enviar comprobante"}
+      <label className="mt-4 block text-xs font-medium text-slate-700">Sube la captura del pago (JPG/PNG)</label>
+      <input type="file" accept="image/*" disabled={expired} onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold" />
+      <button onClick={() => file && onUpload(file)} disabled={loading || expired || !file} className="mt-3 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:bg-slate-400">
+        {loading ? "Enviando…" : "Ya yapeé, enviar captura"}
       </button>
     </div>
   );
