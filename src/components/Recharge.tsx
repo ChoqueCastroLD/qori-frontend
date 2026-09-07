@@ -122,6 +122,12 @@ export default function Recharge() {
     setLoading(false);
   }
 
+  // Changing the amount or method invalidates any generated (locked) manual
+  // panel, so reset it — otherwise the old locked S/ amount stays on screen.
+  useEffect(() => {
+    setCrypto(null); setYape(null); setCryptoTopupId(null); setProof(""); setProofSent(false); setPayErr("");
+  }, [sel, method]);
+
   async function uploadYapeProof(file: File) {
     if (!cryptoTopupId || !file) return;
     setLoading(true); setPayErr("");
