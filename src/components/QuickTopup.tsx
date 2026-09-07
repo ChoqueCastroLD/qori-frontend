@@ -40,6 +40,8 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
   }, [pkgs, need]);
 
   useEffect(() => { if (suggested.length && sel == null) setSel(suggested[0].amountUsd); }, [suggested, sel]);
+  // Yape manual is $5+ only.
+  useEffect(() => { if (method === "YAPE" && sel != null && sel < 500) setMethod("MERCADOPAGO"); }, [sel, method]);
 
   const promoLeft = promo && promoEnds ? Math.max(0, Math.floor((new Date(promoEnds).getTime() - now) / 1000)) : 0;
   const hh = Math.floor(promoLeft / 3600), mm = Math.floor((promoLeft % 3600) / 60);
@@ -98,10 +100,10 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
             <span className="text-[9px] text-slate-500">{label}</span>
           </button>
         ))}
-        <button type="button" onClick={() => setMethod("YAPE")}
-          className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition ${method === "YAPE" ? "border-emerald-500 bg-white ring-1 ring-emerald-500" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+        <button type="button" disabled={!sel || sel < 500} onClick={() => setMethod("YAPE")}
+          className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition disabled:cursor-not-allowed disabled:opacity-50 ${method === "YAPE" ? "border-emerald-500 bg-white ring-1 ring-emerald-500" : "border-slate-200 bg-white hover:border-slate-300"}`}>
           <img src="/pay/yape.png" alt="Yape" className="h-5 object-contain" />
-          <span className="text-[9px] text-slate-500">Yape</span>
+          <span className="text-[9px] text-slate-500">Yape{sel && sel < 500 ? " $5+" : ""}</span>
         </button>
       </div>
 

@@ -126,6 +126,8 @@ export default function Recharge() {
   // panel, so reset it — otherwise the old locked S/ amount stays on screen.
   useEffect(() => {
     setCrypto(null); setYape(null); setCryptoTopupId(null); setProof(""); setProofSent(false); setPayErr("");
+    // Yape manual is $5+ only; if the amount drops below, fall back to MercadoPago.
+    if (method === "YAPE" && sel < 500) setMethod("MERCADOPAGO");
   }, [sel, method]);
 
   async function uploadYapeProof(file: File) {
@@ -275,11 +277,11 @@ export default function Recharge() {
           </button>
         </div>
 
-        {/* Yape directo (manual): pagas a nuestro número y validamos tu recarga */}
-        <button type="button" aria-pressed={method === "YAPE"} onClick={() => setMethod("YAPE")} className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-3 transition ${method === "YAPE" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
+        {/* Yape directo (manual): pagas a nuestro número y validamos tu recarga. Solo $5+ */}
+        <button type="button" aria-pressed={method === "YAPE"} disabled={sel < 500} onClick={() => setMethod("YAPE")} className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-3 transition disabled:cursor-not-allowed disabled:opacity-50 ${method === "YAPE" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
           <img src="/pay/yape.png" alt="Yape" className="h-6 object-contain" />
           <span className="text-sm font-semibold text-slate-700">Yape directo</span>
-          <span className="text-[10px] text-slate-400">(validación manual)</span>
+          <span className="text-[10px] text-slate-400">{sel < 500 ? "(desde $5)" : "(validación manual)"}</span>
         </button>
 
         {payErr && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{payErr}</p>}
