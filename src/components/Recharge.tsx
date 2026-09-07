@@ -25,6 +25,7 @@ export default function Recharge() {
   const [mpMsg, setMpMsg] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
   const [payErr, setPayErr] = useState("");
   const [crypto, setCrypto] = useState<any>(null);
+  const [yape, setYape] = useState<any>(null);
   const [cryptoTopupId, setCryptoTopupId] = useState<string | null>(null);
   const [proof, setProof] = useState("");
   const [proofSent, setProofSent] = useState(false);
@@ -100,7 +101,7 @@ export default function Recharge() {
   async function pay() {
     setLoading(true);
     setPayErr("");
-    setCrypto(null); setCryptoTopupId(null); setProof(""); setProofSent(false);
+    setCrypto(null); setYape(null); setCryptoTopupId(null); setProof(""); setProofSent(false);
     try {
       const res = await fetch("/api/topups", {
         method: "POST", credentials: "include", headers: { "content-type": "application/json" },
@@ -109,6 +110,7 @@ export default function Recharge() {
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; }
       if (res.ok && d.crypto && d.topup?.id) { setCrypto(d.crypto); setCryptoTopupId(d.topup.id); setLoading(false); return; }
+      if (res.ok && d.yape && d.topup?.id) { setYape(d.yape); setCryptoTopupId(d.topup.id); setLoading(false); return; }
       setPayErr(
         d?.error === "mp_not_configured" || d?.error === "paypal_not_configured" || d?.error === "crypto_not_configured"
           ? "Ese medio de pago no está disponible por ahora. Prueba con otro."
@@ -249,14 +251,11 @@ export default function Recharge() {
           </button>
         </div>
 
-        {/* Flow: one option (single checkout) that accepts Yape, billeteras and PagoEfectivo */}
-        <button type="button" aria-pressed={method === "FLOW"} onClick={() => setMethod("FLOW")} className={`mt-2 flex w-full items-stretch overflow-hidden rounded-lg border transition ${method === "FLOW" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
-          {[["/pay/yape.png", "Yape"], ["/pay/billeteras.png", "Billeteras"], ["/pay/pagoefectivo.png", "PagoEfectivo"]].map(([src, label], i) => (
-            <span key={label} className={`flex flex-1 flex-col items-center justify-center gap-1 px-2 py-3 ${i < 2 ? "border-r border-slate-200" : ""}`}>
-              <img src={src} alt={label} className="h-6 object-contain" />
-              <span className="text-[10px] text-slate-500">{label}</span>
-            </span>
-          ))}
+        {/* Yape directo (manual): pagas a nuestro número y validamos tu recarga */}
+        <button type="button" aria-pressed={method === "YAPE"} onClick={() => setMethod("YAPE")} className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-3 transition ${method === "YAPE" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
+          <img src="/pay/yape.png" alt="Yape" className="h-6 object-contain" />
+          <span className="text-sm font-semibold text-slate-700">Yape directo</span>
+          <span className="text-[10px] text-slate-400">(validación manual)</span>
         </button>
 
         {payErr && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{payErr}</p>}
@@ -267,15 +266,23 @@ export default function Recharge() {
             proofSent={proofSent} onSend={sendProof} loading={loading}
             copyField={copyField} copiedField={copiedField}
           />
+        ) : method === "YAPE" && yape ? (
+          <YapePanel
+            info={yape} amountUsd={sel / 100} proof={proof} setProof={setProof}
+            proofSent={proofSent} onSend={sendProof} loading={loading}
+            copyField={copyField} copiedField={copiedField}
+          />
         ) : (
           <>
             <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
-              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : method === "FLOW" ? `Pagar $${sel / 100} con Flow` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
+              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : method === "YAPE" ? `Yapear $${sel / 100} (validación manual)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
             </button>
             <p className="mt-2 text-center text-xs text-slate-400">
               {method === "CRYPTO"
                 ? "Paga con USDT, Bitcoin y más. Los lingotes se acreditan automáticamente al confirmarse en la red."
-                : "Pago seguro. Los lingotes se acreditan automáticamente al confirmarse."}
+                : method === "YAPE"
+                  ? "Yapeas a nuestro número y subes el comprobante; validamos tu recarga y acreditamos tus lingotes."
+                  : "Pago seguro. Los lingotes se acreditan automáticamente al confirmarse."}
             </p>
           </>
         )}
@@ -328,6 +335,49 @@ function CryptoPanel({ info, amountUsd, proof, setProof, proofSent, onSend, load
       <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="Ej: 1234567890 o link de la captura" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
       <button onClick={onSend} disabled={loading || !proof.trim()} className="mt-3 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
         {loading ? "Enviando…" : "Ya pagué, enviar comprobante"}
+      </button>
+    </div>
+  );
+}
+
+function YapePanel({ info, amountUsd, proof, setProof, proofSent, onSend, loading, copyField, copiedField }: any) {
+  if (proofSent) {
+    return (
+      <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+        <p className="text-sm font-semibold text-emerald-800">Comprobante recibido</p>
+        <p className="mt-1 text-sm text-emerald-700">Validaremos tu Yape y acreditaremos tus lingotes (normalmente en minutos). Te avisamos por correo cuando esté listo.</p>
+      </div>
+    );
+  }
+  const Row = ({ label, value, k }: { label: string; value: string; k: string }) => (
+    <div className="flex items-center justify-between gap-2 border-t border-slate-100 py-2.5 first:border-t-0">
+      <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wide text-slate-400">{label}</div>
+        <div className="break-all font-mono text-sm font-bold text-slate-800">{value}</div>
+      </div>
+      <button type="button" onClick={() => copyField(value, k)} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${copiedField === k ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+        {copiedField === k ? "Copiado" : "Copiar"}
+      </button>
+    </div>
+  );
+  return (
+    <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
+      <h3 className="text-sm font-bold text-slate-900">Yapea a este número</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Abre Yape y envía <strong className="text-slate-800">S/ {info.amountPen}</strong> (equivale a ${amountUsd}) al número de abajo. Luego pega el <strong>número de operación</strong> (o el enlace de tu captura) y confírmanos.
+      </p>
+      <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3">
+        <Row label="Número Yape" value={String(info.number)} k="num" />
+        {info.name ? <Row label="Titular" value={String(info.name)} k="name" /> : null}
+        <Row label="Monto a enviar" value={`S/ ${info.amountPen}`} k="amt" />
+      </div>
+      <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+        Envía el monto exacto. Verifica que en Yape aparezca el titular correcto antes de enviar.
+      </p>
+      <label className="mt-4 block text-xs font-medium text-slate-700">Número de operación o enlace de la captura</label>
+      <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="Ej: 01234567 o link de la captura" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      <button onClick={onSend} disabled={loading || !proof.trim()} className="mt-3 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:bg-slate-400">
+        {loading ? "Enviando…" : "Ya yapeé, enviar comprobante"}
       </button>
     </div>
   );

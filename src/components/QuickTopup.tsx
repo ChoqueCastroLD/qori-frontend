@@ -55,8 +55,8 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.checkoutUrl) { window.location.href = d.checkoutUrl; return; }
-      if (res.ok && d.crypto) {
-        // Manual crypto fallback (no hosted checkout): finish on /recargar.
+      if (res.ok && (d.crypto || d.yape)) {
+        // Manual methods (crypto / Yape): finish with the proof flow on /recargar.
         window.location.href = `/recargar?need=${need}&para=${encodeURIComponent(slug)}`;
         return;
       }
@@ -90,7 +90,7 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
         })}
       </div>
 
-      <div className="mt-2 grid grid-cols-3 gap-2">
+      <div className="mt-2 grid grid-cols-4 gap-2">
         {[["MERCADOPAGO", "mercadopago", "MercadoPago"], ["PAYPAL", "paypal", "PayPal"], ["CRYPTO", "binance", "Cripto"]].map(([m, img, label]) => (
           <button key={m} type="button" onClick={() => setMethod(m)}
             className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition ${method === m ? "border-emerald-500 bg-white ring-1 ring-emerald-500" : "border-slate-200 bg-white hover:border-slate-300"}`}>
@@ -98,6 +98,11 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
             <span className="text-[9px] text-slate-500">{label}</span>
           </button>
         ))}
+        <button type="button" onClick={() => setMethod("YAPE")}
+          className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition ${method === "YAPE" ? "border-emerald-500 bg-white ring-1 ring-emerald-500" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+          <img src="/pay/yape.png" alt="Yape" className="h-5 object-contain" />
+          <span className="text-[9px] text-slate-500">Yape</span>
+        </button>
       </div>
 
       {err && <p role="alert" className="mt-2 text-xs text-red-600">{err}</p>}
