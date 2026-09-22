@@ -15,7 +15,7 @@ const CUR: Record<string, { code: string; sym: string; locale: string }> = {
 export default function Recharge() {
   const [me, setMe] = useState<any>(null);
   const [sel, setSel] = useState(1000);
-  const [method, setMethod] = useState("MERCADOPAGO");
+  const [method, setMethod] = useState("PAYPAL");
   const [loading, setLoading] = useState(false);
   const [fx, setFx] = useState<Record<string, number> | null>(null);
   const [raffles, setRaffles] = useState<any[]>([]);
@@ -126,8 +126,6 @@ export default function Recharge() {
   // panel, so reset it — otherwise the old locked S/ amount stays on screen.
   useEffect(() => {
     setCrypto(null); setYape(null); setCryptoTopupId(null); setProof(""); setProofSent(false); setPayErr("");
-    // Yape manual is $5+ only; if the amount drops below, fall back to MercadoPago.
-    if (method === "YAPE" && sel < 500) setMethod("MERCADOPAGO");
   }, [sel, method]);
 
   async function uploadYapeProof(file: File) {
@@ -262,11 +260,7 @@ export default function Recharge() {
 
         {/* Payment method */}
         <label className="mb-2 mt-5 block text-sm font-medium text-slate-700">Método de pago</label>
-        <div className="grid grid-cols-3 gap-2">
-          <button type="button" aria-pressed={method === "MERCADOPAGO"} onClick={() => setMethod("MERCADOPAGO")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "MERCADOPAGO" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
-            <img src="/pay/mercadopago.svg" alt="MercadoPago" className="h-6" />
-            <span className="text-[10px] text-slate-500">Yape · Plin · Tarjeta</span>
-          </button>
+        <div className="grid grid-cols-2 gap-2">
           <button type="button" aria-pressed={method === "PAYPAL"} onClick={() => setMethod("PAYPAL")} className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition ${method === "PAYPAL" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
             <img src="/pay/paypal.svg" alt="PayPal" className="h-6" />
             <span className="text-[10px] text-slate-500">Tarjeta o PayPal</span>
@@ -277,13 +271,6 @@ export default function Recharge() {
           </button>
         </div>
 
-        {/* Yape directo (manual): pagas a nuestro número y validamos tu recarga. Solo $5+ */}
-        <button type="button" aria-pressed={method === "YAPE"} disabled={sel < 500} onClick={() => setMethod("YAPE")} className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-3 transition disabled:cursor-not-allowed disabled:opacity-50 ${method === "YAPE" ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300"}`}>
-          <img src="/pay/yape.png" alt="Yape" className="h-6 object-contain" />
-          <span className="text-sm font-semibold text-slate-700">Yape directo</span>
-          <span className="text-[10px] text-slate-400">{sel < 500 ? "(desde $5)" : "(validación manual)"}</span>
-        </button>
-
         {payErr && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{payErr}</p>}
 
         {method === "CRYPTO" && crypto ? (
@@ -292,22 +279,15 @@ export default function Recharge() {
             proofSent={proofSent} onSend={sendProof} loading={loading}
             copyField={copyField} copiedField={copiedField}
           />
-        ) : method === "YAPE" && yape ? (
-          <YapePanel
-            info={yape} amountUsd={sel / 100} proofSent={proofSent} onUpload={uploadYapeProof} loading={loading}
-            copyField={copyField} copiedField={copiedField}
-          />
         ) : (
           <>
             <button onClick={pay} disabled={loading} className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-400">
-              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : method === "YAPE" ? `Yapear $${sel / 100} (validación manual)` : `Pagar $${sel / 100} con ${method === "PAYPAL" ? "PayPal" : "MercadoPago"}`}
+              {loading ? "Procesando…" : method === "CRYPTO" ? `Pagar $${sel / 100} con cripto (USDT)` : `Pagar $${sel / 100} con PayPal`}
             </button>
             <p className="mt-2 text-center text-xs text-slate-400">
               {method === "CRYPTO"
                 ? "Paga con USDT, Bitcoin y más. Los lingotes se acreditan automáticamente al confirmarse en la red."
-                : method === "YAPE"
-                  ? "Yapeas a nuestro número y subes el comprobante; validamos tu recarga y acreditamos tus lingotes."
-                  : "Pago seguro. Los lingotes se acreditan automáticamente al confirmarse."}
+                : "Pago seguro. Los lingotes se acreditan automáticamente al confirmarse."}
             </p>
           </>
         )}

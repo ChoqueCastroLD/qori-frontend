@@ -14,7 +14,7 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
   const [promo, setPromo] = useState(false);
   const [promoEnds, setPromoEnds] = useState<string | null>(null);
   const [sel, setSel] = useState<number | null>(null);
-  const [method, setMethod] = useState("MERCADOPAGO");
+  const [method, setMethod] = useState("PAYPAL");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -40,8 +40,6 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
   }, [pkgs, need]);
 
   useEffect(() => { if (suggested.length && sel == null) setSel(suggested[0].amountUsd); }, [suggested, sel]);
-  // Yape manual is $5+ only.
-  useEffect(() => { if (method === "YAPE" && sel != null && sel < 500) setMethod("MERCADOPAGO"); }, [sel, method]);
 
   const promoLeft = promo && promoEnds ? Math.max(0, Math.floor((new Date(promoEnds).getTime() - now) / 1000)) : 0;
   const hh = Math.floor(promoLeft / 3600), mm = Math.floor((promoLeft % 3600) / 60);
@@ -92,19 +90,14 @@ export default function QuickTopup({ slug, qty, comment, need }: { slug: string;
         })}
       </div>
 
-      <div className="mt-2 grid grid-cols-4 gap-2">
-        {[["MERCADOPAGO", "mercadopago", "MercadoPago"], ["PAYPAL", "paypal", "PayPal"], ["CRYPTO", "binance", "Cripto"]].map(([m, img, label]) => (
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {[["PAYPAL", "paypal", "PayPal"], ["CRYPTO", "binance", "Cripto"]].map(([m, img, label]) => (
           <button key={m} type="button" onClick={() => setMethod(m)}
             className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition ${method === m ? "border-emerald-500 bg-white ring-1 ring-emerald-500" : "border-slate-200 bg-white hover:border-slate-300"}`}>
             <img src={`/pay/${img}.svg`} alt={label} className="h-5" />
             <span className="text-[9px] text-slate-500">{label}</span>
           </button>
         ))}
-        <button type="button" disabled={!sel || sel < 500} onClick={() => setMethod("YAPE")}
-          className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition disabled:cursor-not-allowed disabled:opacity-50 ${method === "YAPE" ? "border-emerald-500 bg-white ring-1 ring-emerald-500" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-          <img src="/pay/yape.png" alt="Yape" className="h-5 object-contain" />
-          <span className="text-[9px] text-slate-500">Yape{sel && sel < 500 ? " $5+" : ""}</span>
-        </button>
       </div>
 
       {err && <p role="alert" className="mt-2 text-xs text-red-600">{err}</p>}
