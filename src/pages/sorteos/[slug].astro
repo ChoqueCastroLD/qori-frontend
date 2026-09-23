@@ -38,6 +38,7 @@ const sold = isBingo ? (bingoMeta?.meta?.soldCards ?? 0) : (r.ticketsSold ?? 0);
 const unit = isBingo ? "tarjeta" : "ticket";
 const isDrawn = r.status === "DRAWN";
 const isOpen = r.status === "OPEN";
+const isCancelled = r.status === "CANCELLED";
 // While the raffle is selling / about to draw, poll participants live.
 const partActive = r.status === "OPEN" || r.status === "CLOSED" || r.status === "DRAWING";
 // The live show is still playing (route people into it instead of spoiling).
@@ -224,6 +225,12 @@ const partTotal = partData.totalTickets ?? 0;
             <div class="flex items-center gap-2"><Icon name="lock" class="h-5 w-5 text-amber-700" /><h3 class="font-semibold text-amber-800">Sorteo no disponible</h3></div>
             <p class="mt-2 text-sm text-amber-700">Este sorteo está temporalmente desactivado{r.blockReason ? `: ${r.blockReason}` : "."}</p>
             <p class="mt-2 text-xs text-amber-600">Vuelve pronto, se reactivará en cuanto esté listo.</p>
+          </div>
+        ) : isCancelled ? (
+          <div class="rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="flex items-center gap-2"><Icon name="refresh" class="h-5 w-5 text-slate-500" /><h3 class="font-semibold text-slate-900">Sorteo cancelado</h3></div>
+            <p class="mt-2 text-sm text-slate-600">Este sorteo se canceló porque no alcanzó el mínimo de {isBingo ? "tarjetas" : "tickets"} para realizarse (<strong>{sold}/{r.minTickets}</strong>). Se <strong>reembolsaron todos los lingotes</strong> a los participantes, de vuelta a su saldo.</p>
+            <a href="/sorteos" class="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700">Ver otros sorteos <Icon name="arrow-right" class="h-4 w-4" /></a>
           </div>
         ) : isDrawn ? (
           <div class="space-y-4">

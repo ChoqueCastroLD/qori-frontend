@@ -65,7 +65,9 @@ const cta = r.blocked ? "Ver detalle" : isDrawn ? "Ver resultado" : isCancelled 
       </div>
     ) : isDrawn || isCancelled ? (
       <div class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">
-        {isCancelled ? "Sorteo cancelado: lingotes reembolsados." : "Resultado disponible en la página del sorteo."}
+        {isCancelled
+          ? <>Cancelado: no llegó al mínimo ({sold}/{r.minTickets} {isBingo ? "tarjetas" : "tickets"}). Lingotes reembolsados.</>
+          : "Resultado disponible en la página del sorteo."}
       </div>
     ) : (
       <div class="mt-4">
